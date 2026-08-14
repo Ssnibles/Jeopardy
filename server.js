@@ -3,6 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
 const multer = require('multer');
 
 const app = express();
@@ -17,8 +18,6 @@ const upload = multer({
 });
 
 app.use((req, res, next) => {
-  res.setHeader('Bypass-Tunnel-Reminder', 'true');
-  res.setHeader('bypass-tunnel-reminder', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
 });
@@ -26,8 +25,6 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
-    res.setHeader('Bypass-Tunnel-Reminder', 'true');
-    res.setHeader('bypass-tunnel-reminder', 'true');
     if (filePath.endsWith('.css')) {
       res.setHeader('Content-Type', 'text/css');
     }
@@ -81,27 +78,57 @@ app.get('/api/avatar/:id', (req, res) => {
 });
 
 let publicUrl = null;
+let tunnelProcess = null;
 
 async function startPublicTunnel() {
-  try {
-    const localtunnel = require('localtunnel');
-    const tunnel = await localtunnel({ port: PORT });
-    publicUrl = tunnel.url;
-    console.log(`\n==================================================`);
-    console.log(`  PUBLIC INTERNET ACCESSIBLE TUNNEL OPENED!`);
-    console.log(`  Public Link: ${publicUrl}`);
-    console.log(`  Share this link with players anywhere in the world!`);
-    console.log(`==================================================\n`);
+  return new Promise((resolve) => {
+    try {
+      // Use cloudflared quick tunnel (free, no account, native WebSocket support)
+      tunnelProcess = spawn('npx', ['-y', 'cloudflared', 'tunnel', '--url', `http://localhost:${PORT}`], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        shell: true
+      });
 
-    tunnel.on('close', () => {
-      console.log('[Tunnel] Public tunnel closed.');
-      publicUrl = null;
-    });
-    return publicUrl;
-  } catch (err) {
-    console.error('[Tunnel Error] Failed to open localtunnel:', err.message);
-    return null;
-  }
+      let resolved = false;
+
+      function parseUrl(data) {
+        const output = data.toString();
+        // cloudflared prints the URL to stderr
+        const match = output.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+        if (match && !resolved) {
+          resolved = true;
+          publicUrl = match[0];
+          console.log(`\n==================================================`);
+          console.log(`  PUBLIC INTERNET ACCESSIBLE TUNNEL OPENED!`);
+          console.log(`  Public Link: ${publicUrl}`);
+          console.log(`  Share this link with players anywhere in the world!`);
+          console.log(`==================================================\n`);
+          resolve(publicUrl);
+        }
+      }
+
+      tunnelProcess.stdout.on('data', parseUrl);
+      tunnelProcess.stderr.on('data', parseUrl);
+
+      tunnelProcess.on('close', (code) => {
+        console.log(`[Tunnel] cloudflared process exited (code ${code}).`);
+        publicUrl = null;
+        tunnelProcess = null;
+      });
+
+      // Timeout: if URL isn't found within 15 seconds, give up
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.error('[Tunnel Error] Timed out waiting for cloudflared URL.');
+          resolve(null);
+        }
+      }, 15000);
+    } catch (err) {
+      console.error('[Tunnel Error] Failed to start cloudflared:', err.message);
+      resolve(null);
+    }
+  });
 }
 
 app.get('/api/tunnel', (req, res) => {
@@ -140,6 +167,10 @@ function generateRoomCode() {
 // In-memory room store
 // rooms[roomCode] = { code, hostWs, gamePack, players: [], boardState: {}, currentClue: null, buzzerState: {}, lastActivity: timestamp }
 const rooms = {};
+
+// Grace period before marking a player as disconnected (allows tunnel reconnections)
+const DISCONNECT_GRACE_MS = 5000;
+const disconnectTimers = {}; // playerId -> timeout handle
 
 // Periodic cleanup timer for empty/stale rooms (runs every 15 mins)
 setInterval(() => {
@@ -237,9 +268,14 @@ wss.on('close', () => {
   clearInterval(heartbeatInterval);
 });
 
+let connIdCounter = 0;
+
 wss.on('connection', (ws) => {
+  connIdCounter++;
+  const connId = connIdCounter;
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
+  console.log(`[Conn#${connId}] New WebSocket connection opened`);
 
   let clientMeta = { role: null, roomCode: null, playerId: null };
 
@@ -320,8 +356,11 @@ wss.on('connection', (ws) => {
           const room = rooms[roomCode];
 
           if (!room) {
+            console.log(`[Conn#${connId}] JOIN_ROOM failed: room ${roomCode} not found`);
             return send(ws, 'ERROR', { message: 'Room not found. Check room code.' });
           }
+
+          console.log(`[Conn#${connId}] JOIN_ROOM for room=${roomCode} name=${name} playerId=${msgPlayerId || '(none)'}`);
 
           // 1. Check by msgPlayerId or clientMeta.playerId
           let existingPlayer = msgPlayerId ? room.players.find(p => p.id === msgPlayerId) : null;
@@ -339,9 +378,17 @@ wss.on('connection', (ws) => {
           let playerId;
 
           if (existingPlayer) {
+            // Cancel any pending disconnect grace timer for this player
+            if (disconnectTimers[existingPlayer.id]) {
+              clearTimeout(disconnectTimers[existingPlayer.id]);
+              delete disconnectTimers[existingPlayer.id];
+            }
+
             if (existingPlayer.ws && existingPlayer.ws !== ws) {
               try {
-                existingPlayer.ws.onclose = null;
+                // Remove server-side close listener so the old socket doesn't
+                // trigger the disconnect grace period after reconnection
+                existingPlayer.ws.removeAllListeners('close');
                 existingPlayer.ws.close();
               } catch (e) {}
             }
@@ -351,6 +398,7 @@ wss.on('connection', (ws) => {
             existingPlayer.color = color;
             if (avatar) existingPlayer.avatar = avatar;
             playerId = existingPlayer.id;
+            console.log(`[Conn#${connId}] [Room ${roomCode}] Player RECONNECTED: ${name} (${playerId}) connected=${existingPlayer.connected}`);
           } else {
             playerId = 'p_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
             const newPlayer = {
@@ -363,14 +411,24 @@ wss.on('connection', (ws) => {
               ws
             };
             room.players.push(newPlayer);
+            console.log(`[Conn#${connId}] [Room ${roomCode}] New player joined: ${name} (${playerId})`);
           }
 
           clientMeta = { role: 'PLAYER', roomCode, playerId };
+          room.lastActivity = Date.now();
           send(ws, 'PLAYER_JOIN_SUCCESS', { playerId, roomCode, state: getPublicRoomState(room) });
 
           // Broadcast updated state to room
           broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
-          console.log(`[Room ${roomCode}] Player joined/updated: ${name} (${playerId})`);
+          break;
+        }
+
+        // --- 3b. REQUEST STATE SYNC (any client) ---
+        case 'REQUEST_STATE': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room) return;
+          send(ws, 'ROOM_STATE', { state: getPublicRoomState(room) });
           break;
         }
 
@@ -441,7 +499,8 @@ wss.on('connection', (ws) => {
           room.buzzerState.activePlayerId = null;
           room.buzzerState.unlockTime = Date.now();
 
-          broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime });
+          // Include full room state so reconnected clients get the complete picture
+          broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime, state: getPublicRoomState(room) });
           break;
         }
 
@@ -529,7 +588,7 @@ wss.on('connection', (ws) => {
           room.buzzerState.activePlayerId = null;
           room.buzzerState.unlockTime = Date.now();
 
-          broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime });
+          broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime, state: getPublicRoomState(room) });
           break;
         }
 
@@ -589,10 +648,21 @@ wss.on('connection', (ws) => {
 
     if (role === 'PLAYER' && playerId) {
       const player = room.players.find(p => p.id === playerId);
+      // Only start disconnect grace period if this closing socket is still
+      // the player's active socket. If they already reconnected on a new
+      // socket, player.ws !== ws and we must NOT touch their status.
       if (player && player.ws === ws) {
-        player.connected = false;
-        broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
-        console.log(`[Room ${roomCode}] Player disconnected: ${player.name} (${playerId})`);
+        // Grace period: wait before marking offline to allow tunnel reconnections
+        if (disconnectTimers[playerId]) clearTimeout(disconnectTimers[playerId]);
+        disconnectTimers[playerId] = setTimeout(() => {
+          delete disconnectTimers[playerId];
+          // Re-check that the socket hasn't been replaced during the grace period
+          if (player.ws === ws) {
+            player.connected = false;
+            broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+            console.log(`[Room ${roomCode}] Player disconnected: ${player.name} (${playerId})`);
+          }
+        }, DISCONNECT_GRACE_MS);
       }
     }
   });

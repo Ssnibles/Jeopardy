@@ -109,8 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (reconnectTimer) clearTimeout(reconnectTimer);
     if (pingInterval) clearInterval(pingInterval);
 
-    // Prime tunnel HTTP proxy route to ensure loca.lt accepts background WS handshake
-    fetch('/api/tunnel', { headers: { 'Bypass-Tunnel-Reminder': 'true' } }).catch(() => {});
+
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     if (ws) {
@@ -164,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fullGamePack = msg.fullPack;
             renderHostBoard();
             renderPlayers();
+            updateActiveClueUI();
             break;
 
           case 'ROOM_STATE':
@@ -176,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           case 'CLUE_SELECTED':
             gameState = msg.state;
+            renderPlayers();
             updateActiveClueUI();
             break;
 
@@ -187,9 +188,11 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
 
           case 'BUZZERS_UNLOCKED':
-            if (gameState) gameState.buzzerState.state = 'UNLOCKED';
+            if (msg.state) gameState = msg.state;
+            else if (gameState) gameState.buzzerState.state = 'UNLOCKED';
             btnUnlockBuzzers.disabled = true;
             btnUnlockBuzzers.innerText = 'BUZZERS ACTIVE';
+            renderPlayers();
             break;
 
           case 'PLAYER_BUZZED':

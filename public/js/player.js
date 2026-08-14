@@ -38,11 +38,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const setupAvatarFile = document.getElementById('setupAvatarFile');
   const btnSubmitSetup = document.getElementById('btnSubmitSetup');
 
-  let playerId = null;
+  let playerId = sessionStorage.getItem('jeopardy_playerId') || localStorage.getItem('jeopardy_playerId') || null;
   let ws = null;
   let buzzerState = 'LOCKED';
   let currentClueObj = null;
   let selectedAvatarFile = null;
+
+  let reconnectTimer = null;
+  let reconnectAttempts = 0;
+  let pingInterval = null;
+  let wsId = 0;
 
   // Initialize Setup Form Inputs
   setupRoomCode.value = roomCode;
@@ -258,9 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  let reconnectTimer = null;
-  let reconnectAttempts = 0;
-  let pingInterval = null;
+
 
   // Initialize WebSocket Connection with Auto-Reconnect
   function initWebSocket() {
@@ -275,57 +278,86 @@ document.addEventListener('DOMContentLoaded', () => {
     playerAvatarUrl = playerAvatarUrl || sessionStorage.getItem('jeopardy_avatar') || localStorage.getItem('jeopardy_avatar') || '';
     playerId = playerId || sessionStorage.getItem('jeopardy_playerId') || localStorage.getItem('jeopardy_playerId') || '';
 
-    // Prime tunnel HTTP proxy route to ensure loca.lt accepts background WS handshake
-    fetch('/api/tunnel', { headers: { 'Bypass-Tunnel-Reminder': 'true' } }).catch(() => {});
-
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     if (ws) {
       ws.onopen = null;
       ws.onmessage = null;
       ws.onerror = null;
       ws.onclose = null;
-      try { ws.close(); } catch (e) {}
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        try { ws.close(); } catch (e) {}
+      }
     }
-    ws = new WebSocket(`${protocol}//${window.location.host}`);
 
-    ws.onopen = () => {
+    wsId++;
+    const thisWsId = wsId;
+    const thisSocket = new WebSocket(`${protocol}//${window.location.host}`);
+    ws = thisSocket;
+    console.log(`[WS#${thisWsId}] Creating connection to ${protocol}//${window.location.host} (playerId=${playerId}, name=${playerName})`);
+
+    thisSocket.onopen = () => {
+      // Guard: if ws has been replaced by a newer initWebSocket call, abandon this one
+      if (ws !== thisSocket) {
+        console.warn(`[WS#${thisWsId}] onopen fired but socket already replaced, closing stale socket`);
+        thisSocket.close();
+        return;
+      }
+      console.log(`[WS#${thisWsId}] Connected! Sending JOIN_ROOM...`);
       reconnectAttempts = 0;
-      ws.send(JSON.stringify({
+
+      const joinPayload = {
         type: 'JOIN_ROOM',
         roomCode,
         playerId: playerId || sessionStorage.getItem('jeopardy_playerId') || localStorage.getItem('jeopardy_playerId') || '',
         name: playerName,
         color: playerColor,
         avatar: playerAvatarUrl
-      }));
+      };
+      console.log(`[WS#${thisWsId}] JOIN_ROOM payload:`, JSON.stringify(joinPayload));
+      thisSocket.send(JSON.stringify(joinPayload));
 
-      // Application keepalive ping every 10s to keep tunnel proxies open
+      // Application keepalive ping every 10s
       pingInterval = setInterval(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          try { ws.send(JSON.stringify({ type: 'PING' })); } catch (e) {}
+        if (thisSocket.readyState === WebSocket.OPEN) {
+          try { thisSocket.send(JSON.stringify({ type: 'PING' })); } catch (e) {}
         }
       }, 10000);
     };
 
-    ws.onclose = () => {
+    thisSocket.onclose = (event) => {
+      console.log(`[WS#${thisWsId}] Connection closed (code=${event.code}, reason=${event.reason}, wasClean=${event.wasClean})`);
       if (pingInterval) clearInterval(pingInterval);
-      scheduleReconnect();
+      // Only schedule reconnect if this is still the active socket
+      if (ws === thisSocket) {
+        scheduleReconnect();
+      }
     };
 
-    ws.onerror = (err) => {
-      console.warn('WebSocket encountered an error:', err);
+    thisSocket.onerror = (err) => {
+      console.warn(`[WS#${thisWsId}] WebSocket error:`, err);
     };
 
-    ws.onmessage = (event) => {
+    thisSocket.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
+        if (msg.type !== 'PONG') {
+          console.log(`[WS#${thisWsId}] Received: ${msg.type}`);
+        }
 
         switch (msg.type) {
           case 'PLAYER_JOIN_SUCCESS':
+            console.log(`[WS#${thisWsId}] Join success! playerId=${msg.playerId}`);
             playerId = msg.playerId;
             sessionStorage.setItem('jeopardy_playerId', msg.playerId);
             localStorage.setItem('jeopardy_playerId', msg.playerId);
             updatePlayerState(msg.state);
+            // Safety net: request fresh state shortly after reconnect
+            setTimeout(() => {
+              if (thisSocket.readyState === WebSocket.OPEN) {
+                console.log(`[WS#${thisWsId}] Requesting state sync...`);
+                try { thisSocket.send(JSON.stringify({ type: 'REQUEST_STATE' })); } catch (e) {}
+              }
+            }, 1000);
             break;
 
           case 'ROOM_STATE':
@@ -335,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
 
           case 'BUZZERS_UNLOCKED':
+            if (msg.state) updatePlayerState(msg.state);
             setBuzzerUnlocked();
             break;
 
@@ -362,12 +395,13 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
 
           case 'ERROR':
+            console.error(`[WS#${thisWsId}] Server error: ${msg.message}`);
             alert(msg.message);
             playerJoinModal.style.display = 'flex';
             break;
         }
       } catch (err) {
-        console.error('WS Error:', err);
+        console.error(`[WS#${thisWsId}] Parse error:`, err);
       }
     };
   }
@@ -376,6 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (reconnectTimer) clearTimeout(reconnectTimer);
     reconnectAttempts++;
     const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000);
+    console.log(`[Reconnect] Attempt #${reconnectAttempts} in ${delay}ms...`);
     buzzerStatus.innerText = `Connection lost. Reconnecting...`;
     buzzerStatus.style.color = 'var(--color-danger)';
     reconnectTimer = setTimeout(() => {
@@ -503,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const key = `${catIdx}-${clueIdx}`;
         const isRevealed = state.boardState && state.boardState[key];
-        const isCurrent = state.currentClue && state.currentClue.categoryIndex === catIdx && state.currentClue.clueIndex === clueIdx;
+        const isCurrent = state.currentClue && state.currentClue.catIndex === catIdx && state.currentClue.clueIndex === clueIdx;
 
         if (isRevealed) {
           card.classList.add('revealed');
@@ -603,6 +638,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btnBuzzer.innerText = 'WAIT';
     buzzerStatus.innerText = statusText || 'Waiting...';
     buzzerStatus.style.color = 'var(--text-muted)';
+    if (currentClueObj) {
+      showClueDetails(currentClueObj);
+    }
   }
 
   // Keyboard Shortcut Listener for Buzzing (Space or Enter)

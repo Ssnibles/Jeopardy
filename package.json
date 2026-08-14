@@ -7,7 +7,7 @@
     "start": "node server.js",
     "start:public": "node server.js --public",
     "dev": "node --watch server.js",
-    "tunnel": "npx localtunnel --port 3000"
+    "tunnel": "npx -y cloudflared tunnel --url http://localhost:3000"
   },
   "keywords": [
     "jeopardy",
@@ -20,7 +20,6 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.21.2",
-    "localtunnel": "^2.0.2",
     "multer": "^1.4.5-lts.1",
     "ws": "^8.18.0"
   }
