@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeopardy Main Screen Display</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <header class="header-bar">
+    <div class="brand">
+      <span class="brand-icon">📺</span> JEOPARDY! TV DISPLAY
+    </div>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <div id="roomBadge" class="room-badge" style="font-size: 1.15rem;">ROOM: ----</div>
+      <button id="btnFullscreen" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">⛶ Fullscreen</button>
+      <button id="btnExitTV" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">🚪 Exit TV Mode</button>
+    </div>
+  </header>
+
+  <main class="container" style="max-width: 1400px; padding: 0 1rem; margin-top: 1rem;">
+
+    <!-- JEOPARDY MAIN BOARD GRID -->
+    <div id="tvBoard" class="jeopardy-board" style="min-height: 520px; gap: 1rem;">
+      <!-- Rendered dynamically -->
+    </div>
+
+    <!-- BOTTOM PLAYER SCORE STRIP -->
+    <div style="margin-top: 1.5rem; background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-md);">
+      <h3 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 0.5rem;">CONTESTANTS</h3>
+      <div id="tvScoreboard" class="scoreboard">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FULLSCREEN CLUE OVERLAY FOR TV -->
+  <div id="tvClueModal" class="clue-modal">
+    <div class="clue-content" style="max-width: 1000px;">
+      <div id="tvCategoryTitle" class="clue-category-title">Category</div>
+      <div id="tvClueValue" class="clue-value-badge">$200</div>
+      
+      <div id="tvClueText" class="clue-text"></div>
+      
+      <img id="tvClueImage" src="" alt="Clue Image Attachment" class="clue-image" style="display: none;">
+
+      <div id="tvAnswerBox" class="clue-answer" style="display: none;">
+        ANSWER: <span id="tvAnswerText"></span>
+      </div>
+
+      <!-- TV BUZZ ALERT POPUP -->
+      <div id="tvBuzzAlert" style="display: none; margin-top: 1.5rem; background: var(--jeopardy-gold); color: #000; padding: 1rem 2.5rem; border-radius: var(--radius-full); font-size: 2rem; font-weight: 900; box-shadow: var(--shadow-lg);">
+        🔔 <span id="tvBuzzPlayerName">Player</span> BUZZED IN!
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/audio.js"></script>
+  <script src="/js/board.js"></script>
+</body>
+</html>

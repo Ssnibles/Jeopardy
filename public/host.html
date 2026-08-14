@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeopardy Host Control Panel</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <header class="header-bar">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a href="/" class="brand">
+        <span class="brand-icon">👑</span> Host Control
+      </a>
+      <div id="roomBadge" class="room-badge">ROOM: ----</div>
+    </div>
+    <div class="nav-links">
+      <button id="btnPublicTunnel" class="btn btn-gold">🌐 Enable Internet Access</button>
+      <button id="btnCopyInvite" class="btn">📋 Copy Invite Link</button>
+      <a href="/board.html" id="linkTV" target="_blank" class="btn">📺 Open TV Screen Display</a>
+      <a href="/" class="btn btn-danger">Exit Room</a>
+    </div>
+  </header>
+
+  <main class="container" style="max-width: 1400px; width: 95%; margin: 1.25rem auto 2rem auto;">
+
+    <!-- Active Clue Host Control Bar (When a clue is active) -->
+    <div id="hostClueControlPanel" class="host-clue-panel" style="display: none;">
+      <div class="host-clue-header">
+        <div>
+          <span id="activeClueCategory" style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em;">Category</span>
+          <h2 id="activeClueValue" style="font-size: 2rem; color: var(--jeopardy-gold); font-weight: 900; margin-top: 0.1rem;">$200</h2>
+        </div>
+
+        <div id="buzzerControlsGroup" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button id="btnUnlockBuzzers" class="btn btn-gold" style="font-size: 1.05rem; padding: 0.75rem 1.5rem;">⚡ UNLOCK BUZZERS</button>
+          <button id="btnResetBuzzers" class="btn">🔄 Reset Buzzers</button>
+          <button id="btnCloseClue" class="btn btn-danger">❌ Close Clue</button>
+        </div>
+      </div>
+
+      <div>
+        <p id="activeClueText" style="font-size: 1.3rem; font-weight: 600; color: #fff; margin-bottom: 0.5rem; line-height: 1.4;"></p>
+        <p id="activeClueAnswer" style="font-size: 1.15rem; color: var(--color-success); font-weight: 800; background: rgba(16, 185, 129, 0.1); padding: 0.6rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--color-success); margin-top: 0.5rem;">
+          💡 ANSWER: <span id="answerText"></span>
+        </p>
+
+        <!-- Daily Double Wager Form -->
+        <div id="dailyDoubleForm" style="display: none; margin-top: 1rem; background: rgba(251,191,36,0.1); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--jeopardy-gold);">
+          <h3 style="color: var(--jeopardy-gold); margin-bottom: 0.5rem; font-size: 1.1rem;">⭐ DAILY DOUBLE WAGER</h3>
+          <div style="display: flex; gap: 1rem; align-items: center;">
+            <input type="number" id="wagerInput" class="form-control" placeholder="Enter wager amount ($)" style="width: 220px;">
+            <button id="btnSetWager" class="btn btn-gold">Confirm Wager</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Buzz Winner Action Box -->
+      <div id="buzzWinnerBox" class="buzz-winner-banner" style="display: none;">
+        <div class="buzz-winner-title">
+          <span id="buzzWinnerName">Player Buzzed In!</span>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button id="btnMarkCorrect" class="btn btn-success" style="font-size: 1rem; padding: 0.6rem 1.25rem;">✓ Correct (+<span class="clueValSpan"></span>)</button>
+          <button id="btnMarkWrong" class="btn btn-danger" style="font-size: 1rem; padding: 0.6rem 1.25rem;">✗ Incorrect (-<span class="clueValSpan"></span>)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN BOARD & PLAYER SIDEBAR GRID -->
+    <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 1.5rem;">
+
+      <!-- JEOPARDY BOARD GRID -->
+      <div class="glass-panel" style="padding: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--jeopardy-gold);">👑 Host Interactive Game Board</h2>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Click any clue tile to present to players</span>
+        </div>
+        <div id="hostBoard" class="jeopardy-board">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- PLAYERS & SCOREBOARD SIDEBAR -->
+      <div class="glass-panel" style="display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem;">
+        <div class="host-sidebar-header">
+          <h3 style="font-size: 1.15rem; font-weight: 800;">
+            👥 Players (<span id="playerCount">0</span>)
+          </h3>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Quick Adjust</span>
+        </div>
+
+        <div id="playersList" style="display: flex; flex-direction: column; gap: 0.65rem; overflow-y: auto; max-height: 550px;">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script src="/js/audio.js"></script>
+  <script src="/js/host.js"></script>
+</body>
+</html>

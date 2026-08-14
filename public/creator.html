@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeopardy Game Creator - Custom Pack Builder</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <header class="header-bar">
+    <a href="/" class="brand">
+      <span class="brand-icon">⚡</span> Jeopardy Creator
+    </a>
+    <div class="nav-links">
+      <button id="btnLaunchRoom" class="btn btn-primary">🚀 Launch Game Room</button>
+      <button id="btnExport" class="btn btn-gold">📥 Export Pack JSON</button>
+      <label for="importFile" class="btn">📤 Import Pack JSON</label>
+      <input type="file" id="importFile" accept=".json" style="display: none;">
+      <a href="/" class="btn">🏠 Home Lobby</a>
+    </div>
+  </header>
+
+  <main class="container" style="max-width: 1400px; width: 95%;">
+    <div class="glass-panel" style="margin-bottom: 2rem;">
+      <h1 style="font-size: 2rem; margin-bottom: 0.35rem; color: var(--jeopardy-gold);">
+        🎨 Custom Question Pack Creator
+      </h1>
+      <p style="color: var(--text-muted); margin-bottom: 1.25rem; font-size: 0.9rem;">
+        Build custom Jeopardy boards with text clues, answers, point values, daily doubles, and uploaded or linked images.
+      </p>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="packTitle">Game Pack Title</label>
+          <input type="text" id="packTitle" class="form-control" value="My Custom Jeopardy Pack" placeholder="e.g., Movie Trivia 2026">
+        </div>
+        <div class="form-group">
+          <label for="packAuthor">Author Name</label>
+          <input type="text" id="packAuthor" class="form-control" value="Quiz Master" placeholder="e.g., Alex">
+        </div>
+      </div>
+    </div>
+
+    <!-- Board Action Bar & Categories Grid -->
+    <div style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <h2 style="font-size: 1.35rem; font-weight: 800; color: #fff;">Board Categories & Clues</h2>
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <button id="btnAddCategory" class="btn">+ Add Category</button>
+        <button id="btnResetPack" class="btn btn-danger">Reset Board</button>
+      </div>
+    </div>
+
+    <!-- Categories Container -->
+    <div id="creatorCategoriesGrid" class="creator-grid">
+      <!-- Rendered dynamically by creator.js -->
+    </div>
+  </main>
+
+  <!-- Clue Editor Modal -->
+  <div id="clueEditorModal" class="clue-modal">
+    <div class="glass-panel clue-content" style="max-width: 650px; text-align: left; padding: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.85rem; width: 100%;">
+        <div>
+          <h3 id="modalTitle" style="font-size: 1.3rem; color: var(--jeopardy-gold); margin-bottom: 0.1rem;">Edit Clue</h3>
+          <div style="font-size: 0.82rem; color: var(--text-muted);">Configure question text, answer, and optional media attachment</div>
+        </div>
+        <button id="btnCloseModal" type="button" class="btn" style="padding: 0.35rem 0.65rem; background: transparent; border: 1px solid var(--border-medium); color: var(--text-muted); font-size: 0.95rem;">✕</button>
+      </div>
+
+      <form id="clueForm" style="width: 100%; display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+        <div class="form-group">
+          <label for="clueText">📝 Clue / Question Text</label>
+          <textarea id="clueText" class="form-control" rows="3" placeholder="Enter clue text shown to players..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="clueAnswer">💡 Correct Answer</label>
+          <input type="text" id="clueAnswer" class="form-control" placeholder="Enter expected correct answer...">
+        </div>
+
+        <!-- Point Value & Daily Double Options Card -->
+        <div style="background: var(--bg-dark-elevated); padding: 0.85rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-medium); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <label for="clueValue" style="margin: 0; font-weight: 700; color: #fff; font-size: 0.9rem;">💰 Value ($):</label>
+            <input type="number" id="clueValue" class="form-control" value="200" step="100" min="100" max="5000" style="width: 95px; padding: 0.35rem 0.5rem; text-align: center; font-weight: 800; color: var(--jeopardy-gold);">
+            <div style="display: flex; gap: 0.25rem;">
+              <button type="button" class="preset-val-btn" data-val="200">$200</button>
+              <button type="button" class="preset-val-btn" data-val="400">$400</button>
+              <button type="button" class="preset-val-btn" data-val="600">$600</button>
+              <button type="button" class="preset-val-btn" data-val="800">$800</button>
+              <button type="button" class="preset-val-btn" data-val="1000">$1000</button>
+            </div>
+          </div>
+
+          <label id="lblDailyDouble" class="daily-double-toggle">
+            <input type="checkbox" id="clueDailyDouble" style="display: none;">
+            <span>⭐ Daily Double</span>
+          </label>
+        </div>
+
+        <!-- IMAGE ATTACHMENT SECTION -->
+        <div class="form-group" style="background: var(--bg-dark-elevated); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-medium);">
+          <label style="font-weight: 700; color: #fff; margin-bottom: 0.4rem; display: block;">🖼️ Clue Image Attachment (Optional)</label>
+
+          <div class="editor-source-toggle">
+            <button type="button" id="btnSourceUpload" class="editor-source-btn active">📁 Upload File</button>
+            <button type="button" id="btnSourceUrl" class="editor-source-btn">🔗 Web Image URL</button>
+          </div>
+
+          <div id="uploadInputGroup">
+            <div id="creatorImageDropzone" class="creator-img-dropzone">
+              <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+              <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <span style="font-size: 1.1rem;">📥</span> Click or drag image file here to attach
+              </div>
+              <div id="uploadStatus" style="font-size: 0.82rem; color: var(--color-success); font-weight: 600; margin-top: 0.3rem;"></div>
+            </div>
+          </div>
+
+          <div id="urlInputGroup" style="display: none; margin-top: 0.5rem;">
+            <input type="url" id="imageUrlInput" class="form-control" placeholder="https://example.com/image.png">
+          </div>
+
+          <div id="imagePreviewContainer" style="margin-top: 0.75rem; display: none; background: var(--bg-dark); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">Attached Image Preview:</span>
+              <button type="button" id="btnRemoveImage" class="btn btn-danger" style="padding: 0.2rem 0.65rem; font-size: 0.78rem;">🗑️ Remove Image</button>
+            </div>
+            <div style="display: flex; justify-content: center; background: rgba(0,0,0,0.4); padding: 0.5rem; border-radius: 6px;">
+              <img id="imagePreview" src="" alt="Clue preview" style="max-height: 160px; max-width: 100%; object-fit: contain; border-radius: 6px; border: 1px solid var(--border-subtle);">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button type="button" id="btnCancelModal" class="btn">Cancel</button>
+          <button type="submit" id="btnSaveClue" class="btn btn-gold">Save Clue</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/creator.js"></script>
+</body>
+</html>

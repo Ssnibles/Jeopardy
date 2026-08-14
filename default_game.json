@@ -1,0 +1,56 @@
+{
+  "title": "Ultimate Trivia Showdown",
+  "author": "Jeopardy Host",
+  "categories": [
+    {
+      "name": "Science & Tech",
+      "clues": [
+        { "value": 200, "clue": "This programming language named after a coffee bean was developed by James Gosling at Sun Microsystems.", "answer": "Java", "image": "", "dailyDouble": false },
+        { "value": 400, "clue": "What is the chemical symbol for Gold on the periodic table?", "answer": "Au", "image": "", "dailyDouble": false },
+        { "value": 600, "clue": "This company introduced the iPhone in 2007, revolutionizing smartphones.", "answer": "Apple", "image": "", "dailyDouble": false },
+        { "value": 800, "clue": "Which space telescope launched in December 2021 as the successor to Hubble?", "answer": "James Webb Space Telescope (JWST)", "image": "", "dailyDouble": true },
+        { "value": 1000, "clue": "In physics, what constant approximately equal to 3 x 10^8 m/s is denoted by 'c'?", "answer": "Speed of light", "image": "", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "World Landmarks",
+      "clues": [
+        { "value": 200, "clue": "Located in Paris, France, this iron lattice tower on the Champ de Mars was constructed for the 1889 World's Fair.", "answer": "Eiffel Tower", "image": "", "dailyDouble": false },
+        { "value": 400, "clue": "This ancient amphitheatre in Rome, Italy, held gladiatorial contests and public spectacles.", "answer": "The Colosseum", "image": "", "dailyDouble": false },
+        { "value": 600, "clue": "This white marble mausoleum on the south bank of the Yamuna River in Agra was commissioned by Shah Jahan.", "answer": "Taj Mahal", "image": "", "dailyDouble": false },
+        { "value": 800, "clue": "This ancient Incan citadel located in the Eastern Cordillera of southern Peru was built around 1450.", "answer": "Machu Picchu", "image": "", "dailyDouble": false },
+        { "value": 1000, "clue": "This iconic modernist building with shell-like sails on Bennelong Point opened in 1973 in Australia.", "answer": "Sydney Opera House", "image": "", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Pop Culture & Movies",
+      "clues": [
+        { "value": 200, "clue": "In the Marvel Cinematic Universe, what is the name of Thor's home realm?", "answer": "Asgard", "image": "", "dailyDouble": false },
+        { "value": 400, "clue": "Which movie won the Academy Award for Best Picture in 2020, becoming the first non-English film to win?", "answer": "Parasite", "image": "", "dailyDouble": false },
+        { "value": 600, "clue": "What color pill does Neo take in The Matrix to discover the truth?", "answer": "Red Pill", "image": "", "dailyDouble": false },
+        { "value": 800, "clue": "Who directed the sci-fi epics Interstellar, Inception, and Oppenheimer?", "answer": "Christopher Nolan", "image": "", "dailyDouble": false },
+        { "value": 1000, "clue": "What is the name of the fictional kingdom where Disney's 'Frozen' is set?", "answer": "Arendelle", "image": "", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Gaming",
+      "clues": [
+        { "value": 200, "clue": "This plumber in blue overalls and a red cap is Nintendo's flagship mascot.", "answer": "Mario", "image": "", "dailyDouble": false },
+        { "value": 400, "clue": "What block-building sandbox game created by Markus 'Notch' Persson became the best-selling video game in history?", "answer": "Minecraft", "image": "", "dailyDouble": false },
+        { "value": 600, "clue": "In 'The Legend of Zelda' series, what is the primary name of the heroic protagonist with green tunic?", "answer": "Link", "image": "", "dailyDouble": false },
+        { "value": 800, "clue": "What fictional video game island is the primary setting of Fortnite Battle Royale?", "answer": "Apollo / Athena / The Island", "image": "", "dailyDouble": false },
+        { "value": 1000, "clue": "What year was the original Sony PlayStation console released in Japan?", "answer": "1994", "image": "", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Food & Drink",
+      "clues": [
+        { "value": 200, "clue": "What primary ingredient is used to make guacamole?", "answer": "Avocado", "image": "", "dailyDouble": false },
+        { "value": 400, "clue": "What Italian dish consists of thin layers of pasta alternated with sauce, cheese, and meat or vegetables?", "answer": "Lasagna", "image": "", "dailyDouble": false },
+        { "value": 600, "clue": "What type of tea is flavored with oil of bergamot orange?", "answer": "Earl Grey", "image": "", "dailyDouble": false },
+        { "value": 800, "clue": "From which country does the dish Kimchi originate?", "answer": "South Korea (Korea)", "image": "", "dailyDouble": false },
+        { "value": 1000, "clue": "What is the main spirit in a classic Mojito cocktail?", "answer": "White Rum", "image": "", "dailyDouble": false }
+      ]
+    }
+  ]
+}

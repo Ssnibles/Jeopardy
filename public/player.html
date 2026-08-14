@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Jeopardy Player Buzzer</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <header class="header-bar">
+    <div id="btnPlayerProfile" style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;" title="Click to edit profile">
+      <div id="playerAvatar" class="player-avatar" style="background: var(--jeopardy-gold);">P</div>
+      <div>
+        <h2 id="playerNameHeader" style="font-size: 1.1rem; font-weight: 800; color: #fff;">Player</h2>
+        <div id="playerScoreHeader" style="font-size: 1rem; font-weight: 900; color: var(--jeopardy-gold);">$0</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <div id="roomBadge" class="room-badge">ROOM: ----</div>
+    </div>
+  </header>
+
+  <main class="container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh;">
+
+    <!-- CLUE DISPLAY BOX (Player view of active clue + image if attached) -->
+    <div id="playerClueBox" class="glass-panel" style="display: none; width: 100%; max-width: 600px; text-align: center; margin-bottom: 1.5rem; border-color: var(--border-subtle);">
+      <div id="playerClueCategory" style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; font-weight: 700;">Category</div>
+      <div id="playerClueValue" style="font-size: 1.75rem; font-weight: 900; color: var(--jeopardy-gold); margin: 0.25rem 0;">$200</div>
+      <div id="playerClueText" style="font-size: 1.25rem; font-weight: 600; line-height: 1.4; color: #fff; margin-top: 0.5rem;"></div>
+      <img id="playerClueImage" src="" alt="Clue image" style="display: none; max-width: 100%; max-height: 200px; border-radius: var(--radius-md); margin-top: 0.75rem; border: 1px solid var(--border-subtle);">
+    </div>
+
+    <!-- GIANT BUZZER CONTAINER -->
+    <div class="buzzer-container">
+      <button id="btnBuzzer" class="buzzer-btn" disabled>
+        BUZZ
+      </button>
+
+      <div id="buzzerStatus" class="buzzer-status" style="color: var(--text-muted);">
+        Waiting for Host to start clue...
+      </div>
+    </div>
+
+  </main>
+
+  <!-- PLAYER SETUP / JOIN MODAL -->
+  <div id="playerJoinModal" class="clue-modal active" style="display: flex;">
+    <div class="clue-content glass-panel" style="max-width: 480px; width: 90%; text-align: center; padding: 2rem;">
+      <h2 style="font-size: 1.8rem; font-weight: 900; color: var(--jeopardy-gold); margin-bottom: 0.5rem;">⭐ Contestant Setup</h2>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">Set up your profile to join the Jeopardy room</p>
+
+      <form id="playerSetupForm" style="width: 100%;">
+        <div class="form-group">
+          <label for="setupRoomCode">ROOM CODE</label>
+          <input type="text" id="setupRoomCode" class="form-control" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.1em;" required placeholder="e.g. F28D" maxlength="4">
+        </div>
+
+        <div class="form-group">
+          <label for="setupName">YOUR NICKNAME</label>
+          <input type="text" id="setupName" class="form-control" required placeholder="Enter contestant name">
+        </div>
+
+        <div class="form-group">
+          <label>AVATAR & BUZZER COLOR</label>
+          <div class="identity-customizer">
+            <div class="avatar-upload-wrapper" id="btnUploadSetupAvatar" title="Click to upload custom photo">
+              <div id="avatarPreviewBubble" class="avatar-bubble-lg" style="background: #3b82f6;">?</div>
+              <div class="avatar-overlay">📷<span>Edit</span></div>
+            </div>
+            <input type="file" id="setupAvatarFile" accept="image/*" style="display: none;">
+
+            <div class="color-swatches-container">
+              <span class="color-swatches-label">Select Color (Click avatar to change photo)</span>
+              <div class="color-swatches-row" id="setupColorSwatches">
+                <div class="color-dot active" data-color="#3b82f6" style="background: #3b82f6;"></div>
+                <div class="color-dot" data-color="#10b981" style="background: #10b981;"></div>
+                <div class="color-dot" data-color="#f59e0b" style="background: #f59e0b;"></div>
+                <div class="color-dot" data-color="#ef4444" style="background: #ef4444;"></div>
+                <div class="color-dot" data-color="#8b5cf6" style="background: #8b5cf6;"></div>
+                <div class="color-dot" data-color="#ec4899" style="background: #ec4899;"></div>
+                <div class="color-picker-button" title="Custom Color">
+                  <input type="color" id="setupColor" value="#3b82f6">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="btnSubmitSetup" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1.1rem; margin-top: 0.75rem;">
+          🚀 Join Contestant Screen
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/audio.js"></script>
+  <script src="/js/player.js"></script>
+</body>
+</html>
