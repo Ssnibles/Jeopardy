@@ -25,6 +25,15 @@
 
   <main class="container" style="max-width: 1400px; width: 95%; margin: 1.25rem auto 2rem auto;">
 
+    <!-- HOST KEYBOARD SHORTCUTS BAR -->
+    <div class="keyboard-hints-bar" style="margin-bottom: 1rem;">
+      <span style="font-weight: 700; color: var(--jeopardy-gold);">⌨️ Hotkeys:</span>
+      <span><kbd class="key-pill">Space</kbd> Unlock/Reset</span>
+      <span><kbd class="key-pill">X</kbd> Wrong</span>
+      <span><kbd class="key-pill">C</kbd> Correct</span>
+      <span><kbd class="key-pill">Esc</kbd> Close Clue</span>
+    </div>
+
     <!-- Active Clue Host Control Bar (When a clue is active) -->
     <div id="hostClueControlPanel" class="host-clue-panel" style="display: none;">
       <div class="host-clue-header">
@@ -62,8 +71,8 @@
           <span id="buzzWinnerName">Player Buzzed In!</span>
         </div>
         <div style="display: flex; gap: 0.75rem;">
-          <button id="btnMarkCorrect" class="btn btn-success" style="font-size: 1rem; padding: 0.6rem 1.25rem;">✓ Correct (+<span class="clueValSpan"></span>)</button>
           <button id="btnMarkWrong" class="btn btn-danger" style="font-size: 1rem; padding: 0.6rem 1.25rem;">✗ Incorrect (-<span class="clueValSpan"></span>)</button>
+          <button id="btnMarkCorrect" class="btn btn-success" style="font-size: 1rem; padding: 0.6rem 1.25rem;">✓ Correct (+<span class="clueValSpan"></span>)</button>
         </div>
       </div>
     </div>

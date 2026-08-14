@@ -21,6 +21,34 @@ document.addEventListener('DOMContentLoaded', () => {
   let customLoadedPack = null;
   let selectedAvatarFile = null;
 
+  // Restore saved contestant profile and room info from localStorage/sessionStorage
+  const savedName = localStorage.getItem('jeopardy_name') || sessionStorage.getItem('jeopardy_name');
+  const savedColor = localStorage.getItem('jeopardy_color') || sessionStorage.getItem('jeopardy_color');
+  const savedAvatar = localStorage.getItem('jeopardy_avatar') || sessionStorage.getItem('jeopardy_avatar');
+  const savedRoom = localStorage.getItem('jeopardy_room') || sessionStorage.getItem('jeopardy_room');
+
+  if (joinName && savedName) {
+    joinName.value = savedName;
+  }
+  if (joinColor && savedColor) {
+    joinColor.value = savedColor;
+    if (joinAvatarPreview && !savedAvatar) {
+      joinAvatarPreview.style.background = savedColor;
+    }
+  }
+  if (joinAvatarPreview && savedName && !savedAvatar) {
+    joinAvatarPreview.innerText = savedName.charAt(0).toUpperCase();
+  }
+  if (joinAvatarPreview && savedAvatar) {
+    joinAvatarPreview.style.backgroundImage = `url('${savedAvatar}')`;
+    joinAvatarPreview.style.backgroundSize = 'cover';
+    joinAvatarPreview.style.backgroundPosition = 'center';
+    joinAvatarPreview.innerText = '';
+  }
+  if (tvRoomCode && savedRoom) {
+    tvRoomCode.value = savedRoom;
+  }
+
   const cardDefaultPack = document.getElementById('cardDefaultPack');
   const cardCustomPack = document.getElementById('cardCustomPack');
   const packDropzone = document.getElementById('packDropzone');
@@ -224,6 +252,12 @@ document.addEventListener('DOMContentLoaded', () => {
           console.error('Avatar upload failed:', err);
         }
       }
+
+      localStorage.setItem('jeopardy_role', 'PLAYER');
+      localStorage.setItem('jeopardy_room', code);
+      localStorage.setItem('jeopardy_name', name);
+      localStorage.setItem('jeopardy_color', color);
+      if (avatarUrl) localStorage.setItem('jeopardy_avatar', avatarUrl);
 
       sessionStorage.setItem('jeopardy_role', 'PLAYER');
       sessionStorage.setItem('jeopardy_room', code);

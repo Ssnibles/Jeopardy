@@ -1,10 +1,10 @@
 // Player Buzzer Logic with Contestant Creator Modal & Custom Avatar Support
 document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
-  let roomCode = (urlParams.get('room') || sessionStorage.getItem('jeopardy_room') || '').toUpperCase();
-  let playerName = urlParams.get('name') || sessionStorage.getItem('jeopardy_name') || '';
-  let playerColor = urlParams.get('color') || sessionStorage.getItem('jeopardy_color') || '#3b82f6';
-  let playerAvatarUrl = urlParams.get('avatar') || sessionStorage.getItem('jeopardy_avatar') || '';
+  let roomCode = (urlParams.get('room') || sessionStorage.getItem('jeopardy_room') || localStorage.getItem('jeopardy_room') || '').toUpperCase();
+  let playerName = urlParams.get('name') || sessionStorage.getItem('jeopardy_name') || localStorage.getItem('jeopardy_name') || '';
+  let playerColor = urlParams.get('color') || sessionStorage.getItem('jeopardy_color') || localStorage.getItem('jeopardy_color') || '#3b82f6';
+  let playerAvatarUrl = urlParams.get('avatar') || sessionStorage.getItem('jeopardy_avatar') || localStorage.getItem('jeopardy_avatar') || '';
 
   // DOM Elements - Header & Main
   const roomBadge = document.getElementById('roomBadge');
@@ -131,8 +131,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderHeaderProfile() {
-    roomBadge.innerText = `ROOM: ${roomCode}`;
+    roomBadge.innerText = `ROOM: ${roomCode || '----'}`;
     playerNameHeader.innerText = playerName || 'Player';
+    playerNameHeader.style.color = playerColor || '#ffffff';
     
     if (playerAvatarUrl) {
       playerAvatar.style.backgroundImage = `url('${playerAvatarUrl}')`;
@@ -141,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
       playerAvatar.innerText = '';
     } else {
       playerAvatar.style.backgroundImage = 'none';
-      playerAvatar.style.background = playerColor;
+      playerAvatar.style.background = playerColor || '#3b82f6';
       playerAvatar.innerText = (playerName || 'P').charAt(0).toUpperCase();
     }
   }
@@ -178,7 +179,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Save to Session Storage
+    // Save to Local & Session Storage
+    localStorage.setItem('jeopardy_room', roomCode);
+    localStorage.setItem('jeopardy_name', playerName);
+    localStorage.setItem('jeopardy_color', playerColor);
+    if (playerAvatarUrl) localStorage.setItem('jeopardy_avatar', playerAvatarUrl);
+
     sessionStorage.setItem('jeopardy_room', roomCode);
     sessionStorage.setItem('jeopardy_name', playerName);
     sessionStorage.setItem('jeopardy_color', playerColor);
@@ -302,6 +308,108 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.currentClue) {
       showClueDetails(state.currentClue);
     }
+
+    renderPlayerBoard(state);
+    renderScoreboard(state);
+  }
+
+  function renderScoreboard(state) {
+    const container = document.getElementById('playerScoreboard');
+    if (!container || !state || !state.players) return;
+
+    container.innerHTML = '';
+    state.players.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.style.display = 'flex';
+      card.style.alignItems = 'center';
+      card.style.gap = '0.45rem';
+      card.style.padding = '0.3rem 0.65rem';
+      card.style.fontSize = '0.8rem';
+      card.style.whiteSpace = 'nowrap';
+      card.style.flexShrink = '0';
+
+      if (state.buzzerState && state.buzzerState.activePlayerId === p.id) {
+        card.classList.add('active-buzzer');
+      }
+
+      const avatar = document.createElement('div');
+      avatar.className = 'player-avatar';
+      avatar.style.width = '24px';
+      avatar.style.height = '24px';
+      avatar.style.fontSize = '0.75rem';
+
+      if (p.avatar) {
+        avatar.style.backgroundImage = `url('${p.avatar}')`;
+        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundPosition = 'center';
+        avatar.innerText = '';
+      } else {
+        avatar.style.background = p.color || '#3b82f6';
+        avatar.innerText = p.name.charAt(0).toUpperCase();
+      }
+
+      const info = document.createElement('div');
+      info.style.display = 'flex';
+      info.style.alignItems = 'center';
+      info.style.gap = '0.35rem';
+      info.innerHTML = `
+        <span style="font-weight: 800; color: ${p.color || '#ffffff'};">${p.name}</span>
+        <span style="font-weight: 900; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
+      `;
+
+      card.appendChild(avatar);
+      card.appendChild(info);
+      container.appendChild(card);
+    });
+  }
+
+  function renderPlayerBoard(state) {
+    if (!state) return;
+    const categories = state.categories || (state.gamePack && state.gamePack.categories);
+    const playerBoardGrid = document.getElementById('playerBoardGrid');
+    const playerBoardContainer = document.getElementById('playerBoardContainer');
+
+    if (!categories || categories.length === 0 || !playerBoardGrid || !playerBoardContainer) return;
+
+    playerBoardContainer.style.display = 'block';
+    playerBoardGrid.innerHTML = '';
+    playerBoardGrid.style.gridTemplateColumns = `repeat(${categories.length}, 1fr)`;
+
+    categories.forEach((cat, catIdx) => {
+      const col = document.createElement('div');
+      col.className = 'board-column';
+
+      const header = document.createElement('div');
+      header.className = 'category-header';
+      header.innerText = cat.name;
+      col.appendChild(header);
+
+      cat.clues.forEach((clue, clueIdx) => {
+        const card = document.createElement('div');
+        card.className = 'clue-card';
+        card.style.cursor = 'default';
+
+        const key = `${catIdx}-${clueIdx}`;
+        const isRevealed = state.boardState && state.boardState[key];
+        const isCurrent = state.currentClue && state.currentClue.categoryIndex === catIdx && state.currentClue.clueIndex === clueIdx;
+
+        if (isRevealed) {
+          card.classList.add('revealed');
+          card.innerText = '';
+        } else if (isCurrent) {
+          card.style.borderColor = 'var(--jeopardy-gold)';
+          card.style.boxShadow = '0 0 12px rgba(251, 191, 36, 0.4)';
+          card.innerText = `$${clue.value}`;
+        } else {
+          card.innerText = `$${clue.value}`;
+        }
+
+        col.appendChild(card);
+      });
+
+      playerBoardGrid.appendChild(col);
+    });
   }
 
   function showClueDetails(clue) {
@@ -374,6 +482,19 @@ document.addEventListener('DOMContentLoaded', () => {
     buzzerStatus.innerText = statusText || 'Waiting...';
     buzzerStatus.style.color = 'var(--text-muted)';
   }
+
+  // Keyboard Shortcut Listener for Buzzing (Space or Enter)
+  document.addEventListener('keydown', (e) => {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+    if (playerJoinModal && playerJoinModal.style.display === 'flex') return;
+
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      if (buzzerState === 'UNLOCKED' && !btnBuzzer.disabled) {
+        btnBuzzer.click();
+      }
+    }
+  });
 
   // Press Buzzer Action
   btnBuzzer.onclick = () => {

@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseModal = document.getElementById('btnCloseModal');
   const btnCancelModal = document.getElementById('btnCancelModal');
   const btnSaveClue = document.getElementById('btnSaveClue');
+  const btnPrevClue = document.getElementById('btnPrevClue');
+  const btnNextClue = document.getElementById('btnNextClue');
 
   // Title / Author Listeners
   packTitle.oninput = () => {
@@ -344,6 +346,46 @@ document.addEventListener('DOMContentLoaded', () => {
       btnSaveClue.innerText = 'Save Clue';
     }
   };
+
+  function saveCurrentClueDraft() {
+    if (activeCatIndex === null || activeClueIndex === null) return;
+    const targetClue = pack.categories[activeCatIndex].clues[activeClueIndex];
+    targetClue.clue = clueText.value.trim();
+    targetClue.answer = clueAnswer.value.trim();
+    targetClue.value = parseInt(clueValue.value, 10) || 200;
+    targetClue.dailyDouble = clueDailyDouble.checked;
+    targetClue.image = currentImageUrl;
+    persistPack();
+  }
+
+  if (btnPrevClue) {
+    btnPrevClue.onclick = () => {
+      if (activeCatIndex === null || activeClueIndex === null) return;
+      saveCurrentClueDraft();
+      let nextClueIdx = activeClueIndex - 1;
+      let nextCatIdx = activeCatIndex;
+      if (nextClueIdx < 0) {
+        nextCatIdx = activeCatIndex - 1;
+        if (nextCatIdx < 0) nextCatIdx = pack.categories.length - 1;
+        nextClueIdx = pack.categories[nextCatIdx].clues.length - 1;
+      }
+      openClueEditor(nextCatIdx, nextClueIdx);
+    };
+  }
+
+  if (btnNextClue) {
+    btnNextClue.onclick = () => {
+      if (activeCatIndex === null || activeClueIndex === null) return;
+      saveCurrentClueDraft();
+      let nextClueIdx = activeClueIndex + 1;
+      let nextCatIdx = activeCatIndex;
+      if (nextCatIdx < pack.categories.length && nextClueIdx >= pack.categories[nextCatIdx].clues.length) {
+        nextClueIdx = 0;
+        nextCatIdx = (activeCatIndex + 1) % pack.categories.length;
+      }
+      openClueEditor(nextCatIdx, nextClueIdx);
+    };
+  }
 
   btnCloseModal.onclick = closeModal;
   btnCancelModal.onclick = closeModal;

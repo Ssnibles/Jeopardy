@@ -107,8 +107,28 @@ function generateRoomCode() {
 }
 
 // In-memory room store
-// rooms[roomCode] = { code, hostWs, gamePack, players: [], boardState: {}, currentClue: null, buzzerState: {} }
+// rooms[roomCode] = { code, hostWs, gamePack, players: [], boardState: {}, currentClue: null, buzzerState: {}, lastActivity: timestamp }
 const rooms = {};
+
+// Periodic cleanup timer for empty/stale rooms (runs every 15 mins)
+setInterval(() => {
+  const now = Date.now();
+  const TWO_HOURS = 2 * 60 * 60 * 1000;
+  Object.keys(rooms).forEach(code => {
+    const room = rooms[code];
+    const hostActive = room.hostWs && room.hostWs.readyState === WebSocket.OPEN;
+    const boardActive = room.boardWs && room.boardWs.readyState === WebSocket.OPEN;
+    const playersActive = room.players.some(p => p.ws && p.ws.readyState === WebSocket.OPEN);
+
+    if (!hostActive && !boardActive && !playersActive && (now - (room.lastActivity || 0) > 30 * 60 * 1000)) {
+      console.log(`[Room Cleanup] Pruned inactive room ${code}`);
+      delete rooms[code];
+    } else if (now - (room.lastActivity || 0) > TWO_HOURS) {
+      console.log(`[Room Cleanup] Pruned stale room ${code}`);
+      delete rooms[code];
+    }
+  });
+}, 15 * 60 * 1000);
 
 // Helper: Send JSON over WS
 function send(ws, type, data = {}) {
@@ -208,12 +228,14 @@ wss.on('connection', (ws) => {
               boardState: {}, // key: "catIndex-clueIndex" -> true if done
               currentClue: null,
               buzzerState: { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] },
-              controllingPlayerId: null
+              controllingPlayerId: null,
+              lastActivity: Date.now()
             };
             rooms[code] = room;
           } else {
             room.hostWs = ws;
             if (msg.gamePack) room.gamePack = msg.gamePack;
+            room.lastActivity = Date.now();
           }
 
           clientMeta = { role: 'HOST', roomCode: code, playerId: null };

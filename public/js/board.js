@@ -150,10 +150,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const tvDailyDoubleBanner = document.getElementById('tvDailyDoubleBanner');
+
   function updateClueModal() {
     if (!gameState || !gameState.currentClue) {
       tvClueModal.classList.remove('active');
       tvBuzzAlert.style.display = 'none';
+      if (tvDailyDoubleBanner) tvDailyDoubleBanner.style.display = 'none';
       return;
     }
 
@@ -161,6 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
     tvCategoryTitle.innerText = clue.categoryName;
     tvClueValue.innerText = `$${clue.value}`;
     tvClueText.innerText = clue.clue;
+
+    if (clue.dailyDouble) {
+      if (tvDailyDoubleBanner) tvDailyDoubleBanner.style.display = 'block';
+      if (window.soundFX && !clue.wagerSet) window.soundFX.playDailyDouble();
+    } else {
+      if (tvDailyDoubleBanner) tvDailyDoubleBanner.style.display = 'none';
+    }
 
     if (clue.image) {
       tvClueImage.src = clue.image;
@@ -205,6 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const name = document.createElement('div');
       name.className = 'player-name';
+      name.style.color = p.color || '#ffffff';
       name.innerText = p.name;
 
       const score = document.createElement('div');

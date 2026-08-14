@@ -9,14 +9,24 @@
 <body>
 
   <header class="header-bar">
-    <div id="btnPlayerProfile" style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;" title="Click to edit profile">
-      <div id="playerAvatar" class="player-avatar" style="background: var(--jeopardy-gold);">P</div>
+    <div id="btnPlayerProfile" class="profile-header-button" title="Click to customize profile">
+      <div class="header-avatar-wrapper">
+        <div id="playerAvatar" class="player-avatar" style="background: var(--jeopardy-gold);">P</div>
+        <div class="header-avatar-overlay">
+          <span class="overlay-cog">⚙️</span>
+          <span>Edit</span>
+        </div>
+      </div>
       <div>
         <h2 id="playerNameHeader" style="font-size: 1.1rem; font-weight: 800; color: #fff;">Player</h2>
         <div id="playerScoreHeader" style="font-size: 1rem; font-weight: 900; color: var(--jeopardy-gold);">$0</div>
       </div>
     </div>
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
+
+    <!-- CONTESTANT SCOREBOARD IN HEADER (Middle) -->
+    <div id="playerScoreboard" class="scoreboard" style="display: flex; gap: 0.5rem; overflow-x: auto; max-width: 60%; padding: 0.25rem 0.5rem; justify-content: center; border-left: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); border-radius: 0;"></div>
+
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
       <div id="roomBadge" class="room-badge">ROOM: ----</div>
     </div>
   </header>
@@ -40,6 +50,17 @@
       <div id="buzzerStatus" class="buzzer-status" style="color: var(--text-muted);">
         Waiting for Host to start clue...
       </div>
+      <div id="buzzerKeyHint" style="font-size: 0.85rem; color: var(--text-subtle); margin-top: -0.5rem;">
+        ⌨️ Press <kbd class="key-pill">Spacebar</kbd> or <kbd class="key-pill">Enter</kbd> to buzz
+      </div>
+    </div>
+
+    <!-- LIVE GAME BOARD (READ-ONLY FOR CONTESTANTS) -->
+    <div id="playerBoardContainer" class="glass-panel" style="display: none; width: 100%; max-width: 900px; margin-top: 1.5rem; text-align: center;">
+      <div style="font-size: 0.88rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.08em; margin-bottom: 0.75rem;">
+        📋 LIVE GAME BOARD
+      </div>
+      <div id="playerBoardGrid" class="jeopardy-board"></div>
     </div>
 
   </main>

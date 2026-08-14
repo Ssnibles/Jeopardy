@@ -301,6 +301,37 @@ document.addEventListener('DOMContentLoaded', () => {
     ws.send(JSON.stringify({ type: 'EVALUATE_ANSWER', isCorrect: false }));
   };
 
+  // Keyboard Shortcuts Listener for Host
+  document.addEventListener('keydown', (e) => {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (gameState && gameState.currentClue) {
+        if (buzzWinnerBox.style.display !== 'none' || gameState.buzzerState.state === 'BUZZED') {
+          btnResetBuzzers.click();
+        } else if (!btnUnlockBuzzers.disabled) {
+          btnUnlockBuzzers.click();
+        }
+      }
+    } else if (e.key === 'c' || e.key === 'C' || e.key === 'y' || e.key === 'Y') {
+      if (buzzWinnerBox.style.display !== 'none') {
+        e.preventDefault();
+        btnMarkCorrect.click();
+      }
+    } else if (e.key === 'x' || e.key === 'X' || e.key === 'n' || e.key === 'N') {
+      if (buzzWinnerBox.style.display !== 'none') {
+        e.preventDefault();
+        btnMarkWrong.click();
+      }
+    } else if (e.key === 'Escape') {
+      if (gameState && gameState.currentClue) {
+        e.preventDefault();
+        btnCloseClue.click();
+      }
+    }
+  });
+
   // Render Connected Players & Score controls
   function renderPlayers() {
     if (!gameState) return;
@@ -308,18 +339,30 @@ document.addEventListener('DOMContentLoaded', () => {
     playerCount.innerText = players.length;
     playersList.innerHTML = '';
 
+    const activeClueVal = (gameState.currentClue && (gameState.currentClue.wager || gameState.currentClue.value)) || 200;
+
     players.forEach(p => {
       const card = document.createElement('div');
       card.className = 'host-player-card';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.gap = '0.5rem';
+      card.style.padding = '0.85rem';
 
       if (gameState.buzzerState && gameState.buzzerState.activePlayerId === p.id) {
         card.classList.add('active-buzzer');
       }
 
-      const left = document.createElement('div');
-      left.style.display = 'flex';
-      left.style.alignItems = 'center';
-      left.style.gap = '0.65rem';
+      const topRow = document.createElement('div');
+      topRow.style.display = 'flex';
+      topRow.style.alignItems = 'center';
+      topRow.style.justifyContent = 'space-between';
+      topRow.style.width = '100%';
+
+      const leftInfo = document.createElement('div');
+      leftInfo.style.display = 'flex';
+      leftInfo.style.alignItems = 'center';
+      leftInfo.style.gap = '0.65rem';
 
       const avatar = document.createElement('div');
       avatar.className = 'player-avatar';
@@ -333,37 +376,81 @@ document.addEventListener('DOMContentLoaded', () => {
         avatar.style.backgroundPosition = 'center';
         avatar.innerText = '';
       } else {
-        avatar.style.background = p.color;
+        avatar.style.background = p.color || '#3b82f6';
         avatar.innerText = p.name.charAt(0).toUpperCase();
       }
 
       const details = document.createElement('div');
       details.innerHTML = `
-        <div style="font-weight: 700; font-size: 0.9rem; color: #fff;">${p.name} ${p.connected ? '' : '<span style="color: var(--text-muted); font-weight:400; font-size: 0.75rem;">(offline)</span>'}</div>
-        <div style="font-size: 0.85rem; font-weight: 800; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</div>
+        <div style="font-weight: 800; font-size: 0.95rem; color: ${p.color || '#ffffff'}; line-height: 1.2;">
+          ${p.name} ${p.connected ? '' : '<span style="color: var(--text-muted); font-weight:400; font-size: 0.75rem;">(offline)</span>'}
+        </div>
       `;
 
-      left.appendChild(avatar);
-      left.appendChild(details);
+      leftInfo.appendChild(avatar);
+      leftInfo.appendChild(details);
 
-      // Score quick adjustment controls (+200, -200)
+      const scoreDisplay = document.createElement('div');
+      scoreDisplay.style.fontFamily = "'Outfit', sans-serif";
+      scoreDisplay.style.fontSize = '1.15rem';
+      scoreDisplay.style.fontWeight = '800';
+      scoreDisplay.style.color = p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)';
+      scoreDisplay.innerText = `$${p.score}`;
+
+      topRow.appendChild(leftInfo);
+      topRow.appendChild(scoreDisplay);
+
+      // Score quick adjustment controls (+val, -val, custom edit & kick)
       const controls = document.createElement('div');
       controls.className = 'score-adjust-group';
+      controls.style.display = 'flex';
+      controls.style.gap = '0.4rem';
+      controls.style.width = '100%';
 
       const btnPlus = document.createElement('button');
       btnPlus.className = 'btn btn-success score-adjust-btn';
-      btnPlus.innerText = '+200';
-      btnPlus.onclick = () => adjustScore(p.id, 200);
+      btnPlus.style.flex = '1';
+      btnPlus.innerText = `+${activeClueVal}`;
+      btnPlus.title = `Add $${activeClueVal}`;
+      btnPlus.onclick = () => adjustScore(p.id, activeClueVal);
 
       const btnMinus = document.createElement('button');
       btnMinus.className = 'btn btn-danger score-adjust-btn';
-      btnMinus.innerText = '-200';
-      btnMinus.onclick = () => adjustScore(p.id, -200);
+      btnMinus.style.flex = '1';
+      btnMinus.innerText = `-${activeClueVal}`;
+      btnMinus.title = `Deduct $${activeClueVal}`;
+      btnMinus.onclick = () => adjustScore(p.id, -activeClueVal);
+
+      const btnEdit = document.createElement('button');
+      btnEdit.className = 'btn score-adjust-btn';
+      btnEdit.innerText = '✏️';
+      btnEdit.title = 'Custom score adjustment';
+      btnEdit.onclick = () => {
+        const val = prompt(`Adjust score for ${p.name} (enter amount, e.g. 500 or -300):`, activeClueVal);
+        if (val !== null) {
+          const delta = parseInt(val, 10);
+          if (!isNaN(delta) && delta !== 0) {
+            adjustScore(p.id, delta);
+          }
+        }
+      };
+
+      const btnKick = document.createElement('button');
+      btnKick.className = 'btn btn-danger score-adjust-btn';
+      btnKick.innerText = '✕';
+      btnKick.title = `Kick ${p.name} from room`;
+      btnKick.onclick = () => {
+        if (confirm(`Are you sure you want to kick ${p.name} from this room?`)) {
+          ws.send(JSON.stringify({ type: 'KICK_PLAYER', playerId: p.id }));
+        }
+      };
 
       controls.appendChild(btnPlus);
       controls.appendChild(btnMinus);
+      controls.appendChild(btnEdit);
+      controls.appendChild(btnKick);
 
-      card.appendChild(left);
+      card.appendChild(topRow);
       card.appendChild(controls);
       playersList.appendChild(card);
     });
