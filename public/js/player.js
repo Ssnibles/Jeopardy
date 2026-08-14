@@ -6,6 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let playerColor = urlParams.get('color') || sessionStorage.getItem('jeopardy_color') || localStorage.getItem('jeopardy_color') || '#3b82f6';
   let playerAvatarUrl = urlParams.get('avatar') || sessionStorage.getItem('jeopardy_avatar') || localStorage.getItem('jeopardy_avatar') || '';
 
+  // Purge legacy oversized Base64 strings from storage to prevent WS choking
+  if (playerAvatarUrl.startsWith('data:image/') && playerAvatarUrl.length > 10000) {
+    playerAvatarUrl = '';
+    localStorage.removeItem('jeopardy_avatar');
+    sessionStorage.removeItem('jeopardy_avatar');
+  }
+
   // DOM Elements - Header & Main
   const roomBadge = document.getElementById('roomBadge');
   const playerAvatar = document.getElementById('playerAvatar');
@@ -164,20 +171,62 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Upload custom avatar if file selected
-    if (selectedAvatarFile) {
-      try {
-        const formData = new FormData();
-        formData.append('image', selectedAvatarFile);
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const json = await res.json();
-        if (json.success) {
-          playerAvatarUrl = json.url;
-        }
-      } catch (err) {
-        console.error('Avatar upload failed:', err);
+  // Helper: Compress and downscale avatar image to 150x150 JPEG (~10KB) in-memory before network upload
+  function compressAvatarImage(file) {
+    return new Promise((resolve) => {
+      if (!file || !file.type.startsWith('image/')) return resolve(file);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_DIM = 150;
+          let width = img.width;
+          let height = img.height;
+
+          const minDim = Math.min(width, height);
+          const sx = (width - minDim) / 2;
+          const sy = (height - minDim) / 2;
+
+          canvas.width = MAX_DIM;
+          canvas.height = MAX_DIM;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, MAX_DIM, MAX_DIM);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.8);
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Upload custom avatar if file selected (downscaled to 150x150 ~10KB)
+  if (selectedAvatarFile) {
+    try {
+      const compressedFile = await compressAvatarImage(selectedAvatarFile);
+      const formData = new FormData();
+      formData.append('image', compressedFile);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (json.success) {
+        playerAvatarUrl = json.url;
       }
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
     }
+  }
 
     // Save to Local & Session Storage
     localStorage.setItem('jeopardy_room', roomCode);
@@ -199,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ws.send(JSON.stringify({
         type: 'JOIN_ROOM',
         roomCode,
+        playerId: playerId || sessionStorage.getItem('jeopardy_playerId') || localStorage.getItem('jeopardy_playerId') || '',
         name: playerName,
         color: playerColor,
         avatar: playerAvatarUrl
@@ -208,22 +258,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Initialize WebSocket Connection
+  let reconnectTimer = null;
+  let reconnectAttempts = 0;
+  let pingInterval = null;
+
+  // Initialize WebSocket Connection with Auto-Reconnect
   function initWebSocket() {
     renderHeaderProfile();
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (pingInterval) clearInterval(pingInterval);
+
+    // Refresh metadata from storage if needed
+    roomCode = (roomCode || sessionStorage.getItem('jeopardy_room') || localStorage.getItem('jeopardy_room') || '').toUpperCase();
+    playerName = playerName || sessionStorage.getItem('jeopardy_name') || localStorage.getItem('jeopardy_name') || '';
+    playerColor = playerColor || sessionStorage.getItem('jeopardy_color') || localStorage.getItem('jeopardy_color') || '#3b82f6';
+    playerAvatarUrl = playerAvatarUrl || sessionStorage.getItem('jeopardy_avatar') || localStorage.getItem('jeopardy_avatar') || '';
+    playerId = playerId || sessionStorage.getItem('jeopardy_playerId') || localStorage.getItem('jeopardy_playerId') || '';
+
+    // Prime tunnel HTTP proxy route to ensure loca.lt accepts background WS handshake
+    fetch('/api/tunnel', { headers: { 'Bypass-Tunnel-Reminder': 'true' } }).catch(() => {});
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    if (ws) ws.close();
+    if (ws) {
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
+      try { ws.close(); } catch (e) {}
+    }
     ws = new WebSocket(`${protocol}//${window.location.host}`);
 
     ws.onopen = () => {
+      reconnectAttempts = 0;
       ws.send(JSON.stringify({
         type: 'JOIN_ROOM',
         roomCode,
+        playerId: playerId || sessionStorage.getItem('jeopardy_playerId') || localStorage.getItem('jeopardy_playerId') || '',
         name: playerName,
         color: playerColor,
         avatar: playerAvatarUrl
       }));
+
+      // Application keepalive ping every 10s to keep tunnel proxies open
+      pingInterval = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          try { ws.send(JSON.stringify({ type: 'PING' })); } catch (e) {}
+        }
+      }, 10000);
+    };
+
+    ws.onclose = () => {
+      if (pingInterval) clearInterval(pingInterval);
+      scheduleReconnect();
+    };
+
+    ws.onerror = (err) => {
+      console.warn('WebSocket encountered an error:', err);
     };
 
     ws.onmessage = (event) => {
@@ -233,22 +323,15 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (msg.type) {
           case 'PLAYER_JOIN_SUCCESS':
             playerId = msg.playerId;
+            sessionStorage.setItem('jeopardy_playerId', msg.playerId);
+            localStorage.setItem('jeopardy_playerId', msg.playerId);
             updatePlayerState(msg.state);
             break;
 
           case 'ROOM_STATE':
           case 'CLUE_CLOSED':
-            updatePlayerState(msg.state);
-            if (msg.type === 'CLUE_CLOSED') {
-              playerClueBox.style.display = 'none';
-              setBuzzerLocked('Waiting for Host to pick next clue...');
-            }
-            break;
-
           case 'CLUE_SELECTED':
             updatePlayerState(msg.state);
-            showClueDetails(msg.clueObj);
-            setBuzzerLocked('Wait for Host to unlock buzzers...');
             break;
 
           case 'BUZZERS_UNLOCKED':
@@ -289,10 +372,22 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  function scheduleReconnect() {
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    reconnectAttempts++;
+    const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000);
+    buzzerStatus.innerText = `Connection lost. Reconnecting...`;
+    buzzerStatus.style.color = 'var(--color-danger)';
+    reconnectTimer = setTimeout(() => {
+      initWebSocket();
+    }, delay);
+  }
+
   function updatePlayerState(state) {
     if (!state) return;
-    const me = state.players.find(p => p.id === playerId || p.name.toLowerCase() === playerName.toLowerCase());
+    const me = state.players.find(p => p.id === playerId || (p.name && playerName && p.name.toLowerCase() === playerName.toLowerCase()));
     if (me) {
+      playerId = me.id;
       playerScoreHeader.innerText = `$${me.score}`;
       if (me.score < 0) {
         playerScoreHeader.style.color = 'var(--color-danger)';
@@ -301,16 +396,32 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    if (state.buzzerState) {
-      buzzerState = state.buzzerState.state;
-    }
-
-    if (state.currentClue) {
-      showClueDetails(state.currentClue);
-    }
-
     renderPlayerBoard(state);
     renderScoreboard(state);
+
+    if (state.currentClue) {
+      currentClueObj = state.currentClue;
+      const bState = state.buzzerState ? state.buzzerState.state : 'LOCKED';
+
+      if (bState === 'UNLOCKED') {
+        setBuzzerUnlocked();
+      } else if (bState === 'BUZZED' || bState === 'WINNER') {
+        const activeId = state.buzzerState ? state.buzzerState.activePlayerId : null;
+        if (activeId === playerId) {
+          setBuzzerWinner(state.buzzerState ? (state.buzzerState.latency || 0) : 0);
+        } else {
+          const activePlayer = state.players.find(p => p.id === activeId);
+          const activeName = activePlayer ? activePlayer.name : 'Another player';
+          setBuzzerLockedOut(`${activeName} buzzed first!`);
+        }
+      } else {
+        setBuzzerLocked('Wait for Host to unlock buzzers...');
+      }
+    } else {
+      currentClueObj = null;
+      playerClueBox.style.display = 'none';
+      setBuzzerLocked('Waiting for Host to pick next clue...');
+    }
   }
 
   function renderScoreboard(state) {
@@ -422,21 +533,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // Only reveal question text and image once buzzers are unlocked!
     if (buzzerState === 'UNLOCKED' || buzzerState === 'BUZZED' || buzzerState === 'WINNER' || buzzerState === 'LOCKED_OUT') {
       playerClueText.innerText = clue.clue;
+      playerClueText.style.display = 'block';
       playerClueText.style.fontStyle = 'normal';
       playerClueText.style.color = '#fff';
 
-      if (clue.image) {
+      if (playerClueImage) {
+        playerClueImage.onerror = () => {
+          playerClueImage.style.display = 'none';
+          playerClueImage.removeAttribute('src');
+          playerClueImage.alt = '';
+        };
+      }
+
+      if (clue.image && typeof clue.image === 'string' && clue.image.trim() !== '' && clue.image !== 'null' && clue.image !== 'undefined') {
         playerClueImage.src = clue.image;
         playerClueImage.style.display = 'inline-block';
       } else {
         playerClueImage.style.display = 'none';
-        playerClueImage.src = '';
+        playerClueImage.removeAttribute('src');
+        playerClueImage.alt = '';
       }
     } else {
-      playerClueText.innerText = 'Question locked until Host unlocks buzzers...';
-      playerClueText.style.fontStyle = 'italic';
-      playerClueText.style.color = 'var(--text-muted)';
+      playerClueText.style.display = 'none';
+      playerClueText.innerText = '';
       playerClueImage.style.display = 'none';
+      playerClueImage.removeAttribute('src');
+      playerClueImage.alt = '';
     }
   }
 
@@ -500,6 +622,11 @@ document.addEventListener('DOMContentLoaded', () => {
   btnBuzzer.onclick = () => {
     if (buzzerState !== 'UNLOCKED') return;
 
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      initWebSocket();
+      return;
+    }
+
     if (navigator.vibrate) {
       navigator.vibrate([100, 50, 100]);
     }
@@ -508,6 +635,11 @@ document.addEventListener('DOMContentLoaded', () => {
       window.soundFX.playBuzzer();
     }
 
-    ws.send(JSON.stringify({ type: 'PRESS_BUZZER' }));
+    try {
+      ws.send(JSON.stringify({ type: 'PRESS_BUZZER' }));
+    } catch (err) {
+      console.error('Error sending buzz:', err);
+      initWebSocket();
+    }
   };
 });

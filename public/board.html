@@ -6,7 +6,7 @@
   <title>Jeopardy Main Screen Display</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
+<body class="tv-mode-body">
 
   <header class="header-bar">
     <div class="brand">
@@ -27,7 +27,7 @@
     </div>
 
     <!-- BOTTOM PLAYER SCORE STRIP -->
-    <div style="margin-top: 1.5rem; background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-md);">
+    <div style="margin-top: 1.5rem; background: rgba(19, 27, 46, 0.75); backdrop-filter: blur(12px); padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: var(--shadow-md);">
       <h3 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 0.5rem;">CONTESTANTS</h3>
       <div id="tvScoreboard" class="scoreboard">
         <!-- Rendered dynamically -->
@@ -49,7 +49,7 @@
 
       <div id="tvClueText" class="clue-text"></div>
       
-      <img id="tvClueImage" src="" alt="Clue Image Attachment" class="clue-image" style="display: none;">
+      <img id="tvClueImage" src="" alt="" class="clue-image" style="display: none;">
 
       <div id="tvAnswerBox" class="clue-answer" style="display: none;">
         ANSWER: <span id="tvAnswerText"></span>

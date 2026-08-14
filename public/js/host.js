@@ -101,93 +101,131 @@ document.addEventListener('DOMContentLoaded', () => {
   let fullGamePack = null;
   let ws = null;
 
-  // Initialize WebSocket
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  ws = new WebSocket(`${protocol}//${window.location.host}`);
+  let reconnectTimer = null;
+  let reconnectAttempts = 0;
+  let pingInterval = null;
 
-  const packStr = sessionStorage.getItem('jeopardy_pack');
-  let loadedPack = null;
-  if (packStr) {
-    try { loadedPack = JSON.parse(packStr); } catch (e) {}
+  function initHostWebSocket() {
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (pingInterval) clearInterval(pingInterval);
+
+    // Prime tunnel HTTP proxy route to ensure loca.lt accepts background WS handshake
+    fetch('/api/tunnel', { headers: { 'Bypass-Tunnel-Reminder': 'true' } }).catch(() => {});
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    if (ws) {
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
+      try { ws.close(); } catch (e) {}
+    }
+    ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+    const packStr = sessionStorage.getItem('jeopardy_pack');
+    let loadedPack = null;
+    if (packStr) {
+      try { loadedPack = JSON.parse(packStr); } catch (e) {}
+    }
+
+    ws.onopen = () => {
+      reconnectAttempts = 0;
+      ws.send(JSON.stringify({
+        type: 'CREATE_ROOM',
+        roomCode: roomCode,
+        gamePack: loadedPack
+      }));
+
+      pingInterval = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          try { ws.send(JSON.stringify({ type: 'PING' })); } catch (e) {}
+        }
+      }, 10000);
+    };
+
+    ws.onclose = () => {
+      if (pingInterval) clearInterval(pingInterval);
+      reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000);
+      reconnectTimer = setTimeout(initHostWebSocket, delay);
+    };
+
+    ws.onerror = () => {
+      try { ws.close(); } catch (e) {}
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+
+        switch (msg.type) {
+          case 'ROOM_CREATED':
+            gameState = msg.state;
+            fullGamePack = msg.fullPack;
+            renderHostBoard();
+            renderPlayers();
+            break;
+
+          case 'ROOM_STATE':
+          case 'CLUE_CLOSED':
+            gameState = msg.state;
+            renderHostBoard();
+            renderPlayers();
+            updateActiveClueUI();
+            break;
+
+          case 'CLUE_SELECTED':
+            gameState = msg.state;
+            updateActiveClueUI();
+            break;
+
+          case 'HOST_CLUE_DETAILS':
+            if (gameState && gameState.currentClue) {
+              gameState.currentClue.answer = msg.clue.answer;
+              answerText.innerText = msg.clue.answer;
+            }
+            break;
+
+          case 'BUZZERS_UNLOCKED':
+            if (gameState) gameState.buzzerState.state = 'UNLOCKED';
+            btnUnlockBuzzers.disabled = true;
+            btnUnlockBuzzers.innerText = 'BUZZERS ACTIVE';
+            break;
+
+          case 'PLAYER_BUZZED':
+            if (gameState) {
+              gameState.buzzerState = msg.buzzerState;
+            }
+            if (window.soundFX) window.soundFX.playBuzzer();
+            showBuzzWinner(msg.playerName, msg.latency);
+            break;
+
+          case 'ANSWER_EVALUATED':
+            gameState = msg.state;
+            renderHostBoard();
+            if (msg.isCorrect) {
+              if (window.soundFX) window.soundFX.playCorrect();
+            } else {
+              if (window.soundFX) window.soundFX.playWrong();
+            }
+            buzzWinnerBox.style.display = 'none';
+            btnUnlockBuzzers.disabled = false;
+            btnUnlockBuzzers.innerText = 'UNLOCK BUZZERS';
+            renderPlayers();
+            break;
+
+          case 'ANSWER_REVEALED':
+            activeClueAnswer.style.display = 'block';
+            answerText.innerText = msg.answer;
+            break;
+        }
+      } catch (err) {
+        console.error('WS Error:', err);
+      }
+    };
   }
 
-  ws.onopen = () => {
-    ws.send(JSON.stringify({
-      type: 'CREATE_ROOM',
-      roomCode: roomCode,
-      gamePack: loadedPack
-    }));
-  };
-
-  ws.onmessage = (event) => {
-    try {
-      const msg = JSON.parse(event.data);
-
-      switch (msg.type) {
-        case 'ROOM_CREATED':
-          gameState = msg.state;
-          fullGamePack = msg.fullPack;
-          renderHostBoard();
-          renderPlayers();
-          break;
-
-        case 'ROOM_STATE':
-        case 'CLUE_CLOSED':
-          gameState = msg.state;
-          renderHostBoard();
-          renderPlayers();
-          updateActiveClueUI();
-          break;
-
-        case 'CLUE_SELECTED':
-          gameState = msg.state;
-          updateActiveClueUI();
-          break;
-
-        case 'HOST_CLUE_DETAILS':
-          if (gameState && gameState.currentClue) {
-            gameState.currentClue.answer = msg.clue.answer;
-            answerText.innerText = msg.clue.answer;
-          }
-          break;
-
-        case 'BUZZERS_UNLOCKED':
-          if (gameState) gameState.buzzerState.state = 'UNLOCKED';
-          btnUnlockBuzzers.disabled = true;
-          btnUnlockBuzzers.innerText = 'BUZZERS ACTIVE';
-          break;
-
-        case 'PLAYER_BUZZED':
-          if (gameState) {
-            gameState.buzzerState = msg.buzzerState;
-          }
-          if (window.soundFX) window.soundFX.playBuzzer();
-          showBuzzWinner(msg.playerName, msg.latency);
-          break;
-
-        case 'ANSWER_EVALUATED':
-          gameState = msg.state;
-          renderHostBoard();
-          if (msg.isCorrect) {
-            if (window.soundFX) window.soundFX.playCorrect();
-          } else {
-            if (window.soundFX) window.soundFX.playWrong();
-          }
-          buzzWinnerBox.style.display = 'none';
-          btnUnlockBuzzers.disabled = false;
-          btnUnlockBuzzers.innerText = 'UNLOCK BUZZERS';
-          renderPlayers();
-          break;
-
-        case 'ANSWER_REVEALED':
-          activeClueAnswer.style.display = 'block';
-          answerText.innerText = msg.answer;
-          break;
-      }
-    } catch (err) {
-      console.error('WS Error:', err);
-    }
-  };
+  initHostWebSocket();
 
   // Render Host Jeopardy Board
   function renderHostBoard() {

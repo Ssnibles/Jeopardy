@@ -52,73 +52,117 @@ document.addEventListener('DOMContentLoaded', () => {
   let gameState = null;
   let ws = null;
 
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  ws = new WebSocket(`${protocol}//${window.location.host}`);
+  let reconnectTimer = null;
+  let reconnectAttempts = 0;
+  let pingInterval = null;
 
-  ws.onopen = () => {
-    ws.send(JSON.stringify({
-      type: 'JOIN_BOARD',
-      roomCode
-    }));
-  };
+  function initBoardWebSocket() {
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (pingInterval) clearInterval(pingInterval);
 
-  ws.onmessage = (event) => {
-    try {
-      const msg = JSON.parse(event.data);
+    // Prime tunnel HTTP proxy route to ensure loca.lt accepts background WS handshake
+    fetch('/api/tunnel', { headers: { 'Bypass-Tunnel-Reminder': 'true' } }).catch(() => {});
 
-      switch (msg.type) {
-        case 'BOARD_JOINED':
-        case 'ROOM_STATE':
-          gameState = msg.state;
-          renderBoard();
-          renderScoreboard();
-          updateClueModal();
-          break;
-
-        case 'CLUE_SELECTED':
-          gameState = msg.state;
-          renderBoard();
-          updateClueModal();
-          break;
-
-        case 'CLUE_CLOSED':
-          gameState = msg.state;
-          renderBoard();
-          tvClueModal.classList.remove('active');
-          tvBuzzAlert.style.display = 'none';
-          break;
-
-        case 'PLAYER_BUZZED':
-          if (window.soundFX) window.soundFX.playBuzzer();
-          tvBuzzPlayerName.innerText = msg.playerName;
-          tvBuzzAlert.style.display = 'inline-block';
-          renderScoreboard();
-          break;
-
-        case 'ANSWER_EVALUATED':
-          gameState = msg.state;
-          tvBuzzAlert.style.display = 'none';
-          renderScoreboard();
-          if (msg.isCorrect) {
-            if (window.soundFX) window.soundFX.playCorrect();
-          } else {
-            if (window.soundFX) window.soundFX.playWrong();
-          }
-          break;
-
-        case 'ANSWER_REVEALED':
-          tvAnswerBox.style.display = 'block';
-          tvAnswerText.innerText = msg.answer;
-          break;
-
-        case 'BUZZERS_UNLOCKED':
-          tvBuzzAlert.style.display = 'none';
-          break;
-      }
-    } catch (err) {
-      console.error('WS Error:', err);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    if (ws) {
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
+      try { ws.close(); } catch (e) {}
     }
-  };
+    ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+    ws.onopen = () => {
+      reconnectAttempts = 0;
+      ws.send(JSON.stringify({
+        type: 'JOIN_BOARD',
+        roomCode
+      }));
+
+      pingInterval = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          try { ws.send(JSON.stringify({ type: 'PING' })); } catch (e) {}
+        }
+      }, 10000);
+    };
+
+    ws.onclose = () => {
+      if (pingInterval) clearInterval(pingInterval);
+      reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000);
+      reconnectTimer = setTimeout(initBoardWebSocket, delay);
+    };
+
+    ws.onerror = () => {
+      try { ws.close(); } catch (e) {}
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+
+        switch (msg.type) {
+          case 'BOARD_JOINED':
+          case 'ROOM_STATE':
+            gameState = msg.state;
+            renderBoard();
+            renderScoreboard();
+            updateClueModal();
+            break;
+
+          case 'CLUE_SELECTED':
+            gameState = msg.state;
+            renderBoard();
+            updateClueModal();
+            break;
+
+          case 'CLUE_CLOSED':
+            gameState = msg.state;
+            renderBoard();
+            tvClueModal.classList.remove('active');
+            tvBuzzAlert.style.display = 'none';
+            break;
+
+          case 'PLAYER_BUZZED':
+            if (window.soundFX) window.soundFX.playBuzzer();
+            tvBuzzPlayerName.innerText = msg.playerName;
+            tvBuzzAlert.style.display = 'inline-block';
+            renderScoreboard();
+            break;
+
+          case 'ANSWER_EVALUATED':
+            gameState = msg.state;
+            tvBuzzAlert.style.display = 'none';
+            renderScoreboard();
+            if (msg.isCorrect) {
+              if (window.soundFX) window.soundFX.playCorrect();
+            } else {
+              if (window.soundFX) window.soundFX.playWrong();
+            }
+            break;
+
+          case 'ANSWER_REVEALED':
+            tvAnswerBox.style.display = 'block';
+            tvAnswerText.innerText = msg.answer;
+            break;
+
+          case 'BUZZERS_UNLOCKED':
+            if (gameState) {
+              if (!gameState.buzzerState) gameState.buzzerState = {};
+              gameState.buzzerState.state = 'UNLOCKED';
+            }
+            tvBuzzAlert.style.display = 'none';
+            updateClueModal();
+            break;
+        }
+      } catch (err) {
+        console.error('WS Error:', err);
+      }
+    };
+  }
+
+  initBoardWebSocket();
 
   function renderBoard() {
     if (!gameState || !gameState.categories) return;
@@ -163,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const clue = gameState.currentClue;
     tvCategoryTitle.innerText = clue.categoryName;
     tvClueValue.innerText = `$${clue.value}`;
-    tvClueText.innerText = clue.clue;
 
     if (clue.dailyDouble) {
       if (tvDailyDoubleBanner) tvDailyDoubleBanner.style.display = 'block';
@@ -172,12 +215,40 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tvDailyDoubleBanner) tvDailyDoubleBanner.style.display = 'none';
     }
 
-    if (clue.image) {
-      tvClueImage.src = clue.image;
-      tvClueImage.style.display = 'block';
+    const isUnlocked = gameState.buzzerState && 
+      (gameState.buzzerState.state === 'UNLOCKED' || 
+       gameState.buzzerState.state === 'BUZZED' || 
+       gameState.buzzerState.state === 'WINNER' || 
+       gameState.buzzerState.state === 'LOCKED_OUT');
+
+    if (isUnlocked) {
+      tvClueText.innerText = clue.clue;
+      tvClueText.style.display = 'block';
+
+      if (tvClueImage) {
+        tvClueImage.onerror = () => {
+          tvClueImage.style.display = 'none';
+          tvClueImage.removeAttribute('src');
+          tvClueImage.alt = '';
+        };
+      }
+
+      if (clue.image && typeof clue.image === 'string' && clue.image.trim() !== '' && clue.image !== 'null' && clue.image !== 'undefined') {
+        tvClueImage.src = clue.image;
+        tvClueImage.style.display = 'block';
+      } else {
+        tvClueImage.style.display = 'none';
+        tvClueImage.removeAttribute('src');
+        tvClueImage.alt = '';
+      }
     } else {
+      // Question locked: hide question text and image until Host unlocks buzzers
+      tvClueText.style.display = 'none';
+      tvClueText.innerText = '';
+
       tvClueImage.style.display = 'none';
-      tvClueImage.src = '';
+      tvClueImage.removeAttribute('src');
+      tvClueImage.alt = '';
     }
 
     if (clue.answerRevealed) {

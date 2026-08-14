@@ -16,8 +16,23 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
+app.use((req, res, next) => {
+  res.setHeader('Bypass-Tunnel-Reminder', 'true');
+  res.setHeader('bypass-tunnel-reminder', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+});
+
 app.use(express.json({ limit: '50mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    res.setHeader('Bypass-Tunnel-Reminder', 'true');
+    res.setHeader('bypass-tunnel-reminder', 'true');
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    }
+  }
+}));
 
 // Route handlers for HTML pages
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
@@ -26,15 +41,43 @@ app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public', 'host
 app.get('/player', (req, res) => res.sendFile(path.join(__dirname, 'public', 'player.html')));
 app.get('/board', (req, res) => res.sendFile(path.join(__dirname, 'public', 'board.html')));
 
-// Image upload API endpoint (returns in-memory Base64 Data URL)
+// In-memory avatar storage to prevent sending huge Base64 strings over WebSockets/URLs
+const avatarStore = {}; // avatarId -> { buffer, mime, createdAt }
+
+// Cleanup avatars older than 24 hours
+setInterval(() => {
+  const now = Date.now();
+  Object.keys(avatarStore).forEach(id => {
+    if (now - avatarStore[id].createdAt > 24 * 60 * 60 * 1000) {
+      delete avatarStore[id];
+    }
+  });
+}, 60 * 60 * 1000);
+
+// Image upload API endpoint (returns short server URL instead of raw Base64 Data URL)
 app.post('/api/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided' });
   }
   const mime = req.file.mimetype || 'image/png';
-  const base64 = req.file.buffer.toString('base64');
-  const imageUrl = `data:${mime};base64,${base64}`;
-  res.json({ success: true, url: imageUrl });
+  const id = 'av_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+  avatarStore[id] = {
+    buffer: req.file.buffer,
+    mime: mime,
+    createdAt: Date.now()
+  };
+  res.json({ success: true, url: `/api/avatar/${id}` });
+});
+
+// Serve avatar image with HTTP caching headers
+app.get('/api/avatar/:id', (req, res) => {
+  const avatar = avatarStore[req.params.id];
+  if (!avatar) {
+    return res.status(404).send('Avatar not found');
+  }
+  res.setHeader('Content-Type', avatar.mime);
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send(avatar.buffer);
 });
 
 let publicUrl = null;
@@ -181,13 +224,34 @@ function getPublicRoomState(room) {
   };
 }
 
+// Heartbeat ping interval to keep tunneling TCP connections alive and detect stale sockets
+const heartbeatInterval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) return ws.terminate();
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
+
+wss.on('close', () => {
+  clearInterval(heartbeatInterval);
+});
+
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
   let clientMeta = { role: null, roomCode: null, playerId: null };
 
   ws.on('message', (rawMessage) => {
+    ws.isAlive = true;
     try {
       const msg = JSON.parse(rawMessage);
       const { type } = msg;
+
+      if (type === 'PING') {
+        return send(ws, 'PONG');
+      }
 
       switch (type) {
         // --- 1. CREATE OR ATTACH ROOM (HOST) ---
@@ -252,19 +316,38 @@ wss.on('connection', (ws) => {
           const name = (msg.name || 'Player').trim();
           const color = msg.color || '#3b82f6';
           const avatar = msg.avatar || '';
+          const msgPlayerId = msg.playerId || (clientMeta && clientMeta.playerId) || '';
           const room = rooms[roomCode];
 
           if (!room) {
             return send(ws, 'ERROR', { message: 'Room not found. Check room code.' });
           }
 
-          // Check if player re-joining
-          let existingPlayer = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
+          // 1. Check by msgPlayerId or clientMeta.playerId
+          let existingPlayer = msgPlayerId ? room.players.find(p => p.id === msgPlayerId) : null;
+
+          // 2. Check by current socket connection
+          if (!existingPlayer) {
+            existingPlayer = room.players.find(p => p.ws === ws);
+          }
+
+          // 3. Fallback: check by case-insensitive name match
+          if (!existingPlayer) {
+            existingPlayer = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
+          }
+
           let playerId;
 
           if (existingPlayer) {
+            if (existingPlayer.ws && existingPlayer.ws !== ws) {
+              try {
+                existingPlayer.ws.onclose = null;
+                existingPlayer.ws.close();
+              } catch (e) {}
+            }
             existingPlayer.ws = ws;
             existingPlayer.connected = true;
+            existingPlayer.name = name;
             existingPlayer.color = color;
             if (avatar) existingPlayer.avatar = avatar;
             playerId = existingPlayer.id;
@@ -287,7 +370,7 @@ wss.on('connection', (ws) => {
 
           // Broadcast updated state to room
           broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
-          console.log(`[Room ${roomCode}] Player joined: ${name} (${playerId})`);
+          console.log(`[Room ${roomCode}] Player joined/updated: ${name} (${playerId})`);
           break;
         }
 
@@ -506,9 +589,10 @@ wss.on('connection', (ws) => {
 
     if (role === 'PLAYER' && playerId) {
       const player = room.players.find(p => p.id === playerId);
-      if (player) {
+      if (player && player.ws === ws) {
         player.connected = false;
         broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+        console.log(`[Room ${roomCode}] Player disconnected: ${player.name} (${playerId})`);
       }
     }
   });

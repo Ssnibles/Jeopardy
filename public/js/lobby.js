@@ -24,7 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Restore saved contestant profile and room info from localStorage/sessionStorage
   const savedName = localStorage.getItem('jeopardy_name') || sessionStorage.getItem('jeopardy_name');
   const savedColor = localStorage.getItem('jeopardy_color') || sessionStorage.getItem('jeopardy_color');
-  const savedAvatar = localStorage.getItem('jeopardy_avatar') || sessionStorage.getItem('jeopardy_avatar');
+  let savedAvatar = localStorage.getItem('jeopardy_avatar') || sessionStorage.getItem('jeopardy_avatar');
+  if (savedAvatar && savedAvatar.startsWith('data:image/') && savedAvatar.length > 10000) {
+    savedAvatar = null;
+    localStorage.removeItem('jeopardy_avatar');
+    sessionStorage.removeItem('jeopardy_avatar');
+  }
   const savedRoom = localStorage.getItem('jeopardy_room') || sessionStorage.getItem('jeopardy_room');
 
   if (joinName && savedName) {
@@ -238,11 +243,53 @@ document.addEventListener('DOMContentLoaded', () => {
       btnSubmitJoin.disabled = true;
       btnSubmitJoin.innerText = 'Connecting...';
 
-      // Upload custom avatar if selected
+      // Helper: Compress and downscale avatar image to 150x150 JPEG (~10KB) in-memory before network upload
+      function compressAvatarImage(file) {
+        return new Promise((resolve) => {
+          if (!file || !file.type.startsWith('image/')) return resolve(file);
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const MAX_DIM = 150;
+              let width = img.width;
+              let height = img.height;
+
+              const minDim = Math.min(width, height);
+              const sx = (width - minDim) / 2;
+              const sy = (height - minDim) / 2;
+
+              canvas.width = MAX_DIM;
+              canvas.height = MAX_DIM;
+
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, MAX_DIM, MAX_DIM);
+
+              canvas.toBlob((blob) => {
+                if (blob) {
+                  const compressedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+                  resolve(compressedFile);
+                } else {
+                  resolve(file);
+                }
+              }, 'image/jpeg', 0.8);
+            };
+            img.onerror = () => resolve(file);
+            img.src = e.target.result;
+          };
+          reader.onerror = () => resolve(file);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // Upload custom avatar if selected (downscaled to 150x150 ~10KB)
       if (selectedAvatarFile) {
         try {
+          const compressedFile = await compressAvatarImage(selectedAvatarFile);
           const formData = new FormData();
-          formData.append('image', selectedAvatarFile);
+          formData.append('image', compressedFile);
           const res = await fetch('/api/upload', { method: 'POST', body: formData });
           const json = await res.json();
           if (json.success) {
@@ -266,8 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (avatarUrl) sessionStorage.setItem('jeopardy_avatar', avatarUrl);
 
       let targetUrl = `/player.html?room=${code}&name=${encodeURIComponent(name)}&color=${encodeURIComponent(color)}`;
-      if (avatarUrl) targetUrl += `&avatar=${encodeURIComponent(avatarUrl)}`;
-
       window.location.href = targetUrl;
     };
   }
