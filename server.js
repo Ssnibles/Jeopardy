@@ -9,29 +9,15 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Multer storage configuration for custom question image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname) || '.png';
-    cb(null, 'img-' + uniqueSuffix + ext);
-  }
-});
+// Multer in-memory storage configuration for image uploads (no disk storage)
+const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-app.use(express.json({ limit: '20mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(uploadsDir));
 
 // Route handlers for HTML pages
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
@@ -40,12 +26,14 @@ app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public', 'host
 app.get('/player', (req, res) => res.sendFile(path.join(__dirname, 'public', 'player.html')));
 app.get('/board', (req, res) => res.sendFile(path.join(__dirname, 'public', 'board.html')));
 
-// Image upload API endpoint
+// Image upload API endpoint (returns in-memory Base64 Data URL)
 app.post('/api/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided' });
   }
-  const imageUrl = `/uploads/${req.file.filename}`;
+  const mime = req.file.mimetype || 'image/png';
+  const base64 = req.file.buffer.toString('base64');
+  const imageUrl = `data:${mime};base64,${base64}`;
   res.json({ success: true, url: imageUrl });
 });
 
@@ -57,7 +45,7 @@ async function startPublicTunnel() {
     const tunnel = await localtunnel({ port: PORT });
     publicUrl = tunnel.url;
     console.log(`\n==================================================`);
-    console.log(`  🌐 PUBLIC INTERNET ACCESSIBLE TUNNEL OPENED!`);
+    console.log(`  PUBLIC INTERNET ACCESSIBLE TUNNEL OPENED!`);
     console.log(`  Public Link: ${publicUrl}`);
     console.log(`  Share this link with players anywhere in the world!`);
     console.log(`==================================================\n`);

@@ -11,14 +11,14 @@
   <header class="header-bar">
     <div style="display: flex; align-items: center; gap: 1rem;">
       <a href="/" class="brand">
-        <span class="brand-icon">👑</span> Host Control
+        Host Control
       </a>
       <div id="roomBadge" class="room-badge">ROOM: ----</div>
     </div>
     <div class="nav-links">
-      <button id="btnPublicTunnel" class="btn btn-gold">🌐 Enable Internet Access</button>
-      <button id="btnCopyInvite" class="btn">📋 Copy Invite Link</button>
-      <a href="/board.html" id="linkTV" target="_blank" class="btn">📺 Open TV Screen Display</a>
+      <button id="btnPublicTunnel" class="btn btn-gold">Enable Internet Access</button>
+      <button id="btnCopyInvite" class="btn">Copy Invite Link</button>
+      <a href="/board.html" id="linkTV" target="_blank" class="btn">Open TV Screen Display</a>
       <a href="/" class="btn btn-danger">Exit Room</a>
     </div>
   </header>
@@ -27,7 +27,7 @@
 
     <!-- HOST KEYBOARD SHORTCUTS BAR -->
     <div class="keyboard-hints-bar" style="margin-bottom: 1rem;">
-      <span style="font-weight: 700; color: var(--jeopardy-gold);">⌨️ Hotkeys:</span>
+      <span style="font-weight: 700; color: var(--jeopardy-gold);">Hotkeys:</span>
       <span><kbd class="key-pill">Space</kbd> Unlock/Reset</span>
       <span><kbd class="key-pill">X</kbd> Wrong</span>
       <span><kbd class="key-pill">C</kbd> Correct</span>
@@ -43,21 +43,21 @@
         </div>
 
         <div id="buzzerControlsGroup" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-          <button id="btnUnlockBuzzers" class="btn btn-gold" style="font-size: 1.05rem; padding: 0.75rem 1.5rem;">⚡ UNLOCK BUZZERS</button>
-          <button id="btnResetBuzzers" class="btn">🔄 Reset Buzzers</button>
-          <button id="btnCloseClue" class="btn btn-danger">❌ Close Clue</button>
+          <button id="btnUnlockBuzzers" class="btn btn-gold" style="font-size: 1.05rem; padding: 0.75rem 1.5rem;">UNLOCK BUZZERS</button>
+          <button id="btnResetBuzzers" class="btn">Reset Buzzers</button>
+          <button id="btnCloseClue" class="btn btn-danger">Close Clue</button>
         </div>
       </div>
 
       <div>
         <p id="activeClueText" style="font-size: 1.3rem; font-weight: 600; color: #fff; margin-bottom: 0.5rem; line-height: 1.4;"></p>
         <p id="activeClueAnswer" style="font-size: 1.15rem; color: var(--color-success); font-weight: 800; background: rgba(16, 185, 129, 0.1); padding: 0.6rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--color-success); margin-top: 0.5rem;">
-          💡 ANSWER: <span id="answerText"></span>
+          ANSWER: <span id="answerText"></span>
         </p>
 
         <!-- Daily Double Wager Form -->
         <div id="dailyDoubleForm" style="display: none; margin-top: 1rem; background: rgba(251,191,36,0.1); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--jeopardy-gold);">
-          <h3 style="color: var(--jeopardy-gold); margin-bottom: 0.5rem; font-size: 1.1rem;">⭐ DAILY DOUBLE WAGER</h3>
+          <h3 style="color: var(--jeopardy-gold); margin-bottom: 0.5rem; font-size: 1.1rem;">DAILY DOUBLE WAGER</h3>
           <div style="display: flex; gap: 1rem; align-items: center;">
             <input type="number" id="wagerInput" class="form-control" placeholder="Enter wager amount ($)" style="width: 220px;">
             <button id="btnSetWager" class="btn btn-gold">Confirm Wager</button>
@@ -71,8 +71,8 @@
           <span id="buzzWinnerName">Player Buzzed In!</span>
         </div>
         <div style="display: flex; gap: 0.75rem;">
-          <button id="btnMarkWrong" class="btn btn-danger" style="font-size: 1rem; padding: 0.6rem 1.25rem;">✗ Incorrect (-<span class="clueValSpan"></span>)</button>
-          <button id="btnMarkCorrect" class="btn btn-success" style="font-size: 1rem; padding: 0.6rem 1.25rem;">✓ Correct (+<span class="clueValSpan"></span>)</button>
+          <button id="btnMarkWrong" class="btn btn-danger" style="font-size: 1rem; padding: 0.6rem 1.25rem;">Incorrect (-<span class="clueValSpan"></span>)</button>
+          <button id="btnMarkCorrect" class="btn btn-success" style="font-size: 1rem; padding: 0.6rem 1.25rem;">Correct (+<span class="clueValSpan"></span>)</button>
         </div>
       </div>
     </div>
@@ -83,7 +83,7 @@
       <!-- JEOPARDY BOARD GRID -->
       <div class="glass-panel" style="padding: 1.25rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
-          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--jeopardy-gold);">👑 Host Interactive Game Board</h2>
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--jeopardy-gold);">Host Interactive Game Board</h2>
           <span style="font-size: 0.85rem; color: var(--text-muted);">Click any clue tile to present to players</span>
         </div>
         <div id="hostBoard" class="jeopardy-board">
@@ -95,7 +95,7 @@
       <div class="glass-panel" style="display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem;">
         <div class="host-sidebar-header">
           <h3 style="font-size: 1.15rem; font-weight: 800;">
-            👥 Players (<span id="playerCount">0</span>)
+            Players (<span id="playerCount">0</span>)
           </h3>
           <span style="font-size: 0.8rem; color: var(--text-muted);">Quick Adjust</span>
         </div>

@@ -9,11 +9,9 @@
 <body>
 
   <header class="header-bar">
-    <a href="/" class="brand">
-      <span class="brand-icon">⚡</span> Jeopardy Arena
-    </a>
+    <a href="/" class="brand">Jeopardy Arena</a>
     <div class="nav-links">
-      <a href="/creator.html" class="btn btn-gold">🎨 Custom Pack Creator</a>
+      <a href="/creator.html" class="btn btn-gold">Custom Pack Creator</a>
     </div>
   </header>
 
@@ -27,7 +25,6 @@
       <div class="glass-panel" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem;">
         <div>
           <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
-            <span style="font-size: 2rem;">👑</span>
             <div>
               <h2 style="font-size: 1.5rem; font-weight: 800;">Host a New Game</h2>
               <p style="color: var(--text-muted); font-size: 0.9rem;">Start a game room and control the board</p>
@@ -39,14 +36,12 @@
             <div class="pack-selector-grid">
               <div class="pack-choice-card active" id="cardDefaultPack">
                 <input type="radio" name="packChoice" value="default" checked id="radioDefaultPack" style="display: none;">
-                <span class="pack-choice-icon">🏆</span>
                 <span class="pack-choice-title">Default Pack</span>
                 <span class="pack-choice-desc">Ultimate Trivia Showdown</span>
               </div>
 
               <div class="pack-choice-card" id="cardCustomPack">
                 <input type="radio" name="packChoice" value="custom" id="radioCustomPack" style="display: none;">
-                <span class="pack-choice-icon">📂</span>
                 <span class="pack-choice-title">Custom Pack</span>
                 <span class="pack-choice-desc">Upload .json trivia file</span>
               </div>
@@ -57,7 +52,7 @@
             <div class="pack-dropzone" id="packDropzone">
               <input type="file" id="customPackFile" accept=".json" style="display: none;">
               <div class="pack-dropzone-text">
-                <span>📥</span> Click or drop <strong>.json</strong> pack file
+                Click or drop <strong>.json</strong> pack file
               </div>
               <div id="customPackStatus" class="pack-dropzone-status"></div>
             </div>
@@ -65,14 +60,13 @@
         </div>
 
         <button id="btnCreateRoom" class="btn btn-gold" style="width: 100%; padding: 0.85rem; font-size: 1.1rem; margin-top: 1rem;">
-          🚀 Launch Game Room
+          Launch Game Room
         </button>
       </div>
 
       <!-- PLAYER CARD WITH FULL CUSTOMIZATION (AVATAR UPLOAD, COLOR & NICKNAME) -->
       <div class="glass-panel" style="display: flex; flex-direction: column; gap: 1.25rem;">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <span style="font-size: 2rem;">🔴</span>
           <div>
             <h2 style="font-size: 1.5rem; font-weight: 800;">Join as Player</h2>
             <p style="color: var(--text-muted); font-size: 0.9rem;">Set up your profile and buzzer</p>
@@ -117,7 +111,7 @@
           </div>
 
           <button type="submit" id="btnSubmitJoin" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1.1rem; margin-top: 0.25rem;">
-            🔔 Join Game Lobby
+            Join Game Lobby
           </button>
         </form>
       </div>
@@ -127,7 +121,7 @@
     <!-- MAIN SCREEN / TV BOARD CONNECTOR -->
     <div class="glass-panel" style="max-width: 1050px; margin: 2rem auto 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--jeopardy-gold);">📺 Connect TV / Main Screen Display</h3>
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--jeopardy-gold);">Connect TV / Main Screen Display</h3>
         <p style="color: var(--text-muted); font-size: 0.9rem;">Display full board grid and clues on a big TV or projector screen</p>
       </div>
       <div style="display: flex; gap: 0.5rem; align-items: center;">

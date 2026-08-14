@@ -162,12 +162,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const parsed = JSON.parse(event.target.result);
           if (parsed && parsed.categories && Array.isArray(parsed.categories)) {
             customLoadedPack = parsed;
-            customPackStatus.innerText = `✓ Pack Loaded: "${parsed.title || 'Custom Pack'}" (${parsed.categories.length} categories)`;
+            customPackStatus.innerText = `Pack Loaded: "${parsed.title || 'Custom Pack'}" (${parsed.categories.length} categories)`;
           } else {
-            customPackStatus.innerText = '❌ Invalid Jeopardy pack format.';
+            customPackStatus.innerText = 'Invalid Jeopardy pack format.';
           }
         } catch (err) {
-          customPackStatus.innerText = '❌ Error reading JSON: ' + err.message;
+          customPackStatus.innerText = 'Error reading JSON: ' + err.message;
         }
       };
       reader.readAsText(file);

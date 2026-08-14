@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnDeleteCat.className = 'btn btn-danger';
         btnDeleteCat.style.padding = '0.2rem 0.5rem';
         btnDeleteCat.style.fontSize = '0.75rem';
-        btnDeleteCat.innerText = '🗑️ Delete';
+        btnDeleteCat.innerText = 'Delete';
         btnDeleteCat.onclick = () => {
           pack.categories.splice(catIdx, 1);
           persistPack();
@@ -143,9 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
         statusSpan.className = `creator-status-pill ${isFilled ? 'filled' : 'empty'}`;
 
         const icons = [];
-        if (clueObj.clue) icons.push('📝 Text');
-        if (clueObj.image) icons.push('🖼️ Img');
-        if (clueObj.dailyDouble) icons.push('⭐ DD');
+        if (clueObj.clue) icons.push('Text');
+        if (clueObj.image) icons.push('Img');
+        if (clueObj.dailyDouble) icons.push('DD');
 
         statusSpan.innerText = icons.length ? icons.join(' • ') : '+ Add Clue';
         card.appendChild(statusSpan);
@@ -250,30 +250,57 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Image Upload File Handler
+  // Helper: Process and compress image file in-memory using Canvas and Base64 Data URL
+  function processImageFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_DIM = 1200;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_DIM || height > MAX_DIM) {
+            if (width > height) {
+              height = Math.round((height * MAX_DIM) / width);
+              width = MAX_DIM;
+            } else {
+              width = Math.round((width * MAX_DIM) / height);
+              height = MAX_DIM;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            const compressedDataUrl = canvas.toDataURL(mimeType, 0.85);
+            resolve(compressedDataUrl);
+          } else {
+            resolve(e.target.result);
+          }
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Image Upload File Handler (RAM / Base64)
   imageFileInput.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    uploadStatus.innerText = 'Uploading image...';
-    const formData = new FormData();
-    formData.append('image', file);
-
+    uploadStatus.innerText = 'Processing image in memory...';
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      if (data.success) {
-        currentImageUrl = data.url;
-        uploadStatus.innerText = 'Image uploaded successfully!';
-        updateImagePreview();
-      } else {
-        uploadStatus.innerText = 'Upload failed: ' + (data.error || 'Unknown error');
-      }
+      const dataUrl = await processImageFile(file);
+      currentImageUrl = dataUrl;
+      uploadStatus.innerText = 'Image loaded into RAM!';
+      updateImagePreview();
     } catch (err) {
-      uploadStatus.innerText = 'Upload error: ' + err.message;
+      uploadStatus.innerText = 'Load error: ' + err.message;
     }
   };
 
@@ -315,18 +342,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isUrlMode && imageUrlInput.value.trim()) {
       currentImageUrl = imageUrlInput.value.trim();
     } else if (!isUrlMode && imageFileInput.files[0] && !currentImageUrl) {
-      // If a file was selected but hasn't uploaded yet, upload now!
       try {
-        uploadStatus.innerText = 'Uploading image...';
-        const formData = new FormData();
-        formData.append('image', imageFileInput.files[0]);
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-          currentImageUrl = data.url;
-        }
+        uploadStatus.innerText = 'Loading image into memory...';
+        currentImageUrl = await processImageFile(imageFileInput.files[0]);
       } catch (err) {
-        console.error('Image upload error:', err);
+        console.error('Image RAM load error:', err);
       }
     }
 

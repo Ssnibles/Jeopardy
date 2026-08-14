@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.publicUrl) {
         currentPublicUrl = data.publicUrl;
         if (btnPublicTunnel) {
-          btnPublicTunnel.innerText = '🌐 Internet Link Active';
+          btnPublicTunnel.innerText = 'Internet Link Active';
           btnPublicTunnel.className = 'btn btn-success';
         }
       }
@@ -62,28 +62,28 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentPublicUrl) {
         const publicPlayerLink = `${currentPublicUrl}/player.html?room=${roomCode}`;
         navigator.clipboard.writeText(publicPlayerLink);
-        alert(`🌐 Public Internet Invite Link copied to clipboard:\n${publicPlayerLink}\n\nShare this link with players anywhere outside your network!`);
+        alert(`Public Internet Invite Link copied to clipboard:\n${publicPlayerLink}\n\nShare this link with players anywhere outside your network!`);
         return;
       }
 
-      btnPublicTunnel.innerText = '⏳ Opening Public Tunnel...';
+      btnPublicTunnel.innerText = 'Opening Public Tunnel...';
       try {
         const res = await fetch('/api/tunnel/start');
         const json = await res.json();
         if (json.success && json.publicUrl) {
           currentPublicUrl = json.publicUrl;
-          btnPublicTunnel.innerText = '🌐 Internet Link Active';
+          btnPublicTunnel.innerText = 'Internet Link Active';
           btnPublicTunnel.className = 'btn btn-success';
           const publicPlayerLink = `${currentPublicUrl}/player.html?room=${roomCode}`;
           navigator.clipboard.writeText(publicPlayerLink);
-          alert(`🎉 Public Internet Tunnel active!\n\nInvite Link copied to clipboard:\n${publicPlayerLink}\n\nPlayers anywhere in the world can now join!`);
+          alert(`Public Internet Tunnel active!\n\nInvite Link copied to clipboard:\n${publicPlayerLink}\n\nPlayers anywhere in the world can now join!`);
         } else {
           alert('Could not start public tunnel.');
-          btnPublicTunnel.innerText = '🌐 Enable Internet Access';
+          btnPublicTunnel.innerText = 'Enable Internet Access';
         }
       } catch (err) {
         alert('Tunnel error: ' + err.message);
-        btnPublicTunnel.innerText = '🌐 Enable Internet Access';
+        btnPublicTunnel.innerText = 'Enable Internet Access';
       }
     };
   }
@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'BUZZERS_UNLOCKED':
           if (gameState) gameState.buzzerState.state = 'UNLOCKED';
           btnUnlockBuzzers.disabled = true;
-          btnUnlockBuzzers.innerText = '⚡ BUZZERS ACTIVE';
+          btnUnlockBuzzers.innerText = 'BUZZERS ACTIVE';
           break;
 
         case 'PLAYER_BUZZED':
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           buzzWinnerBox.style.display = 'none';
           btnUnlockBuzzers.disabled = false;
-          btnUnlockBuzzers.innerText = '⚡ UNLOCK BUZZERS';
+          btnUnlockBuzzers.innerText = 'UNLOCK BUZZERS';
           renderPlayers();
           break;
 
@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const key = `${catIdx}-${clueIdx}`;
         if (gameState.boardState[key]) {
           card.classList.add('revealed');
-          card.innerText = '✓';
+          card.innerText = '';
         } else {
           card.innerText = `$${clueObj.value}`;
           card.onclick = () => {
@@ -259,17 +259,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (gameState.buzzerState.state === 'UNLOCKED') {
       btnUnlockBuzzers.disabled = true;
-      btnUnlockBuzzers.innerText = '⚡ BUZZERS ACTIVE';
+      btnUnlockBuzzers.innerText = 'BUZZERS ACTIVE';
     } else {
       btnUnlockBuzzers.disabled = false;
-      btnUnlockBuzzers.innerText = '⚡ UNLOCK BUZZERS';
+      btnUnlockBuzzers.innerText = 'UNLOCK BUZZERS';
     }
   }
 
   const activeCategoryText = document.getElementById('activeClueCategory');
 
   function showBuzzWinner(name, latency) {
-    buzzWinnerName.innerText = `🔔 ${name} Buzzed In! (${latency}ms)`;
+    buzzWinnerName.innerText = `${name} Buzzed In! (${latency}ms)`;
     buzzWinnerBox.style.display = 'block';
   }
 
@@ -423,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const btnEdit = document.createElement('button');
       btnEdit.className = 'btn score-adjust-btn';
-      btnEdit.innerText = '✏️';
+      btnEdit.innerText = 'Edit';
       btnEdit.title = 'Custom score adjustment';
       btnEdit.onclick = () => {
         const val = prompt(`Adjust score for ${p.name} (enter amount, e.g. 500 or -300):`, activeClueVal);

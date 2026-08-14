@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!roomCode || roomCode.length !== 4) {
       alert('Please enter a valid 4-letter room code.');
       btnSubmitSetup.disabled = false;
-      btnSubmitSetup.innerText = '🚀 Join Contestant Screen';
+      btnSubmitSetup.innerText = 'Join Contestant Screen';
       return;
     }
 
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderHeaderProfile();
     playerJoinModal.style.display = 'none';
     btnSubmitSetup.disabled = false;
-    btnSubmitSetup.innerText = '🚀 Join Contestant Screen';
+    btnSubmitSetup.innerText = 'Join Contestant Screen';
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
@@ -267,11 +267,11 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePlayerState(msg.state);
             if (msg.playerId === playerId) {
               if (msg.isCorrect) {
-                buzzerStatus.innerText = `🎉 CORRECT! +$${msg.scoreChange}`;
+                buzzerStatus.innerText = `CORRECT! +$${msg.scoreChange}`;
                 buzzerStatus.style.color = 'var(--color-success)';
                 if (window.soundFX) window.soundFX.playCorrect();
               } else {
-                buzzerStatus.innerText = `❌ INCORRECT! -$${Math.abs(msg.scoreChange)}`;
+                buzzerStatus.innerText = `INCORRECT! -$${Math.abs(msg.scoreChange)}`;
                 buzzerStatus.style.color = 'var(--color-danger)';
                 if (window.soundFX) window.soundFX.playWrong();
               }
@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playerClueImage.src = '';
       }
     } else {
-      playerClueText.innerText = '🔒 Question locked until Host unlocks buzzers...';
+      playerClueText.innerText = 'Question locked until Host unlocks buzzers...';
       playerClueText.style.fontStyle = 'italic';
       playerClueText.style.color = 'var(--text-muted)';
       playerClueImage.style.display = 'none';
@@ -446,7 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnBuzzer.disabled = false;
     btnBuzzer.className = 'buzzer-btn unlocked';
     btnBuzzer.innerText = 'BUZZ!';
-    buzzerStatus.innerText = '⚡ BUZZERS ACTIVE! PRESS NOW!';
+    buzzerStatus.innerText = 'BUZZERS ACTIVE! PRESS NOW!';
     buzzerStatus.style.color = 'var(--color-success)';
 
     if (currentClueObj) {
@@ -461,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnBuzzer.disabled = true;
     btnBuzzer.className = 'buzzer-btn buzzed-winner';
     btnBuzzer.innerText = 'BUZZED!';
-    buzzerStatus.innerText = `⭐ YOU BUZZED FIRST! (+${latency}ms)`;
+    buzzerStatus.innerText = `YOU BUZZED FIRST! (+${latency}ms)`;
     buzzerStatus.style.color = 'var(--jeopardy-gold)';
   }
 
