@@ -103,6 +103,10 @@ async function startPublicTunnel() {
           console.log(`  Public Link: ${publicUrl}`);
           console.log(`  Share this link with players anywhere in the world!`);
           console.log(`==================================================\n`);
+          // Broadcast room state to active rooms so TV display and clients update instantly
+          Object.keys(rooms).forEach(code => {
+            broadcastRoom(code, 'ROOM_STATE', { state: getPublicRoomState(rooms[code]) });
+          });
           resolve(publicUrl);
         }
       }
@@ -114,6 +118,9 @@ async function startPublicTunnel() {
         console.log(`[Tunnel] cloudflared process exited (code ${code}).`);
         publicUrl = null;
         tunnelProcess = null;
+        Object.keys(rooms).forEach(code => {
+          broadcastRoom(code, 'ROOM_STATE', { state: getPublicRoomState(rooms[code]) });
+        });
       });
 
       // Timeout: if URL isn't found within 15 seconds, give up
@@ -139,6 +146,9 @@ app.get('/api/tunnel/start', async (req, res) => {
   if (publicUrl) return res.json({ success: true, publicUrl });
   const url = await startPublicTunnel();
   if (url) {
+    Object.keys(rooms).forEach(code => {
+      broadcastRoom(code, 'ROOM_STATE', { state: getPublicRoomState(rooms[code]) });
+    });
     res.json({ success: true, publicUrl: url });
   } else {
     res.status(500).json({ success: false, error: 'Could not create public tunnel' });

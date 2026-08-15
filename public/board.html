@@ -12,7 +12,12 @@
     <div class="brand">
       JEOPARDY! TV DISPLAY
     </div>
-    <div style="display: flex; align-items: center; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+      <div id="tunnelBadge" class="tunnel-badge" style="display: none;" title="Click to copy public player link">
+        <span class="tunnel-icon">🌐</span>
+        <span class="tunnel-label">TUNNEL:</span>
+        <span id="tunnelUrlText" class="tunnel-url"></span>
+      </div>
       <div id="roomBadge" class="room-badge" style="font-size: 1.15rem;">ROOM: ----</div>
       <button id="btnFullscreen" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">Fullscreen</button>
       <button id="btnExitTV" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">Exit TV Mode</button>

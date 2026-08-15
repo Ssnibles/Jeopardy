@@ -46,11 +46,51 @@ document.addEventListener('DOMContentLoaded', () => {
   const tvAnswerText = document.getElementById('tvAnswerText');
   const tvBuzzAlert = document.getElementById('tvBuzzAlert');
   const tvBuzzPlayerName = document.getElementById('tvBuzzPlayerName');
+  const tunnelBadge = document.getElementById('tunnelBadge');
+  const tunnelUrlText = document.getElementById('tunnelUrlText');
 
   roomBadge.innerText = `ROOM: ${roomCode}`;
 
   let gameState = null;
   let ws = null;
+  let currentTunnelUrl = null;
+
+  function updateTunnelDisplay() {
+    if (!tunnelBadge || !tunnelUrlText) return;
+    const publicUrl = (gameState && gameState.publicUrl) !== undefined 
+      ? gameState.publicUrl 
+      : currentTunnelUrl;
+    
+    if (publicUrl) {
+      currentTunnelUrl = publicUrl;
+      tunnelUrlText.innerText = publicUrl;
+      tunnelBadge.style.display = 'inline-flex';
+    } else {
+      tunnelBadge.style.display = 'none';
+    }
+  }
+
+  // Initial check for active public tunnel
+  fetch('/api/tunnel')
+    .then(res => res.json())
+    .then(data => {
+      if (data.publicUrl) {
+        currentTunnelUrl = data.publicUrl;
+        updateTunnelDisplay();
+      }
+    })
+    .catch(() => {});
+
+  if (tunnelBadge) {
+    tunnelBadge.onclick = () => {
+      const publicUrl = (gameState && gameState.publicUrl) || currentTunnelUrl;
+      if (publicUrl) {
+        const playerUrl = `${publicUrl}/player.html?room=${roomCode}`;
+        navigator.clipboard.writeText(playerUrl);
+        alert(`Public Tunnel Player URL copied to clipboard:\n${playerUrl}`);
+      }
+    };
+  }
 
   let reconnectTimer = null;
   let reconnectAttempts = 0;
@@ -59,8 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function initBoardWebSocket() {
     if (reconnectTimer) clearTimeout(reconnectTimer);
     if (pingInterval) clearInterval(pingInterval);
-
-
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     if (ws) {
@@ -108,12 +146,14 @@ document.addEventListener('DOMContentLoaded', () => {
             renderBoard();
             renderScoreboard();
             updateClueModal();
+            updateTunnelDisplay();
             break;
 
           case 'CLUE_SELECTED':
             gameState = msg.state;
             renderBoard();
             updateClueModal();
+            updateTunnelDisplay();
             break;
 
           case 'CLUE_CLOSED':
@@ -121,6 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderBoard();
             tvClueModal.classList.remove('active');
             tvBuzzAlert.style.display = 'none';
+            updateTunnelDisplay();
             break;
 
           case 'PLAYER_BUZZED':
@@ -134,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState = msg.state;
             tvBuzzAlert.style.display = 'none';
             renderScoreboard();
+            updateTunnelDisplay();
             if (msg.isCorrect) {
               if (window.soundFX) window.soundFX.playCorrect();
             } else {
