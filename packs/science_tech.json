@@ -36,7 +36,7 @@
       "name": "Biology & Nature",
       "clues": [
         { "value": 200, "clue": "What molecule known as the 'building block of life' carries genetic instructions?", "answer": "DNA", "dailyDouble": false },
-        { "value": 400, "clue": "What organelle in plant cells carries out photosynthesis to turn sunlight into sugar?", "answer": "Chloroplast", "dailyDouble": false },
+        { "value": 400, "clue": "What organelle in plant cells carries out photosynthesis to turn sunlight into glucose?", "answer": "Chloroplast", "dailyDouble": false },
         { "value": 600, "clue": "What is the largest mammal currently alive on Earth?", "answer": "Blue Whale", "dailyDouble": false },
         { "value": 800, "clue": "What process do bacteria use to replicate by splitting into two identical daughter cells?", "answer": "Binary Fission", "dailyDouble": false },
         { "value": 1000, "clue": "What power organelle is famously referred to as the powerhouse of the cell?", "answer": "Mitochondria", "dailyDouble": false }
