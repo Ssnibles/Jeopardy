@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let playerColor = urlParams.get('color') || sessionStorage.getItem('jeopardy_color') || localStorage.getItem('jeopardy_color') || '#3b82f6';
   let playerAvatarUrl = urlParams.get('avatar') || sessionStorage.getItem('jeopardy_avatar') || localStorage.getItem('jeopardy_avatar') || '';
 
-  // Purge legacy oversized Base64 strings from storage to prevent WS choking
+  // Purge legacy oversized Base64 strings from storage
   if (playerAvatarUrl.startsWith('data:image/') && playerAvatarUrl.length > 10000) {
     playerAvatarUrl = '';
     localStorage.removeItem('jeopardy_avatar');
@@ -38,6 +38,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const setupAvatarFile = document.getElementById('setupAvatarFile');
   const btnSubmitSetup = document.getElementById('btnSubmitSetup');
 
+  // DOM Elements - Overlays & Modals
+  const playerCountdownOverlay = document.getElementById('playerCountdownOverlay');
+  const playerCountdownNum = document.getElementById('playerCountdownNum');
+  const playerWinscreenModal = document.getElementById('playerWinscreenModal');
+  const playerWinnerAvatar = document.getElementById('playerWinnerAvatar');
+  const playerWinnerName = document.getElementById('playerWinnerName');
+  const playerWinnerScore = document.getElementById('playerWinnerScore');
+  const playerPodiumStandings = document.getElementById('playerPodiumStandings');
+
   let playerId = sessionStorage.getItem('jeopardy_playerId') || localStorage.getItem('jeopardy_playerId') || null;
   let ws = null;
   let buzzerState = 'LOCKED';
@@ -55,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupColor.value = playerColor;
   updateAvatarPreview();
 
-  // If missing name, force modal open
   if (!playerName) {
     playerJoinModal.style.display = 'flex';
   } else {
@@ -63,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initWebSocket();
   }
 
-  // Click Top-Left Player Profile to edit profile
   if (btnPlayerProfile) {
     btnPlayerProfile.onclick = () => {
       setupRoomCode.value = roomCode;
@@ -77,12 +84,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnUploadSetupAvatar = document.getElementById('btnUploadSetupAvatar');
   const setupColorSwatches = document.getElementById('setupColorSwatches');
 
-  // Trigger file upload when clicking avatar bubble
   if (btnUploadSetupAvatar && setupAvatarFile) {
     btnUploadSetupAvatar.onclick = () => setupAvatarFile.click();
   }
 
-  // Color Swatch Selection
   if (setupColorSwatches && setupColor) {
     const dots = setupColorSwatches.querySelectorAll('.color-dot');
     dots.forEach(dot => {
@@ -113,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Avatar file input change preview
   setupAvatarFile.onchange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -176,64 +180,60 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-  // Helper: Compress and downscale avatar image to 150x150 JPEG (~10KB) in-memory before network upload
-  function compressAvatarImage(file) {
-    return new Promise((resolve) => {
-      if (!file || !file.type.startsWith('image/')) return resolve(file);
+    function compressAvatarImage(file) {
+      return new Promise((resolve) => {
+        if (!file || !file.type.startsWith('image/')) return resolve(file);
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_DIM = 150;
-          let width = img.width;
-          let height = img.height;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_DIM = 150;
+            let width = img.width;
+            let height = img.height;
+            const minDim = Math.min(width, height);
+            const sx = (width - minDim) / 2;
+            const sy = (height - minDim) / 2;
 
-          const minDim = Math.min(width, height);
-          const sx = (width - minDim) / 2;
-          const sy = (height - minDim) / 2;
+            canvas.width = MAX_DIM;
+            canvas.height = MAX_DIM;
 
-          canvas.width = MAX_DIM;
-          canvas.height = MAX_DIM;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, MAX_DIM, MAX_DIM);
 
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, MAX_DIM, MAX_DIM);
-
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-              resolve(compressedFile);
-            } else {
-              resolve(file);
-            }
-          }, 'image/jpeg', 0.8);
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            }, 'image/jpeg', 0.8);
+          };
+          img.onerror = () => resolve(file);
+          img.src = e.target.result;
         };
-        img.onerror = () => resolve(file);
-        img.src = e.target.result;
-      };
-      reader.onerror = () => resolve(file);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // Upload custom avatar if file selected (downscaled to 150x150 ~10KB)
-  if (selectedAvatarFile) {
-    try {
-      const compressedFile = await compressAvatarImage(selectedAvatarFile);
-      const formData = new FormData();
-      formData.append('image', compressedFile);
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const json = await res.json();
-      if (json.success) {
-        playerAvatarUrl = json.url;
-      }
-    } catch (err) {
-      console.error('Avatar upload failed:', err);
+        reader.onerror = () => resolve(file);
+        reader.readAsDataURL(file);
+      });
     }
-  }
 
-    // Save to Local & Session Storage
+    if (selectedAvatarFile) {
+      try {
+        const compressedFile = await compressAvatarImage(selectedAvatarFile);
+        const formData = new FormData();
+        formData.append('image', compressedFile);
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const json = await res.json();
+        if (json.success) {
+          playerAvatarUrl = json.url;
+        }
+      } catch (err) {
+        console.error('Avatar upload failed:', err);
+      }
+    }
+
     localStorage.setItem('jeopardy_room', roomCode);
     localStorage.setItem('jeopardy_name', playerName);
     localStorage.setItem('jeopardy_color', playerColor);
@@ -263,15 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-
-
   // Initialize WebSocket Connection with Auto-Reconnect
   function initWebSocket() {
     renderHeaderProfile();
     if (reconnectTimer) clearTimeout(reconnectTimer);
     if (pingInterval) clearInterval(pingInterval);
 
-    // Refresh metadata from storage if needed
     roomCode = (roomCode || sessionStorage.getItem('jeopardy_room') || localStorage.getItem('jeopardy_room') || '').toUpperCase();
     playerName = playerName || sessionStorage.getItem('jeopardy_name') || localStorage.getItem('jeopardy_name') || '';
     playerColor = playerColor || sessionStorage.getItem('jeopardy_color') || localStorage.getItem('jeopardy_color') || '#3b82f6';
@@ -293,16 +290,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const thisWsId = wsId;
     const thisSocket = new WebSocket(`${protocol}//${window.location.host}`);
     ws = thisSocket;
-    console.log(`[WS#${thisWsId}] Creating connection to ${protocol}//${window.location.host} (playerId=${playerId}, name=${playerName})`);
 
     thisSocket.onopen = () => {
-      // Guard: if ws has been replaced by a newer initWebSocket call, abandon this one
       if (ws !== thisSocket) {
-        console.warn(`[WS#${thisWsId}] onopen fired but socket already replaced, closing stale socket`);
         thisSocket.close();
         return;
       }
-      console.log(`[WS#${thisWsId}] Connected! Sending JOIN_ROOM...`);
       reconnectAttempts = 0;
 
       const joinPayload = {
@@ -313,10 +306,8 @@ document.addEventListener('DOMContentLoaded', () => {
         color: playerColor,
         avatar: playerAvatarUrl
       };
-      console.log(`[WS#${thisWsId}] JOIN_ROOM payload:`, JSON.stringify(joinPayload));
       thisSocket.send(JSON.stringify(joinPayload));
 
-      // Application keepalive ping every 10s
       pingInterval = setInterval(() => {
         if (thisSocket.readyState === WebSocket.OPEN) {
           try { thisSocket.send(JSON.stringify({ type: 'PING' })); } catch (e) {}
@@ -325,9 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     thisSocket.onclose = (event) => {
-      console.log(`[WS#${thisWsId}] Connection closed (code=${event.code}, reason=${event.reason}, wasClean=${event.wasClean})`);
       if (pingInterval) clearInterval(pingInterval);
-      // Only schedule reconnect if this is still the active socket
       if (ws === thisSocket) {
         scheduleReconnect();
       }
@@ -340,21 +329,15 @@ document.addEventListener('DOMContentLoaded', () => {
     thisSocket.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type !== 'PONG') {
-          console.log(`[WS#${thisWsId}] Received: ${msg.type}`);
-        }
 
         switch (msg.type) {
           case 'PLAYER_JOIN_SUCCESS':
-            console.log(`[WS#${thisWsId}] Join success! playerId=${msg.playerId}`);
             playerId = msg.playerId;
             sessionStorage.setItem('jeopardy_playerId', msg.playerId);
             localStorage.setItem('jeopardy_playerId', msg.playerId);
             updatePlayerState(msg.state);
-            // Safety net: request fresh state shortly after reconnect
             setTimeout(() => {
               if (thisSocket.readyState === WebSocket.OPEN) {
-                console.log(`[WS#${thisWsId}] Requesting state sync...`);
                 try { thisSocket.send(JSON.stringify({ type: 'REQUEST_STATE' })); } catch (e) {}
               }
             }, 1000);
@@ -363,10 +346,21 @@ document.addEventListener('DOMContentLoaded', () => {
           case 'ROOM_STATE':
           case 'CLUE_CLOSED':
           case 'CLUE_SELECTED':
+            if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
             updatePlayerState(msg.state);
             break;
 
+          case 'BUZZER_COUNTDOWN':
+            if (playerCountdownOverlay && playerCountdownNum) {
+              playerCountdownNum.innerText = msg.secondsLeft;
+              playerCountdownOverlay.classList.add('active');
+              if (window.soundFX) window.soundFX.playCountdownTick();
+            }
+            break;
+
           case 'BUZZERS_UNLOCKED':
+            if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
+            if (window.soundFX) window.soundFX.playCountdownGo();
             if (msg.state) updatePlayerState(msg.state);
             setBuzzerUnlocked();
             break;
@@ -377,6 +371,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
               setBuzzerLockedOut(`${msg.playerName} buzzed first!`);
             }
+            break;
+
+          case 'BUZZER_REJECTED':
+            setBuzzerLockedOut(msg.message || 'Buzz rejected');
             break;
 
           case 'ANSWER_EVALUATED':
@@ -394,14 +392,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             break;
 
+          case 'GAME_OVER':
+            updatePlayerState(msg.state);
+            showWinscreen(msg.rankings || (msg.state ? msg.state.rankings : []));
+            break;
+
           case 'ERROR':
-            console.error(`[WS#${thisWsId}] Server error: ${msg.message}`);
             alert(msg.message);
             playerJoinModal.style.display = 'flex';
             break;
         }
       } catch (err) {
-        console.error(`[WS#${thisWsId}] Parse error:`, err);
+        console.error('WS parse error:', err);
       }
     };
   }
@@ -410,7 +412,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (reconnectTimer) clearTimeout(reconnectTimer);
     reconnectAttempts++;
     const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000);
-    console.log(`[Reconnect] Attempt #${reconnectAttempts} in ${delay}ms...`);
     buzzerStatus.innerText = `Connection lost. Reconnecting...`;
     buzzerStatus.style.color = 'var(--color-danger)';
     reconnectTimer = setTimeout(() => {
@@ -420,6 +421,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updatePlayerState(state) {
     if (!state) return;
+
+    if (state.isGameOver) {
+      showWinscreen(state.rankings);
+    } else if (playerWinscreenModal) {
+      playerWinscreenModal.classList.remove('active');
+    }
+
     const me = state.players.find(p => p.id === playerId || (p.name && playerName && p.name.toLowerCase() === playerName.toLowerCase()));
     if (me) {
       playerId = me.id;
@@ -437,6 +445,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.currentClue) {
       currentClueObj = state.currentClue;
       const bState = state.buzzerState ? state.buzzerState.state : 'LOCKED';
+
+      // Exclusive Daily Double Check!
+      if (state.currentClue.dailyDouble && state.currentClue.eligiblePlayerId) {
+        if (playerId !== state.currentClue.eligiblePlayerId) {
+          setBuzzerLockedOut(`Daily Double locked for ${state.currentClue.eligiblePlayerName || 'selected player'}`);
+          return;
+        }
+      }
 
       if (bState === 'UNLOCKED') {
         setBuzzerUnlocked();
@@ -565,7 +581,6 @@ document.addEventListener('DOMContentLoaded', () => {
     playerClueCategory.innerText = clue.categoryName;
     playerClueValue.innerText = `$${clue.value}`;
 
-    // Only reveal question text and image once buzzers are unlocked!
     if (buzzerState === 'UNLOCKED' || buzzerState === 'BUZZED' || buzzerState === 'WINNER' || buzzerState === 'LOCKED_OUT') {
       playerClueText.innerText = clue.clue;
       playerClueText.style.display = 'block';
@@ -597,8 +612,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function showWinscreen(rankings) {
+    if (!playerWinscreenModal) return;
+    const sorted = rankings || [];
+    const winner = sorted.length > 0 ? sorted[0] : null;
+
+    if (winner) {
+      playerWinnerName.innerText = winner.name;
+      playerWinnerScore.innerText = `$${winner.score}`;
+      if (winner.avatar) {
+        playerWinnerAvatar.style.backgroundImage = `url('${winner.avatar}')`;
+        playerWinnerAvatar.innerText = '';
+      } else {
+        playerWinnerAvatar.style.backgroundImage = 'none';
+        playerWinnerAvatar.style.background = winner.color || '#fbbf24';
+        playerWinnerAvatar.innerText = winner.name.charAt(0).toUpperCase();
+      }
+    }
+
+    if (playerPodiumStandings) {
+      playerPodiumStandings.innerHTML = '';
+      sorted.forEach((p, idx) => {
+        const row = document.createElement('div');
+        row.className = `podium-row rank-${idx + 1}`;
+        const medal = idx === 0 ? '🥇 1st' : (idx === 1 ? '🥈 2nd' : (idx === 2 ? '🥉 3rd' : `#${idx + 1}`));
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-weight: 900; font-size: 1.1rem; min-width: 55px; color: var(--jeopardy-gold);">${medal}</span>
+            <span style="font-weight: 800; color: ${p.color || '#fff'}; font-size: 1.05rem;">${p.name}</span>
+          </div>
+          <span style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.2rem; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
+        `;
+        playerPodiumStandings.appendChild(row);
+      });
+    }
+
+    playerWinscreenModal.classList.add('active');
+    if (window.soundFX) window.soundFX.playWinnerFanfare();
+  }
+
+  let unlockedLocalTimestamp = 0;
+
   // BUZZER BUTTON STATES
   function setBuzzerUnlocked() {
+    // Re-check Daily Double lock before unlocking button
+    if (currentClueObj && currentClueObj.dailyDouble && currentClueObj.eligiblePlayerId && currentClueObj.eligiblePlayerId !== playerId) {
+      setBuzzerLockedOut(`Daily Double locked for ${currentClueObj.eligiblePlayerName || 'selected player'}`);
+      return;
+    }
+
+    unlockedLocalTimestamp = performance.now();
     buzzerState = 'UNLOCKED';
     btnBuzzer.disabled = false;
     btnBuzzer.className = 'buzzer-btn unlocked';
@@ -609,8 +672,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentClueObj) {
       showClueDetails(currentClueObj);
     }
-
-    if (window.soundFX) window.soundFX.init();
   }
 
   function setBuzzerWinner(latency) {
@@ -618,7 +679,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnBuzzer.disabled = true;
     btnBuzzer.className = 'buzzer-btn buzzed-winner';
     btnBuzzer.innerText = 'BUZZED!';
-    buzzerStatus.innerText = `YOU BUZZED FIRST! (+${latency}ms)`;
+    buzzerStatus.innerText = `YOU BUZZED FIRST! (⚡ ${latency}ms reaction)`;
     buzzerStatus.style.color = 'var(--jeopardy-gold)';
   }
 
@@ -643,7 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Keyboard Shortcut Listener for Buzzing (Space or Enter)
+  // Keyboard Shortcut Listener for Buzzing
   document.addEventListener('keydown', (e) => {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
     if (playerJoinModal && playerJoinModal.style.display === 'flex') return;
@@ -665,6 +726,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const pressTimestamp = performance.now();
+    const reactionTimeMs = unlockedLocalTimestamp > 0 
+      ? Math.max(50, Math.round(pressTimestamp - unlockedLocalTimestamp)) 
+      : 150;
+
     if (navigator.vibrate) {
       navigator.vibrate([100, 50, 100]);
     }
@@ -674,7 +740,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      ws.send(JSON.stringify({ type: 'PRESS_BUZZER' }));
+      ws.send(JSON.stringify({
+        type: 'PRESS_BUZZER',
+        reactionTimeMs: reactionTimeMs
+      }));
     } catch (err) {
       console.error('Error sending buzz:', err);
       initWebSocket();

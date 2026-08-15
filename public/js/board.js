@@ -46,8 +46,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const tvAnswerText = document.getElementById('tvAnswerText');
   const tvBuzzAlert = document.getElementById('tvBuzzAlert');
   const tvBuzzPlayerName = document.getElementById('tvBuzzPlayerName');
+  const tvDailyDoubleBanner = document.getElementById('tvDailyDoubleBanner');
+  const tvDailyDoublePlayer = document.getElementById('tvDailyDoublePlayer');
   const tunnelBadge = document.getElementById('tunnelBadge');
   const tunnelUrlText = document.getElementById('tunnelUrlText');
+
+  // Overlays
+  const tvCountdownOverlay = document.getElementById('tvCountdownOverlay');
+  const tvCountdownNum = document.getElementById('tvCountdownNum');
+  const tvWinscreenModal = document.getElementById('tvWinscreenModal');
+  const tvWinnerAvatar = document.getElementById('tvWinnerAvatar');
+  const tvWinnerName = document.getElementById('tvWinnerName');
+  const tvWinnerScore = document.getElementById('tvWinnerScore');
+  const tvPodiumStandings = document.getElementById('tvPodiumStandings');
 
   roomBadge.innerText = `ROOM: ${roomCode}`;
 
@@ -147,10 +158,14 @@ document.addEventListener('DOMContentLoaded', () => {
             renderScoreboard();
             updateClueModal();
             updateTunnelDisplay();
+            checkGameOverState();
             break;
 
           case 'CLUE_SELECTED':
             gameState = msg.state;
+            if (tvBuzzAlert) tvBuzzAlert.style.display = 'none';
+            if (tvAnswerBox) tvAnswerBox.style.display = 'none';
+            if (tvAnswerText) tvAnswerText.innerText = '';
             renderBoard();
             updateClueModal();
             updateTunnelDisplay();
@@ -161,31 +176,17 @@ document.addEventListener('DOMContentLoaded', () => {
             renderBoard();
             tvClueModal.classList.remove('active');
             tvBuzzAlert.style.display = 'none';
+            if (tvCountdownOverlay) tvCountdownOverlay.classList.remove('active');
             updateTunnelDisplay();
+            checkGameOverState();
             break;
 
-          case 'PLAYER_BUZZED':
-            if (window.soundFX) window.soundFX.playBuzzer();
-            tvBuzzPlayerName.innerText = msg.playerName;
-            tvBuzzAlert.style.display = 'inline-block';
-            renderScoreboard();
-            break;
-
-          case 'ANSWER_EVALUATED':
-            gameState = msg.state;
-            tvBuzzAlert.style.display = 'none';
-            renderScoreboard();
-            updateTunnelDisplay();
-            if (msg.isCorrect) {
-              if (window.soundFX) window.soundFX.playCorrect();
-            } else {
-              if (window.soundFX) window.soundFX.playWrong();
+          case 'BUZZER_COUNTDOWN':
+            if (tvCountdownOverlay && tvCountdownNum) {
+              tvCountdownNum.innerText = msg.secondsLeft;
+              tvCountdownOverlay.classList.add('active');
+              if (window.soundFX) window.soundFX.playCountdownTick();
             }
-            break;
-
-          case 'ANSWER_REVEALED':
-            tvAnswerBox.style.display = 'block';
-            tvAnswerText.innerText = msg.answer;
             break;
 
           case 'BUZZERS_UNLOCKED':
@@ -193,8 +194,61 @@ document.addEventListener('DOMContentLoaded', () => {
               if (!gameState.buzzerState) gameState.buzzerState = {};
               gameState.buzzerState.state = 'UNLOCKED';
             }
+            if (tvCountdownOverlay) tvCountdownOverlay.classList.remove('active');
+            if (window.soundFX) window.soundFX.playCountdownGo();
             tvBuzzAlert.style.display = 'none';
             updateClueModal();
+            break;
+
+          case 'PLAYER_BUZZED':
+            if (window.soundFX) window.soundFX.playBuzzer();
+            const labelMs = msg.latency ? ` (⚡ ${msg.latency}ms)` : '';
+            if (tvBuzzAlert) {
+              tvBuzzAlert.style.background = 'var(--jeopardy-gold)';
+              tvBuzzAlert.style.color = '#000000';
+              tvBuzzAlert.innerHTML = `<span id="tvBuzzPlayerName">${msg.playerName}${labelMs}</span> BUZZED IN!`;
+              tvBuzzAlert.style.display = 'inline-block';
+            }
+            renderScoreboard();
+            break;
+
+          case 'ANSWER_EVALUATED':
+            gameState = msg.state;
+            renderScoreboard();
+            updateTunnelDisplay();
+            const cName = msg.playerName || 'Contestant';
+            const changeAmt = Math.abs(msg.scoreChange || 0);
+            if (tvBuzzAlert) {
+              tvBuzzAlert.style.display = 'inline-block';
+              if (msg.isCorrect) {
+                tvBuzzAlert.style.background = 'var(--color-success)';
+                tvBuzzAlert.style.color = '#ffffff';
+                tvBuzzAlert.innerText = `CORRECT! ${cName} (+$${changeAmt})`;
+                if (window.soundFX) window.soundFX.playCorrect();
+              } else {
+                tvBuzzAlert.style.background = 'var(--color-danger)';
+                tvBuzzAlert.style.color = '#ffffff';
+                tvBuzzAlert.innerText = `INCORRECT! ${cName} (-$${changeAmt})`;
+                if (window.soundFX) window.soundFX.playWrong();
+              }
+            }
+            const revealedAnswer = msg.answer || (gameState.currentClue && gameState.currentClue.answer);
+            if (revealedAnswer) {
+              tvAnswerBox.style.display = 'block';
+              tvAnswerText.innerText = revealedAnswer;
+            }
+            updateClueModal();
+            checkGameOverState();
+            break;
+
+          case 'ANSWER_REVEALED':
+            tvAnswerBox.style.display = 'block';
+            tvAnswerText.innerText = msg.answer;
+            break;
+
+          case 'GAME_OVER':
+            gameState = msg.state;
+            showWinscreen(msg.rankings || (msg.state ? msg.state.rankings : []));
             break;
         }
       } catch (err) {
@@ -235,8 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const tvDailyDoubleBanner = document.getElementById('tvDailyDoubleBanner');
-
   function updateClueModal() {
     if (!gameState || !gameState.currentClue) {
       tvClueModal.classList.remove('active');
@@ -250,7 +302,14 @@ document.addEventListener('DOMContentLoaded', () => {
     tvClueValue.innerText = `$${clue.value}`;
 
     if (clue.dailyDouble) {
-      if (tvDailyDoubleBanner) tvDailyDoubleBanner.style.display = 'block';
+      if (tvDailyDoubleBanner) {
+        tvDailyDoubleBanner.style.display = 'block';
+        if (tvDailyDoublePlayer) {
+          tvDailyDoublePlayer.innerText = clue.eligiblePlayerName 
+            ? `Reserved for Contestant: ${clue.eligiblePlayerName}`
+            : 'Contestant Daily Double';
+        }
+      }
       if (window.soundFX && !clue.wagerSet) window.soundFX.playDailyDouble();
     } else {
       if (tvDailyDoubleBanner) tvDailyDoubleBanner.style.display = 'none';
@@ -283,10 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
         tvClueImage.alt = '';
       }
     } else {
-      // Question locked: hide question text and image until Host unlocks buzzers
       tvClueText.style.display = 'none';
       tvClueText.innerText = '';
-
       tvClueImage.style.display = 'none';
       tvClueImage.removeAttribute('src');
       tvClueImage.alt = '';
@@ -294,11 +351,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (clue.answerRevealed) {
       tvAnswerBox.style.display = 'block';
+      if (clue.answer) tvAnswerText.innerText = clue.answer;
     } else {
       tvAnswerBox.style.display = 'none';
+      tvAnswerText.innerText = '';
     }
 
     tvClueModal.classList.add('active');
+  }
+
+  function checkGameOverState() {
+    if (gameState && gameState.isGameOver) {
+      showWinscreen(gameState.rankings);
+    } else if (tvWinscreenModal) {
+      tvWinscreenModal.classList.remove('active');
+    }
+  }
+
+  function showWinscreen(rankings) {
+    if (!tvWinscreenModal) return;
+    const sorted = rankings || (gameState ? gameState.players.sort((a, b) => b.score - a.score) : []);
+    const winner = sorted.length > 0 ? sorted[0] : null;
+
+    if (winner) {
+      tvWinnerName.innerText = winner.name;
+      tvWinnerScore.innerText = `$${winner.score}`;
+      if (winner.avatar) {
+        tvWinnerAvatar.style.backgroundImage = `url('${winner.avatar}')`;
+        tvWinnerAvatar.innerText = '';
+      } else {
+        tvWinnerAvatar.style.backgroundImage = 'none';
+        tvWinnerAvatar.style.background = winner.color || '#fbbf24';
+        tvWinnerAvatar.innerText = winner.name.charAt(0).toUpperCase();
+      }
+    }
+
+    if (tvPodiumStandings) {
+      tvPodiumStandings.innerHTML = '';
+      sorted.forEach((p, idx) => {
+        const row = document.createElement('div');
+        row.className = `podium-row rank-${idx + 1}`;
+        const medal = idx === 0 ? '🥇 1st' : (idx === 1 ? '🥈 2nd' : (idx === 2 ? '🥉 3rd' : `#${idx + 1}`));
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-weight: 900; font-size: 1.1rem; min-width: 55px; color: var(--jeopardy-gold);">${medal}</span>
+            <span style="font-weight: 800; color: ${p.color || '#fff'}; font-size: 1.05rem;">${p.name}</span>
+          </div>
+          <span style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.2rem; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
+        `;
+        tvPodiumStandings.appendChild(row);
+      });
+    }
+
+    tvWinscreenModal.classList.add('active');
+    if (window.soundFX) window.soundFX.playWinnerFanfare();
   }
 
   function renderScoreboard() {

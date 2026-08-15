@@ -230,8 +230,80 @@ function broadcastRoom(roomCode, type, data = {}) {
   });
 }
 
+// Helper: Calculate game over state and standings
+function calculateStandings(room) {
+  return [...room.players].sort((a, b) => b.score - a.score);
+}
+
+function triggerGameOver(room) {
+  room.isGameOver = true;
+  const standings = calculateStandings(room);
+  room.winner = standings.length > 0 ? standings[0] : null;
+  broadcastRoom(room.code, 'GAME_OVER', {
+    state: getPublicRoomState(room),
+    rankings: standings
+  });
+}
+function resolveBuzzerWinner(roomCode) {
+  const room = rooms[roomCode];
+  if (!room || !room.buzzerState || (room.buzzerState.state !== 'COLLECTING' && room.buzzerState.state !== 'UNLOCKED')) return;
+
+  if (room.buzzerState.collectionTimer) {
+    clearTimeout(room.buzzerState.collectionTimer);
+    room.buzzerState.collectionTimer = null;
+  }
+
+  const candidates = room.buzzerState.candidates || [];
+  if (candidates.length === 0) {
+    room.buzzerState.state = 'UNLOCKED';
+    return;
+  }
+
+  // Sort candidate buzzes by lowest reactionTimeMs (Fair network compensation!)
+  candidates.sort((a, b) => a.reactionTimeMs - b.reactionTimeMs);
+  const winner = candidates[0];
+
+  room.buzzerState.state = 'BUZZED';
+  room.buzzerState.activePlayerId = winner.playerId;
+  if (!room.buzzerState.buzzedQueue) room.buzzerState.buzzedQueue = [];
+  room.buzzerState.buzzedQueue.push({
+    playerId: winner.playerId,
+    name: winner.playerName,
+    latency: winner.reactionTimeMs,
+    time: winner.arrivalTime
+  });
+
+  const player = room.players.find(p => p.id === winner.playerId);
+
+  broadcastRoom(roomCode, 'PLAYER_BUZZED', {
+    playerId: winner.playerId,
+    playerName: winner.playerName,
+    playerColor: player ? player.color : '#3b82f6',
+    latency: winner.reactionTimeMs,
+    compensated: true,
+    buzzerState: getPublicRoomState(room).buzzerState
+  });
+
+  console.log(`[Room ${roomCode}] Fair buzz winner awarded: ${winner.playerName} (Reaction: ${winner.reactionTimeMs}ms, Compensated)`);
+}
+
+function checkGameOver(room) {
+  if (!room || !room.gamePack || !room.gamePack.categories) return false;
+  let totalClues = 0;
+  room.gamePack.categories.forEach(c => {
+    totalClues += (c.clues || []).length;
+  });
+  const revealedCount = Object.keys(room.boardState).length;
+  if (totalClues > 0 && revealedCount >= totalClues) {
+    triggerGameOver(room);
+    return true;
+  }
+  return false;
+}
+
 // Helper: Get sanitized room state for broadcast
 function getPublicRoomState(room) {
+  const standings = calculateStandings(room);
   return {
     roomCode: room.code,
     publicUrl: publicUrl,
@@ -257,11 +329,17 @@ function getPublicRoomState(room) {
       clue: room.currentClue.clue,
       image: room.currentClue.image,
       dailyDouble: room.currentClue.dailyDouble,
+      eligiblePlayerId: room.currentClue.eligiblePlayerId || null,
+      eligiblePlayerName: room.currentClue.eligiblePlayerName || null,
       wagerSet: room.currentClue.wagerSet || false,
       answerRevealed: room.currentClue.answerRevealed || false,
+      answer: room.currentClue.answerRevealed ? room.currentClue.answer : undefined
     } : null,
     buzzerState: room.buzzerState,
-    controllingPlayerId: room.controllingPlayerId || null
+    controllingPlayerId: room.controllingPlayerId || null,
+    isGameOver: room.isGameOver || false,
+    winner: room.winner || (standings.length > 0 ? standings[0] : null),
+    rankings: standings
   };
 }
 
@@ -457,6 +535,9 @@ wss.on('connection', (ws) => {
           const clueKey = `${catIndex}-${clueIndex}`;
           if (room.boardState[clueKey]) return; // already revealed
 
+          let defaultEligibleId = room.controllingPlayerId || (room.players.length > 0 ? room.players[0].id : null);
+          let defaultEligiblePlayer = room.players.find(p => p.id === defaultEligibleId);
+
           room.currentClue = {
             catIndex,
             clueIndex,
@@ -466,6 +547,8 @@ wss.on('connection', (ws) => {
             answer: clueObj.answer,
             image: clueObj.image || '',
             dailyDouble: !!clueObj.dailyDouble,
+            eligiblePlayerId: clueObj.dailyDouble ? (defaultEligiblePlayer ? defaultEligiblePlayer.id : null) : null,
+            eligiblePlayerName: clueObj.dailyDouble ? (defaultEligiblePlayer ? defaultEligiblePlayer.name : null) : null,
             wager: clueObj.value,
             wagerSet: !clueObj.dailyDouble,
             answerRevealed: false
@@ -485,6 +568,23 @@ wss.on('connection', (ws) => {
           break;
         }
 
+        // --- 4b. SET DAILY DOUBLE PLAYER (HOST) ---
+        case 'SET_DAILY_DOUBLE_PLAYER': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || !room.currentClue || !room.currentClue.dailyDouble || clientMeta.role !== 'HOST') return;
+
+          const { playerId } = msg;
+          const targetPlayer = room.players.find(p => p.id === playerId);
+          if (targetPlayer) {
+            room.currentClue.eligiblePlayerId = targetPlayer.id;
+            room.currentClue.eligiblePlayerName = targetPlayer.name;
+            broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+            console.log(`[Room ${roomCode}] Daily Double assigned to ${targetPlayer.name} (${targetPlayer.id})`);
+          }
+          break;
+        }
+
         // --- 5. SET DAILY DOUBLE WAGER ---
         case 'SET_WAGER': {
           const { roomCode } = clientMeta;
@@ -499,47 +599,90 @@ wss.on('connection', (ws) => {
           break;
         }
 
-        // --- 6. UNLOCK BUZZERS (HOST) ---
+        // --- 6. UNLOCK BUZZERS / START COUNTDOWN (HOST) ---
+        case 'START_BUZZER_COUNTDOWN':
         case 'UNLOCK_BUZZERS': {
           const { roomCode } = clientMeta;
           const room = rooms[roomCode];
           if (!room || !room.currentClue) return;
 
-          room.buzzerState.state = 'UNLOCKED';
-          room.buzzerState.activePlayerId = null;
-          room.buzzerState.unlockTime = Date.now();
+          if (room.countdownTimer) {
+            clearInterval(room.countdownTimer);
+            room.countdownTimer = null;
+          }
 
-          // Include full room state so reconnected clients get the complete picture
-          broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime, state: getPublicRoomState(room) });
+          const durationSeconds = msg.instant ? 0 : (msg.duration !== undefined ? parseInt(msg.duration, 10) : 3);
+
+          if (durationSeconds <= 0) {
+            room.buzzerState = { state: 'UNLOCKED', activePlayerId: null, buzzedQueue: [], unlockTime: Date.now() };
+            broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime, state: getPublicRoomState(room) });
+          } else {
+            room.buzzerState = { state: 'COUNTDOWN', countdownSec: durationSeconds, activePlayerId: null, buzzedQueue: [] };
+            broadcastRoom(roomCode, 'BUZZER_COUNTDOWN', { secondsLeft: durationSeconds, state: getPublicRoomState(room) });
+
+            let currentSec = durationSeconds;
+            room.countdownTimer = setInterval(() => {
+              currentSec--;
+              if (currentSec > 0) {
+                room.buzzerState.countdownSec = currentSec;
+                broadcastRoom(roomCode, 'BUZZER_COUNTDOWN', { secondsLeft: currentSec, state: getPublicRoomState(room) });
+              } else {
+                clearInterval(room.countdownTimer);
+                room.countdownTimer = null;
+                room.buzzerState = { state: 'UNLOCKED', activePlayerId: null, buzzedQueue: [], unlockTime: Date.now() };
+                broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime, state: getPublicRoomState(room) });
+              }
+            }, 1000);
+          }
           break;
         }
 
-        // --- 7. PRESS BUZZER (PLAYER) ---
+        // --- 7. PRESS BUZZER (PLAYER - LATENCY COMPENSATED) ---
         case 'PRESS_BUZZER': {
           const { roomCode, playerId } = clientMeta;
           const room = rooms[roomCode];
           if (!room || !room.currentClue || clientMeta.role !== 'PLAYER') return;
-          if (room.buzzerState.state !== 'UNLOCKED') return;
+          if (room.buzzerState.state !== 'UNLOCKED' && room.buzzerState.state !== 'COLLECTING') return;
 
-          // Check if player already buzzed out this round
+          // Exclusive Daily Double Validation!
+          if (room.currentClue.dailyDouble && room.currentClue.eligiblePlayerId) {
+            if (playerId !== room.currentClue.eligiblePlayerId) {
+              console.log(`[Room ${roomCode}] Buzz blocked: Daily Double reserved for ${room.currentClue.eligiblePlayerName}`);
+              return send(ws, 'BUZZER_REJECTED', { message: `Daily Double is locked for ${room.currentClue.eligiblePlayerName || 'selected player'}` });
+            }
+          }
+
+          // Check if player already buzzed out this round or submitted candidate
           if (room.buzzerState.buzzedQueue.some(b => b.playerId === playerId)) return;
+          if (!room.buzzerState.candidates) room.buzzerState.candidates = [];
+          if (room.buzzerState.candidates.some(c => c.playerId === playerId)) return;
 
-          const pressTime = Date.now();
-          const latency = room.buzzerState.unlockTime ? pressTime - room.buzzerState.unlockTime : 0;
           const player = room.players.find(p => p.id === playerId);
+          const rawReaction = parseInt(msg.reactionTimeMs, 10);
+          const arrivalTime = Date.now();
+          const fallbackReaction = room.buzzerState.unlockTime ? Math.max(50, arrivalTime - room.buzzerState.unlockTime) : 100;
+          const reactionTimeMs = (!isNaN(rawReaction) && rawReaction >= 50 && rawReaction <= 10000) ? rawReaction : fallbackReaction;
 
-          room.buzzerState.state = 'BUZZED';
-          room.buzzerState.activePlayerId = playerId;
-          room.buzzerState.buzzedQueue.push({ playerId, name: player ? player.name : 'Unknown', latency, time: pressTime });
-
-          broadcastRoom(roomCode, 'PLAYER_BUZZED', {
+          room.buzzerState.candidates.push({
             playerId,
             playerName: player ? player.name : 'Unknown',
-            playerColor: player ? player.color : '#3b82f6',
-            latency,
-            buzzerState: room.buzzerState
+            reactionTimeMs,
+            arrivalTime
           });
-          console.log(`[Room ${roomCode}] Buzz winner: ${player ? player.name : playerId} (+${latency}ms)`);
+
+          // Start 250ms collection window on first arriving buzz to buffer high-ping players
+          if (room.buzzerState.state === 'UNLOCKED') {
+            room.buzzerState.state = 'COLLECTING';
+            room.buzzerState.collectionTimer = setTimeout(() => {
+              resolveBuzzerWinner(roomCode);
+            }, 250);
+          }
+
+          // If all connected players have buzzed, resolve immediately
+          const connectedPlayers = room.players.filter(p => p.connected);
+          if (room.buzzerState.candidates.length >= connectedPlayers.length && connectedPlayers.length > 0) {
+            resolveBuzzerWinner(roomCode);
+          }
           break;
         }
 
@@ -550,7 +693,7 @@ wss.on('connection', (ws) => {
           if (!room || !room.currentClue || clientMeta.role !== 'HOST') return;
 
           const { isCorrect } = msg;
-          const activePlayerId = room.buzzerState.activePlayerId || msg.playerId;
+          const activePlayerId = room.buzzerState.activePlayerId || room.currentClue.eligiblePlayerId || msg.playerId;
           const player = room.players.find(p => p.id === activePlayerId);
           const clueVal = room.currentClue.wager || room.currentClue.value;
 
@@ -561,10 +704,14 @@ wss.on('connection', (ws) => {
               room.buzzerState.state = 'LOCKED';
               const key = `${room.currentClue.catIndex}-${room.currentClue.clueIndex}`;
               room.boardState[key] = true;
+              room.currentClue.answerRevealed = true;
             } else {
               player.score -= clueVal;
               room.buzzerState.state = 'LOCKED'; // Host can reset buzzers or close clue
+              room.currentClue.answerRevealed = true;
             }
+          } else {
+            room.currentClue.answerRevealed = true;
           }
 
           broadcastRoom(roomCode, 'ANSWER_EVALUATED', {
@@ -572,8 +719,13 @@ wss.on('connection', (ws) => {
             playerId: activePlayerId,
             playerName: player ? player.name : '',
             scoreChange: isCorrect ? clueVal : -clueVal,
+            answer: room.currentClue.answer,
             state: getPublicRoomState(room)
           });
+
+          if (isCorrect) {
+            checkGameOver(room);
+          }
           break;
         }
 
@@ -614,10 +766,38 @@ wss.on('connection', (ws) => {
           room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
 
           broadcastRoom(roomCode, 'CLUE_CLOSED', { state: getPublicRoomState(room) });
+          checkGameOver(room);
           break;
         }
 
-        // --- 12. MANUAL SCORE ADJUSTMENT (HOST) ---
+        // --- 12. TRIGGER GAME OVER / WINSCREEN (HOST) ---
+        case 'TRIGGER_GAME_OVER': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || clientMeta.role !== 'HOST') return;
+
+          triggerGameOver(room);
+          break;
+        }
+
+        // --- 13. RESET GAME BOARD & SCORES (HOST) ---
+        case 'RESET_GAME': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || clientMeta.role !== 'HOST') return;
+
+          room.boardState = {};
+          room.currentClue = null;
+          room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
+          room.isGameOver = false;
+          room.winner = null;
+          room.players.forEach(p => p.score = 0);
+
+          broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+          break;
+        }
+
+        // --- 14. MANUAL SCORE ADJUSTMENT (HOST) ---
         case 'ADJUST_SCORE': {
           const { roomCode } = clientMeta;
           const room = rooms[roomCode];

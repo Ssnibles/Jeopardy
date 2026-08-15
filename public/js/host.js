@@ -9,15 +9,17 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // DOM Elements
+  // DOM Elements - Header & Nav
   const roomBadge = document.getElementById('roomBadge');
   const btnCopyInvite = document.getElementById('btnCopyInvite');
   const linkTV = document.getElementById('linkTV');
   const hostBoard = document.getElementById('hostBoard');
   const playersList = document.getElementById('playersList');
   const playerCount = document.getElementById('playerCount');
+  const btnToggleMusic = document.getElementById('btnToggleMusic');
+  const btnTriggerGameOver = document.getElementById('btnTriggerGameOver');
 
-  // Clue control elements
+  // Clue Control Panel Elements
   const hostClueControlPanel = document.getElementById('hostClueControlPanel');
   const activeClueCategory = document.getElementById('activeClueCategory');
   const activeClueValue = document.getElementById('activeClueValue');
@@ -25,18 +27,34 @@ document.addEventListener('DOMContentLoaded', () => {
   const activeClueAnswer = document.getElementById('activeClueAnswer');
   const answerText = document.getElementById('answerText');
   const btnUnlockBuzzers = document.getElementById('btnUnlockBuzzers');
+  const btnInstantUnlock = document.getElementById('btnInstantUnlock');
   const btnResetBuzzers = document.getElementById('btnResetBuzzers');
   const btnCloseClue = document.getElementById('btnCloseClue');
 
+  // Daily Double Elements
   const dailyDoubleForm = document.getElementById('dailyDoubleForm');
+  const ddPlayerSelect = document.getElementById('ddPlayerSelect');
   const wagerInput = document.getElementById('wagerInput');
   const btnSetWager = document.getElementById('btnSetWager');
 
+  // Buzz Winner Elements
   const buzzWinnerBox = document.getElementById('buzzWinnerBox');
   const buzzWinnerName = document.getElementById('buzzWinnerName');
   const btnMarkCorrect = document.getElementById('btnMarkCorrect');
   const btnMarkWrong = document.getElementById('btnMarkWrong');
   const clueValSpans = document.querySelectorAll('.clueValSpan');
+
+  // Countdown & Winscreen Overlays
+  const hostCountdownOverlay = document.getElementById('hostCountdownOverlay');
+  const hostCountdownNum = document.getElementById('hostCountdownNum');
+
+  const hostWinscreenModal = document.getElementById('hostWinscreenModal');
+  const hostWinnerAvatar = document.getElementById('hostWinnerAvatar');
+  const hostWinnerName = document.getElementById('hostWinnerName');
+  const hostWinnerScore = document.getElementById('hostWinnerScore');
+  const hostPodiumStandings = document.getElementById('hostPodiumStandings');
+  const btnDismissWinscreen = document.getElementById('btnDismissWinscreen');
+  const btnResetGame = document.getElementById('btnResetGame');
 
   roomBadge.innerText = `ROOM: ${roomCode}`;
   linkTV.href = `/board.html?room=${roomCode}`;
@@ -44,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnPublicTunnel = document.getElementById('btnPublicTunnel');
   let currentPublicUrl = null;
 
-  // Check if public tunnel is already active
+  // Check public tunnel status
   fetch('/api/tunnel')
     .then(res => res.json())
     .then(data => {
@@ -62,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentPublicUrl) {
         const publicPlayerLink = `${currentPublicUrl}/player.html?room=${roomCode}`;
         navigator.clipboard.writeText(publicPlayerLink);
-        alert(`Public Internet Invite Link copied to clipboard:\n${publicPlayerLink}\n\nShare this link with players anywhere outside your network!`);
+        alert(`Public Internet Invite Link copied to clipboard:\n${publicPlayerLink}`);
         return;
       }
 
@@ -76,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
           btnPublicTunnel.className = 'btn btn-success';
           const publicPlayerLink = `${currentPublicUrl}/player.html?room=${roomCode}`;
           navigator.clipboard.writeText(publicPlayerLink);
-          alert(`Public Internet Tunnel active!\n\nInvite Link copied to clipboard:\n${publicPlayerLink}\n\nPlayers anywhere in the world can now join!`);
+          alert(`Public Internet Tunnel active!\nInvite Link copied:\n${publicPlayerLink}`);
         } else {
           alert('Could not start public tunnel.');
           btnPublicTunnel.innerText = 'Enable Internet Access';
@@ -96,11 +114,26 @@ document.addEventListener('DOMContentLoaded', () => {
     alert(`Invite link copied to clipboard:\n${inviteUrl}`);
   };
 
+  // Music toggle handler
+  if (btnToggleMusic) {
+    btnToggleMusic.onclick = () => {
+      if (!window.soundFX) return;
+      if (window.soundFX.isMusicPlaying) {
+        window.soundFX.stopThinkMusic();
+        btnToggleMusic.classList.remove('active');
+        btnToggleMusic.innerText = '🎵 Think Music';
+      } else {
+        window.soundFX.startThinkMusic();
+        btnToggleMusic.classList.add('active');
+        btnToggleMusic.innerText = '🔊 Playing Music';
+      }
+    };
+  }
+
   // State
   let gameState = null;
   let fullGamePack = null;
   let ws = null;
-
   let reconnectTimer = null;
   let reconnectAttempts = 0;
   let pingInterval = null;
@@ -108,8 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function initHostWebSocket() {
     if (reconnectTimer) clearTimeout(reconnectTimer);
     if (pingInterval) clearInterval(pingInterval);
-
-
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     if (ws) {
@@ -164,14 +195,17 @@ document.addEventListener('DOMContentLoaded', () => {
             renderHostBoard();
             renderPlayers();
             updateActiveClueUI();
+            checkGameOverDisplay();
             break;
 
           case 'ROOM_STATE':
           case 'CLUE_CLOSED':
             gameState = msg.state;
+            if (hostCountdownOverlay) hostCountdownOverlay.classList.remove('active');
             renderHostBoard();
             renderPlayers();
             updateActiveClueUI();
+            checkGameOverDisplay();
             break;
 
           case 'CLUE_SELECTED':
@@ -187,9 +221,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             break;
 
+          case 'BUZZER_COUNTDOWN':
+            if (hostCountdownOverlay && hostCountdownNum) {
+              hostCountdownNum.innerText = msg.secondsLeft;
+              hostCountdownOverlay.classList.add('active');
+              if (window.soundFX) window.soundFX.playCountdownTick();
+            }
+            break;
+
           case 'BUZZERS_UNLOCKED':
             if (msg.state) gameState = msg.state;
             else if (gameState) gameState.buzzerState.state = 'UNLOCKED';
+            if (hostCountdownOverlay) hostCountdownOverlay.classList.remove('active');
+            if (window.soundFX) window.soundFX.playCountdownGo();
             btnUnlockBuzzers.disabled = true;
             btnUnlockBuzzers.innerText = 'BUZZERS ACTIVE';
             renderPlayers();
@@ -200,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
               gameState.buzzerState = msg.buzzerState;
             }
             if (window.soundFX) window.soundFX.playBuzzer();
-            showBuzzWinner(msg.playerName, msg.latency);
+            showBuzzWinner(msg.playerName, msg.latency, msg.compensated);
             break;
 
           case 'ANSWER_EVALUATED':
@@ -213,13 +257,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             buzzWinnerBox.style.display = 'none';
             btnUnlockBuzzers.disabled = false;
-            btnUnlockBuzzers.innerText = 'UNLOCK BUZZERS';
+            btnUnlockBuzzers.innerText = 'UNLOCK BUZZERS (3s)';
             renderPlayers();
+            checkGameOverDisplay();
             break;
 
           case 'ANSWER_REVEALED':
             activeClueAnswer.style.display = 'block';
             answerText.innerText = msg.answer;
+            break;
+
+          case 'GAME_OVER':
+            gameState = msg.state;
+            showWinscreen(msg.rankings || (msg.state ? msg.state.rankings : []));
             break;
         }
       } catch (err) {
@@ -230,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initHostWebSocket();
 
-  // Render Host Jeopardy Board
+  // Render Host Jeopardy Board Grid
   function renderHostBoard() {
     if (!gameState || !fullGamePack) return;
 
@@ -271,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Update Active Clue UI
+  // Update Active Clue Controls & Daily Double UI
   function updateActiveClueUI() {
     if (!gameState || !gameState.currentClue) {
       hostClueControlPanel.style.display = 'none';
@@ -281,18 +331,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const c = gameState.currentClue;
     hostClueControlPanel.style.display = 'block';
-    activeCategoryText.innerText = c.categoryName;
-    activeClueValue.innerText = `$${c.value}`;
-    activeClueText.innerText = c.clue;
-    activeClueAnswer.style.display = 'block';
-    if (c.answer) {
+    if (activeClueCategory) activeClueCategory.innerText = c.categoryName;
+    if (activeClueValue) activeClueValue.innerText = `$${c.value}`;
+    if (activeClueText) activeClueText.innerText = c.clue;
+    if (activeClueAnswer) activeClueAnswer.style.display = 'block';
+    if (c.answer && answerText) {
       answerText.innerText = c.answer;
     }
 
-    clueValSpans.forEach(s => s.innerText = `$${c.value}`);
+    const effectiveVal = c.wager || c.value;
+    const clueValSpans = document.querySelectorAll('.clueValSpan');
+    clueValSpans.forEach(s => s.innerText = `$${effectiveVal}`);
 
     if (c.dailyDouble && !c.wagerSet) {
       dailyDoubleForm.style.display = 'block';
+      updateDailyDoublePlayersDropdown(c.eligiblePlayerId);
       if (window.soundFX) window.soundFX.playDailyDouble();
     } else {
       dailyDoubleForm.style.display = 'none';
@@ -303,21 +356,62 @@ document.addEventListener('DOMContentLoaded', () => {
       btnUnlockBuzzers.innerText = 'BUZZERS ACTIVE';
     } else {
       btnUnlockBuzzers.disabled = false;
-      btnUnlockBuzzers.innerText = 'UNLOCK BUZZERS';
+      btnUnlockBuzzers.innerText = 'UNLOCK BUZZERS (3s)';
     }
   }
 
-  const activeCategoryText = document.getElementById('activeClueCategory');
+  // Populate Daily Double player selector
+  function updateDailyDoublePlayersDropdown(selectedId) {
+    if (!gameState || !ddPlayerSelect) return;
+    ddPlayerSelect.innerHTML = '';
 
-  function showBuzzWinner(name, latency) {
-    buzzWinnerName.innerText = `${name} Buzzed In! (${latency}ms)`;
+    if (gameState.players.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.innerText = 'No players connected';
+      ddPlayerSelect.appendChild(opt);
+      return;
+    }
+
+    gameState.players.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.innerText = `${p.name} (Score: $${p.score})`;
+      if (selectedId ? (p.id === selectedId) : (p.id === gameState.controllingPlayerId)) {
+        opt.selected = true;
+      }
+      ddPlayerSelect.appendChild(opt);
+    });
+  }
+
+  if (ddPlayerSelect) {
+    ddPlayerSelect.onchange = () => {
+      const selectedId = ddPlayerSelect.value;
+      if (selectedId && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'SET_DAILY_DOUBLE_PLAYER',
+          playerId: selectedId
+        }));
+      }
+    };
+  }
+
+  function showBuzzWinner(name, latency, compensated) {
+    const label = compensated ? `⚡ ${latency}ms reaction` : `${latency}ms`;
+    buzzWinnerName.innerText = `${name} Buzzed In! (${label})`;
     buzzWinnerBox.style.display = 'block';
   }
 
   // Clue Buttons Listeners
   btnUnlockBuzzers.onclick = () => {
-    ws.send(JSON.stringify({ type: 'UNLOCK_BUZZERS' }));
+    ws.send(JSON.stringify({ type: 'START_BUZZER_COUNTDOWN', duration: 3 }));
   };
+
+  if (btnInstantUnlock) {
+    btnInstantUnlock.onclick = () => {
+      ws.send(JSON.stringify({ type: 'UNLOCK_BUZZERS', instant: true }));
+    };
+  }
 
   btnResetBuzzers.onclick = () => {
     buzzWinnerBox.style.display = 'none';
@@ -330,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnSetWager.onclick = () => {
     const wagerVal = parseInt(wagerInput.value, 10);
-    if (!wagerVal || wagerVal <= 0) return alert('Enter valid wager.');
+    if (!wagerVal || wagerVal <= 0) return alert('Enter valid wager amount.');
     ws.send(JSON.stringify({ type: 'SET_WAGER', wager: wagerVal }));
   };
 
@@ -342,6 +436,77 @@ document.addEventListener('DOMContentLoaded', () => {
     ws.send(JSON.stringify({ type: 'EVALUATE_ANSWER', isCorrect: false }));
   };
 
+  if (btnTriggerGameOver) {
+    btnTriggerGameOver.onclick = () => {
+      if (confirm('Display full celebratory Winner Screen now?')) {
+        ws.send(JSON.stringify({ type: 'TRIGGER_GAME_OVER' }));
+      }
+    };
+  }
+
+  if (btnResetGame) {
+    btnResetGame.onclick = () => {
+      if (confirm('Reset game board and all player scores to $0 for a new game?')) {
+        hostWinscreenModal.classList.remove('active');
+        ws.send(JSON.stringify({ type: 'RESET_GAME' }));
+      }
+    };
+  }
+
+  if (btnDismissWinscreen) {
+    btnDismissWinscreen.onclick = () => {
+      hostWinscreenModal.classList.remove('active');
+    };
+  }
+
+  function checkGameOverDisplay() {
+    if (gameState && gameState.isGameOver) {
+      showWinscreen(gameState.rankings);
+    }
+  }
+
+  function showWinscreen(rankings) {
+    if (!hostWinscreenModal) return;
+    const sorted = rankings || (gameState ? gameState.players.sort((a, b) => b.score - a.score) : []);
+    const winner = sorted.length > 0 ? sorted[0] : null;
+
+    if (winner) {
+      hostWinnerName.innerText = winner.name;
+      hostWinnerScore.innerText = `$${winner.score}`;
+      if (winner.avatar) {
+        hostWinnerAvatar.style.backgroundImage = `url('${winner.avatar}')`;
+        hostWinnerAvatar.innerText = '';
+      } else {
+        hostWinnerAvatar.style.backgroundImage = 'none';
+        hostWinnerAvatar.style.background = winner.color || '#fbbf24';
+        hostWinnerAvatar.innerText = winner.name.charAt(0).toUpperCase();
+      }
+    } else {
+      hostWinnerName.innerText = 'No Contestants';
+      hostWinnerScore.innerText = '$0';
+    }
+
+    if (hostPodiumStandings) {
+      hostPodiumStandings.innerHTML = '';
+      sorted.forEach((p, idx) => {
+        const row = document.createElement('div');
+        row.className = `podium-row rank-${idx + 1}`;
+        const medal = idx === 0 ? '🥇 1st' : (idx === 1 ? '🥈 2nd' : (idx === 2 ? '🥉 3rd' : `#${idx + 1}`));
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-weight: 900; font-size: 1.1rem; min-width: 55px; color: var(--jeopardy-gold);">${medal}</span>
+            <span style="font-weight: 800; color: ${p.color || '#fff'}; font-size: 1.05rem;">${p.name}</span>
+          </div>
+          <span style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.2rem; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
+        `;
+        hostPodiumStandings.appendChild(row);
+      });
+    }
+
+    hostWinscreenModal.classList.add('active');
+    if (window.soundFX) window.soundFX.playWinnerFanfare();
+  }
+
   // Keyboard Shortcuts Listener for Host
   document.addEventListener('keydown', (e) => {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
@@ -352,7 +517,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (buzzWinnerBox.style.display !== 'none' || gameState.buzzerState.state === 'BUZZED') {
           btnResetBuzzers.click();
         } else if (!btnUnlockBuzzers.disabled) {
-          btnUnlockBuzzers.click();
+          if (e.shiftKey) {
+            btnInstantUnlock.click();
+          } else {
+            btnUnlockBuzzers.click();
+          }
         }
       }
     } else if (e.key === 'c' || e.key === 'C' || e.key === 'y' || e.key === 'Y') {
@@ -373,12 +542,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Render Connected Players & Score controls
+  // Render Connected Players & Score Controls
   function renderPlayers() {
     if (!gameState) return;
     const players = gameState.players;
     playerCount.innerText = players.length;
     playersList.innerHTML = '';
+
+    if (gameState.currentClue && gameState.currentClue.dailyDouble) {
+      updateDailyDoublePlayersDropdown(gameState.currentClue.eligiblePlayerId);
+    }
 
     const activeClueVal = (gameState.currentClue && (gameState.currentClue.wager || gameState.currentClue.value)) || 200;
 
@@ -441,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
       topRow.appendChild(leftInfo);
       topRow.appendChild(scoreDisplay);
 
-      // Score quick adjustment controls (+val, -val, custom edit & kick)
+      // Score quick adjustment controls
       const controls = document.createElement('div');
       controls.className = 'score-adjust-group';
       controls.style.display = 'flex';

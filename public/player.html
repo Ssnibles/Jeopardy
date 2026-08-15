@@ -115,6 +115,30 @@
     </div>
   </div>
 
+  <!-- COUNTDOWN OVERLAY -->
+  <div id="playerCountdownOverlay" class="countdown-overlay">
+    <div id="playerCountdownNum" class="countdown-num">3</div>
+    <div class="countdown-label">GET READY TO BUZZ...</div>
+  </div>
+
+  <!-- WINSCREEN OVERLAY -->
+  <div id="playerWinscreenModal" class="winscreen-modal">
+    <div class="winscreen-card">
+      <div class="winner-crown">👑 🥇</div>
+      <h1 class="winner-title">GAME COMPLETED!</h1>
+      <div id="playerWinnerAvatar" class="winner-avatar-lg">?</div>
+      <h2 id="playerWinnerName" style="font-size: 2rem; color: #fff; font-weight: 900;">Winner Name</h2>
+      <div id="playerWinnerScore" class="winner-score-display">$0</div>
+
+      <div style="width: 100%;">
+        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem;">FINAL LEADERBOARD</h3>
+        <div id="playerPodiumStandings" class="podium-standings-grid">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/audio.js"></script>
   <script src="/js/player.js"></script>
 </body>
