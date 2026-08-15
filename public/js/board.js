@@ -153,12 +153,23 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (msg.type) {
           case 'BOARD_JOINED':
           case 'ROOM_STATE':
+          case 'FINAL_JEOPARDY_STARTED':
             gameState = msg.state;
             renderBoard();
             renderScoreboard();
             updateClueModal();
+            renderFinalJeopardyTV();
             updateTunnelDisplay();
             checkGameOverState();
+            break;
+
+          case 'ROUND_TRANSITION':
+            gameState = msg.state;
+            renderBoard();
+            renderScoreboard();
+            updateClueModal();
+            if (window.soundFX) window.soundFX.playWinnerFanfare();
+            updateTunnelDisplay();
             break;
 
           case 'CLUE_SELECTED':
@@ -200,14 +211,21 @@ document.addEventListener('DOMContentLoaded', () => {
             updateClueModal();
             break;
 
+          case 'ANSWER_TIMER_TICK':
+            const tvTimerBadge = document.getElementById('tvAnswerTimerBadge');
+            if (tvTimerBadge) {
+              tvTimerBadge.innerText = `⌛ ${msg.secondsLeft}s`;
+            }
+            break;
+
           case 'PLAYER_BUZZED':
             if (window.soundFX) window.soundFX.playBuzzer();
             const labelMs = msg.latency ? ` (⚡ ${msg.latency}ms)` : '';
             if (tvBuzzAlert) {
               tvBuzzAlert.style.background = 'var(--jeopardy-gold)';
               tvBuzzAlert.style.color = '#000000';
-              tvBuzzAlert.innerHTML = `<span id="tvBuzzPlayerName">${msg.playerName}${labelMs}</span> BUZZED IN!`;
-              tvBuzzAlert.style.display = 'inline-block';
+              tvBuzzAlert.innerHTML = `<span><span id="tvBuzzPlayerName">${msg.playerName}${labelMs}</span> BUZZED IN!</span> <span id="tvAnswerTimerBadge" style="background: rgba(0,0,0,0.85); color: #ef4444; border-radius: 999px; padding: 0.2rem 0.8rem; font-size: 1.6rem; border: 2px solid #ef4444; margin-left: 0.8rem;">⌛ ${msg.answerSecondsLeft || 7}s</span>`;
+              tvBuzzAlert.style.display = 'inline-flex';
             }
             renderScoreboard();
             break;
@@ -262,6 +280,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderBoard() {
     if (!gameState || !gameState.categories) return;
 
+    const tvRoundBadge = document.getElementById('tvRoundBadge');
+    if (tvRoundBadge) {
+      tvRoundBadge.innerText = gameState.roundTitle || 'Jeopardy! Round';
+    }
+
     tvBoard.innerHTML = '';
     gameState.categories.forEach((cat, catIdx) => {
       const col = document.createElement('div');
@@ -305,9 +328,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tvDailyDoubleBanner) {
         tvDailyDoubleBanner.style.display = 'block';
         if (tvDailyDoublePlayer) {
-          tvDailyDoublePlayer.innerText = clue.eligiblePlayerName 
-            ? `Reserved for Contestant: ${clue.eligiblePlayerName}`
-            : 'Contestant Daily Double';
+          if (clue.wagerSet) {
+            tvDailyDoublePlayer.innerText = `⭐ DAILY DOUBLE! ${clue.eligiblePlayerName || 'Contestant'} | WAGER: $${clue.wager}`;
+          } else {
+            tvDailyDoublePlayer.innerText = `⭐ DAILY DOUBLE! Reserved for Contestant: ${clue.eligiblePlayerName || 'Contestant'}\n(Awaiting Wager...)`;
+          }
         }
       }
       if (window.soundFX && !clue.wagerSet) window.soundFX.playDailyDouble();
@@ -315,11 +340,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tvDailyDoubleBanner) tvDailyDoubleBanner.style.display = 'none';
     }
 
-    const isUnlocked = gameState.buzzerState && 
+    const isUnlocked = (clue.dailyDouble && clue.wagerSet) || (gameState.buzzerState && 
       (gameState.buzzerState.state === 'UNLOCKED' || 
        gameState.buzzerState.state === 'BUZZED' || 
        gameState.buzzerState.state === 'WINNER' || 
-       gameState.buzzerState.state === 'LOCKED_OUT');
+       gameState.buzzerState.state === 'LOCKED_OUT'));
 
     if (isUnlocked) {
       tvClueText.innerText = clue.clue;
@@ -434,7 +459,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const name = document.createElement('div');
       name.className = 'player-name';
       name.style.color = p.color || '#ffffff';
+      name.style.display = 'flex';
+      name.style.alignItems = 'center';
       name.innerText = p.name;
+
+      if (gameState.controllingPlayerId && p.id === gameState.controllingPlayerId) {
+        const ctrlBadge = document.createElement('span');
+        ctrlBadge.style.fontSize = '0.65rem';
+        ctrlBadge.style.fontWeight = '900';
+        ctrlBadge.style.background = 'var(--jeopardy-gold)';
+        ctrlBadge.style.color = '#000000';
+        ctrlBadge.style.padding = '0.1rem 0.35rem';
+        ctrlBadge.style.borderRadius = '3px';
+        ctrlBadge.style.marginLeft = '0.35rem';
+        ctrlBadge.innerText = '🎯 CONTROL';
+        name.appendChild(ctrlBadge);
+      }
 
       const score = document.createElement('div');
       score.className = 'player-score';
@@ -446,6 +486,89 @@ document.addEventListener('DOMContentLoaded', () => {
       card.appendChild(score);
 
       tvScoreboard.appendChild(card);
+    });
+  }
+
+  function renderFinalJeopardyTV() {
+    const tvFJModal = document.getElementById('tvFJModal');
+    if (!tvFJModal || !gameState) return;
+
+    if (!gameState.finalJeopardy || gameState.finalJeopardy.state === 'FINISHED') {
+      tvFJModal.classList.remove('active');
+      return;
+    }
+
+    const fj = gameState.finalJeopardy;
+    tvFJModal.classList.add('active');
+
+    const tvFJCategory = document.getElementById('tvFJCategory');
+    const tvFJStageMessage = document.getElementById('tvFJStageMessage');
+    const tvFJClueText = document.getElementById('tvFJClueText');
+    const tvFJPlayerGrid = document.getElementById('tvFJPlayerGrid');
+
+    if (tvFJCategory) tvFJCategory.innerText = fj.category;
+
+    if (fj.state === 'WAGER') {
+      if (tvFJStageMessage) {
+        tvFJStageMessage.style.display = 'block';
+        tvFJStageMessage.innerText = 'Contestants are submitting secret wagers...';
+      }
+      if (tvFJClueText) tvFJClueText.style.display = 'none';
+    } else if (fj.state === 'CLUE' || fj.state === 'EVALUATION') {
+      if (tvFJStageMessage) {
+        tvFJStageMessage.style.display = 'block';
+        tvFJStageMessage.innerText = 'FINAL JEOPARDY CLUE';
+      }
+      if (tvFJClueText) {
+        tvFJClueText.style.display = 'block';
+        tvFJClueText.innerText = fj.clue || '';
+      }
+    }
+
+    if (!tvFJPlayerGrid) return;
+    tvFJPlayerGrid.innerHTML = '';
+
+    (gameState.players || []).forEach(p => {
+      const isDisqualified = p.isDisqualified || (gameState.disqualifiedPlayerIds || []).includes(p.id);
+      const wager = fj.wagers ? fj.wagers[p.id] : undefined;
+      const resp = fj.responses ? fj.responses[p.id] : undefined;
+      const evalData = fj.evaluated ? fj.evaluated[p.id] : undefined;
+
+      const card = document.createElement('div');
+      card.style.background = 'rgba(15, 23, 42, 0.9)';
+      card.style.border = isDisqualified ? '2px solid var(--color-danger)' : '2px solid var(--jeopardy-gold)';
+      card.style.borderRadius = 'var(--radius-md)';
+      card.style.padding = '1rem 1.5rem';
+      card.style.minWidth = '220px';
+      card.style.textAlign = 'center';
+
+      let inner = `<div style="font-weight: 800; font-size: 1.2rem; color: ${p.color || '#fff'};">${p.name}</div>`;
+      inner += `<div style="font-weight: 900; font-size: 1.4rem; color: ${p.score <= 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'}; margin-bottom: 0.5rem;">$${p.score}</div>`;
+
+      if (isDisqualified) {
+        inner += `<div style="font-size: 0.9rem; font-weight: 900; color: #f87171; background: rgba(248,113,113,0.15); padding: 0.25rem 0.5rem; border-radius: 4px;">DISQUALIFIED (≤ $0)</div>`;
+      } else {
+        if (wager !== undefined) {
+          inner += `<div style="font-size: 0.95rem; color: #38bdf8;">Wager: $${wager}</div>`;
+        } else {
+          inner += `<div style="font-size: 0.95rem; color: #94a3b8;">Wager: Pending...</div>`;
+        }
+
+        if (resp !== undefined) {
+          inner += `<div style="font-size: 1rem; font-weight: 700; color: #ffffff; margin-top: 0.4rem;">"${resp}"</div>`;
+        }
+
+        if (evalData) {
+          if (evalData.isCorrect) {
+            inner += `<div style="font-size: 0.9rem; font-weight: 900; color: #4ade80; margin-top: 0.3rem;">CORRECT (+$${evalData.wager})</div>`;
+          } else {
+            inner += `<div style="font-size: 0.9rem; font-weight: 900; color: #f87171; margin-top: 0.3rem;">INCORRECT (-$${evalData.wager})</div>`;
+          }
+        }
+      }
+
+      card.innerHTML = inner;
+      tvFJPlayerGrid.appendChild(card);
     });
   }
 });

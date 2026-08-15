@@ -366,6 +366,18 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePlayerState(msg.state);
             break;
 
+          case 'ROUND_TRANSITION':
+            if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
+            updatePlayerState(msg.state);
+            if (window.soundFX) window.soundFX.playWinnerFanfare();
+            break;
+
+          case 'EARLY_BUZZ_PENALTY':
+            buzzerStatus.innerText = msg.message || 'Early Buzz! 250ms penalty applied when buzzers unlock.';
+            buzzerStatus.style.color = 'var(--color-danger)';
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            break;
+
           case 'BUZZER_COUNTDOWN':
             if (playerCountdownOverlay && playerCountdownNum) {
               playerCountdownNum.innerText = msg.secondsLeft;
@@ -381,11 +393,22 @@ document.addEventListener('DOMContentLoaded', () => {
             setBuzzerUnlocked();
             break;
 
+          case 'ANSWER_TIMER_TICK':
+            if (msg.activePlayerId === playerId) {
+              setBuzzerWinner(0, msg.secondsLeft);
+              if (window.soundFX && msg.secondsLeft <= 3) {
+                window.soundFX.playCountdownTick();
+              }
+            } else {
+              setBuzzerLockedOut(`${msg.activePlayerName} is answering... (${msg.secondsLeft}s left)`);
+            }
+            break;
+
           case 'PLAYER_BUZZED':
             if (msg.playerId === playerId) {
-              setBuzzerWinner(msg.latency);
+              setBuzzerWinner(msg.latency, msg.answerSecondsLeft || 7);
             } else {
-              setBuzzerLockedOut(`${msg.playerName} buzzed first!`);
+              setBuzzerLockedOut(`${msg.playerName} buzzed first! (${msg.answerSecondsLeft || 7}s)`);
             }
             break;
 
@@ -458,16 +481,117 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPlayerBoard(state);
     renderScoreboard(state);
 
+    const playerFJCard = document.getElementById('playerFJCard');
+    const playerFJCategory = document.getElementById('playerFJCategory');
+    const playerFJWagerPanel = document.getElementById('playerFJWagerPanel');
+    const playerFJResponsePanel = document.getElementById('playerFJResponsePanel');
+    const playerFJMaxWagerHint = document.getElementById('playerFJMaxWagerHint');
+    const playerFJClueText = document.getElementById('playerFJClueText');
+    const playerFJStatus = document.getElementById('playerFJStatus');
+
+    if (state.finalJeopardy && state.finalJeopardy.state !== 'FINISHED') {
+      const fj = state.finalJeopardy;
+      const me = state.players.find(p => p.id === playerId);
+      const isDisqualified = me ? (me.isDisqualified || (state.disqualifiedPlayerIds || []).includes(me.id)) : false;
+      const myScore = me ? me.score : 0;
+      const myWager = fj.wagers ? fj.wagers[playerId] : undefined;
+      const myResponse = fj.responses ? fj.responses[playerId] : undefined;
+
+      if (playerFJCard) playerFJCard.style.display = 'block';
+      if (playerFJCategory) playerFJCategory.innerText = `CATEGORY: ${fj.category}`;
+
+      if (isDisqualified) {
+        if (playerFJWagerPanel) playerFJWagerPanel.style.display = 'none';
+        if (playerFJResponsePanel) playerFJResponsePanel.style.display = 'none';
+        if (playerFJStatus) {
+          playerFJStatus.style.display = 'block';
+          playerFJStatus.innerText = '❌ DISQUALIFIED: Score is $0 or less. You cannot participate in Final Jeopardy.';
+          playerFJStatus.style.color = 'var(--color-danger)';
+        }
+        setBuzzerLockedOut('❌ DISQUALIFIED FROM FINAL JEOPARDY');
+        return;
+      }
+
+      if (fj.state === 'WAGER') {
+        if (playerFJWagerPanel) playerFJWagerPanel.style.display = 'block';
+        if (playerFJResponsePanel) playerFJResponsePanel.style.display = 'none';
+        if (playerFJMaxWagerHint) playerFJMaxWagerHint.innerText = `Enter your secret wager ($0 to $${Math.max(0, myScore)}):`;
+
+        if (myWager !== undefined) {
+          if (playerFJStatus) {
+            playerFJStatus.style.display = 'block';
+            playerFJStatus.innerText = `✅ Wager Locked In: $${myWager}. Waiting for Host...`;
+            playerFJStatus.style.color = 'var(--jeopardy-gold)';
+          }
+        } else {
+          if (playerFJStatus) playerFJStatus.style.display = 'none';
+        }
+        setBuzzerLocked('🏆 FINAL JEOPARDY WAGER PHASE');
+      } else if (fj.state === 'CLUE' || fj.state === 'EVALUATION') {
+        if (playerFJWagerPanel) playerFJWagerPanel.style.display = 'none';
+        if (playerFJResponsePanel) playerFJResponsePanel.style.display = 'block';
+        if (playerFJClueText) playerFJClueText.innerText = fj.clue || 'Final Jeopardy Clue';
+
+        if (myResponse !== undefined) {
+          if (playerFJStatus) {
+            playerFJStatus.style.display = 'block';
+            playerFJStatus.innerText = `✅ Answer Submitted: "${myResponse}". Good luck!`;
+            playerFJStatus.style.color = 'var(--jeopardy-gold)';
+          }
+        } else {
+          if (playerFJStatus) playerFJStatus.style.display = 'none';
+        }
+        setBuzzerLocked('🏆 FINAL JEOPARDY ANSWER PHASE');
+      }
+      return;
+    } else {
+      if (playerFJCard) playerFJCard.style.display = 'none';
+    }
+
     if (state.currentClue) {
       currentClueObj = state.currentClue;
       const bState = state.buzzerState ? state.buzzerState.state : 'LOCKED';
+      const playerDDWagerBox = document.getElementById('playerDDWagerBox');
+      const playerDDMaxWagerHint = document.getElementById('playerDDMaxWagerHint');
 
       // Exclusive Daily Double Check!
-      if (state.currentClue.dailyDouble && state.currentClue.eligiblePlayerId) {
-        if (playerId !== state.currentClue.eligiblePlayerId) {
-          setBuzzerLockedOut(`Daily Double locked for ${state.currentClue.eligiblePlayerName || 'selected player'}`);
-          return;
+      if (state.currentClue.dailyDouble) {
+        const isEligible = playerId === state.currentClue.eligiblePlayerId;
+
+        if (isEligible) {
+          if (!state.currentClue.wagerSet) {
+            if (playerDDWagerBox) playerDDWagerBox.style.display = 'block';
+            if (playerDDMaxWagerHint) {
+              const maxW = state.currentClue.maxWager || 1000;
+              playerDDMaxWagerHint.innerText = `Enter your wager ($5 to $${maxW}):`;
+            }
+            playerClueBox.style.display = 'none';
+            setBuzzerLocked('⭐ YOU GOT THE DAILY DOUBLE! Enter your wager.');
+          } else {
+            if (playerDDWagerBox) playerDDWagerBox.style.display = 'none';
+            showClueDetails(state.currentClue);
+            setBuzzerLocked(`⭐ DAILY DOUBLE WAGER: $${state.currentClue.wager} - Answer out loud to Host!`);
+          }
+        } else {
+          if (playerDDWagerBox) playerDDWagerBox.style.display = 'none';
+          if (!state.currentClue.wagerSet) {
+            playerClueBox.style.display = 'none';
+            setBuzzerLockedOut(`Daily Double reserved for ${state.currentClue.eligiblePlayerName || 'selected player'} (Wager in progress...)`);
+          } else {
+            showClueDetails(state.currentClue);
+            setBuzzerLockedOut(`Daily Double for ${state.currentClue.eligiblePlayerName || 'selected player'} ($${state.currentClue.wager})`);
+          }
         }
+        return;
+      }
+
+      if (playerDDWagerBox) playerDDWagerBox.style.display = 'none';
+
+      // Check if player is locked out on this clue
+      if (state.currentClue.lockedOutPlayerIds && state.currentClue.lockedOutPlayerIds.includes(playerId)) {
+        showClueDetails(state.currentClue);
+        setBuzzerLockedOut('❌ You answered incorrectly on this clue.');
+        return;
       }
 
       if (bState === 'UNLOCKED') {
@@ -485,6 +609,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setBuzzerLocked('Wait for Host to unlock buzzers...');
       }
     } else {
+      const playerDDWagerBox = document.getElementById('playerDDWagerBox');
+      if (playerDDWagerBox) playerDDWagerBox.style.display = 'none';
       currentClueObj = null;
       playerClueBox.style.display = 'none';
       setBuzzerLocked('Waiting for Host to pick next clue...');
@@ -527,12 +653,15 @@ document.addEventListener('DOMContentLoaded', () => {
         avatar.innerText = p.name.charAt(0).toUpperCase();
       }
 
+      const isCtrl = state.controllingPlayerId ? (p.id === state.controllingPlayerId) : false;
+      const ctrlBadge = isCtrl ? `<span style="font-size: 0.65rem; font-weight: 900; background: var(--jeopardy-gold); color: #000000; padding: 0.05rem 0.3rem; border-radius: 3px; margin-left: 0.2rem;" title="Board Control">🎯</span>` : '';
+
       const info = document.createElement('div');
       info.style.display = 'flex';
       info.style.alignItems = 'center';
       info.style.gap = '0.35rem';
       info.innerHTML = `
-        <span style="font-weight: 800; color: ${p.color || '#ffffff'};">${p.name}</span>
+        <span style="font-weight: 800; color: ${p.color || '#ffffff'};">${p.name}${ctrlBadge}</span>
         <span style="font-weight: 900; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
       `;
 
@@ -595,9 +724,11 @@ document.addEventListener('DOMContentLoaded', () => {
     currentClueObj = clue;
     playerClueBox.style.display = 'block';
     playerClueCategory.innerText = clue.categoryName;
-    playerClueValue.innerText = `$${clue.value}`;
+    playerClueValue.innerText = clue.dailyDouble ? `⭐ DAILY DOUBLE ($${clue.wager || clue.value})` : `$${clue.value}`;
 
-    if (buzzerState === 'UNLOCKED' || buzzerState === 'BUZZED' || buzzerState === 'WINNER' || buzzerState === 'LOCKED_OUT') {
+    const isUnlocked = clue.dailyDouble ? clue.wagerSet : (buzzerState === 'UNLOCKED' || buzzerState === 'BUZZED' || buzzerState === 'WINNER' || buzzerState === 'LOCKED_OUT');
+
+    if (isUnlocked) {
       playerClueText.innerText = clue.clue;
       playerClueText.style.display = 'block';
       playerClueText.style.fontStyle = 'normal';
@@ -690,12 +821,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function setBuzzerWinner(latency) {
+  function setBuzzerWinner(latency, answerSecondsLeft) {
     buzzerState = 'WINNER';
     btnBuzzer.disabled = true;
     btnBuzzer.className = 'buzzer-btn buzzed-winner';
     btnBuzzer.innerText = 'BUZZED!';
-    buzzerStatus.innerText = `YOU BUZZED FIRST! (${latency}ms reaction)`;
+    const sec = answerSecondsLeft !== undefined ? answerSecondsLeft : 7;
+    const latLabel = latency > 0 ? ` (${latency}ms)` : '';
+    buzzerStatus.innerText = `⚡ YOU BUZZED FIRST! Answer now (${sec}s left)${latLabel}`;
     buzzerStatus.style.color = 'var(--jeopardy-gold)';
   }
 
@@ -765,4 +898,76 @@ document.addEventListener('DOMContentLoaded', () => {
       initWebSocket();
     }
   };
+
+  // Daily Double Wager Event Listeners for Player Screen
+  const playerWagerInput = document.getElementById('playerWagerInput');
+  const btnPlayerSubmitWager = document.getElementById('btnPlayerSubmitWager');
+  const btnTrueDD = document.getElementById('btnTrueDD');
+
+  if (btnPlayerSubmitWager) {
+    btnPlayerSubmitWager.onclick = () => {
+      const val = parseInt(playerWagerInput ? playerWagerInput.value : 0, 10);
+      if (isNaN(val) || val <= 0) {
+        alert('Please enter a valid wager amount ($5 minimum).');
+        return;
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'SET_WAGER', wager: val }));
+      }
+    };
+  }
+
+  if (btnTrueDD) {
+    btnTrueDD.onclick = () => {
+      const maxW = (currentClueObj && currentClueObj.maxWager) || 1000;
+      if (playerWagerInput) playerWagerInput.value = maxW;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'SET_WAGER', wager: maxW }));
+      }
+    };
+  }
+
+  const quickBtns = document.querySelectorAll('.dd-quick-btn[data-wager]');
+  quickBtns.forEach(btn => {
+    btn.onclick = () => {
+      const val = parseInt(btn.getAttribute('data-wager'), 10);
+      if (playerWagerInput) playerWagerInput.value = val;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'SET_WAGER', wager: val }));
+      }
+    };
+  });
+
+  // Final Jeopardy Event Listeners for Player
+  const btnPlayerSubmitFJWager = document.getElementById('btnPlayerSubmitFJWager');
+  const playerFJWagerInput = document.getElementById('playerFJWagerInput');
+
+  if (btnPlayerSubmitFJWager) {
+    btnPlayerSubmitFJWager.onclick = () => {
+      const val = parseInt(playerFJWagerInput ? playerFJWagerInput.value : 0, 10);
+      if (isNaN(val) || val < 0) {
+        alert('Please enter a valid non-negative wager.');
+        return;
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'SUBMIT_FINAL_WAGER', wager: val }));
+      }
+    };
+  }
+
+  const btnPlayerSubmitFJResponse = document.getElementById('btnPlayerSubmitFJResponse');
+  const playerFJResponseInput = document.getElementById('playerFJResponseInput');
+
+  if (btnPlayerSubmitFJResponse) {
+    btnPlayerSubmitFJResponse.onclick = () => {
+      const resp = playerFJResponseInput ? playerFJResponseInput.value.trim() : '';
+      if (!resp) {
+        alert('Please type your response before submitting.');
+        return;
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'SUBMIT_FINAL_RESPONSE', response: resp }));
+      }
+    };
+  }
 });

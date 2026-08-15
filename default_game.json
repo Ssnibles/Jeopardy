@@ -1,56 +1,119 @@
 {
   "title": "Ultimate Trivia Showdown",
   "author": "Jeopardy Host",
-  "categories": [
-    {
-      "name": "Science & Tech",
-      "clues": [
-        { "value": 200, "clue": "This programming language named after a coffee bean was developed by James Gosling at Sun Microsystems.", "answer": "Java", "image": "", "dailyDouble": false },
-        { "value": 400, "clue": "What is the chemical symbol for Gold on the periodic table?", "answer": "Au", "image": "", "dailyDouble": false },
-        { "value": 600, "clue": "This company introduced the iPhone in 2007, revolutionizing smartphones.", "answer": "Apple", "image": "", "dailyDouble": false },
-        { "value": 800, "clue": "Which space telescope launched in December 2021 as the successor to Hubble?", "answer": "James Webb Space Telescope (JWST)", "image": "", "dailyDouble": true },
-        { "value": 1000, "clue": "In physics, what constant approximately equal to 3 x 10^8 m/s is denoted by 'c'?", "answer": "Speed of light", "image": "", "dailyDouble": false }
-      ]
-    },
-    {
-      "name": "World Landmarks",
-      "clues": [
-        { "value": 200, "clue": "Located in Paris, France, this iron lattice tower on the Champ de Mars was constructed for the 1889 World's Fair.", "answer": "Eiffel Tower", "image": "", "dailyDouble": false },
-        { "value": 400, "clue": "This ancient amphitheatre in Rome, Italy, held gladiatorial contests and public spectacles.", "answer": "The Colosseum", "image": "", "dailyDouble": false },
-        { "value": 600, "clue": "This white marble mausoleum on the south bank of the Yamuna River in Agra was commissioned by Shah Jahan.", "answer": "Taj Mahal", "image": "", "dailyDouble": false },
-        { "value": 800, "clue": "This ancient Incan citadel located in the Eastern Cordillera of southern Peru was built around 1450.", "answer": "Machu Picchu", "image": "", "dailyDouble": false },
-        { "value": 1000, "clue": "This iconic modernist building with shell-like sails on Bennelong Point opened in 1973 in Australia.", "answer": "Sydney Opera House", "image": "", "dailyDouble": false }
-      ]
-    },
-    {
-      "name": "Pop Culture & Movies",
-      "clues": [
-        { "value": 200, "clue": "In the Marvel Cinematic Universe, what is the name of Thor's home realm?", "answer": "Asgard", "image": "", "dailyDouble": false },
-        { "value": 400, "clue": "Which movie won the Academy Award for Best Picture in 2020, becoming the first non-English film to win?", "answer": "Parasite", "image": "", "dailyDouble": false },
-        { "value": 600, "clue": "What colour pill does Neo take in The Matrix to discover the truth?", "answer": "Red Pill", "image": "", "dailyDouble": false },
-        { "value": 800, "clue": "Who directed the sci-fi epics Interstellar, Inception, and Oppenheimer?", "answer": "Christopher Nolan", "image": "", "dailyDouble": false },
-        { "value": 1000, "clue": "What is the name of the fictional kingdom where Disney's 'Frozen' is set?", "answer": "Arendelle", "image": "", "dailyDouble": false }
-      ]
-    },
-    {
-      "name": "Gaming",
-      "clues": [
-        { "value": 200, "clue": "This plumber in blue overalls and a red cap is Nintendo's flagship mascot.", "answer": "Mario", "image": "", "dailyDouble": false },
-        { "value": 400, "clue": "What block-building sandbox game created by Markus 'Notch' Persson became the best-selling video game in history?", "answer": "Minecraft", "image": "", "dailyDouble": false },
-        { "value": 600, "clue": "In 'The Legend of Zelda' series, what is the primary name of the heroic protagonist with green tunic?", "answer": "Link", "image": "", "dailyDouble": false },
-        { "value": 800, "clue": "What fictional video game island is the primary setting of Fortnite Battle Royale?", "answer": "Apollo / Athena / The Island", "image": "", "dailyDouble": false },
-        { "value": 1000, "clue": "What year was the original Sony PlayStation console released in Japan?", "answer": "1994", "image": "", "dailyDouble": false }
-      ]
-    },
-    {
-      "name": "Food & Drink",
-      "clues": [
-        { "value": 200, "clue": "What primary ingredient is used to make guacamole?", "answer": "Avocado", "image": "", "dailyDouble": false },
-        { "value": 400, "clue": "What Italian dish consists of thin layers of pasta alternated with sauce, cheese, and meat or vegetables?", "answer": "Lasagne", "image": "", "dailyDouble": false },
-        { "value": 600, "clue": "What type of tea is flavoured with oil of bergamot orange?", "answer": "Earl Grey", "image": "", "dailyDouble": false },
-        { "value": 800, "clue": "From which country does the dish Kimchi originate?", "answer": "South Korea (Korea)", "image": "", "dailyDouble": false },
-        { "value": 1000, "clue": "What is the main spirit in a classic Mojito cocktail?", "answer": "White Rum", "image": "", "dailyDouble": false }
-      ]
-    }
-  ]
+  "round1": {
+    "title": "Jeopardy! Round",
+    "categories": [
+      {
+        "name": "Science & Tech",
+        "clues": [
+          { "value": 200, "clue": "This programming language named after a coffee bean was developed by James Gosling at Sun Microsystems.", "answer": "Java", "image": "", "dailyDouble": false },
+          { "value": 400, "clue": "What is the chemical symbol for Gold on the periodic table?", "answer": "Au", "image": "", "dailyDouble": false },
+          { "value": 600, "clue": "This company introduced the iPhone in 2007, revolutionizing smartphones.", "answer": "Apple", "image": "", "dailyDouble": false },
+          { "value": 800, "clue": "Which space telescope launched in December 2021 as the successor to Hubble?", "answer": "James Webb Space Telescope (JWST)", "image": "", "dailyDouble": true },
+          { "value": 1000, "clue": "In physics, what constant approximately equal to 3 x 10^8 m/s is denoted by 'c'?", "answer": "Speed of light", "image": "", "dailyDouble": false }
+        ]
+      },
+      {
+        "name": "World Landmarks",
+        "clues": [
+          { "value": 200, "clue": "Located in Paris, France, this iron lattice tower on the Champ de Mars was constructed for the 1889 World's Fair.", "answer": "Eiffel Tower", "image": "", "dailyDouble": false },
+          { "value": 400, "clue": "This ancient amphitheatre in Rome, Italy, held gladiatorial contests and public spectacles.", "answer": "The Colosseum", "image": "", "dailyDouble": false },
+          { "value": 600, "clue": "This white marble mausoleum on the south bank of the Yamuna River in Agra was commissioned by Shah Jahan.", "answer": "Taj Mahal", "image": "", "dailyDouble": false },
+          { "value": 800, "clue": "This ancient Incan citadel located in the Eastern Cordillera of southern Peru was built around 1450.", "answer": "Machu Picchu", "image": "", "dailyDouble": false },
+          { "value": 1000, "clue": "This iconic modernist building with shell-like sails on Bennelong Point opened in 1973 in Australia.", "answer": "Sydney Opera House", "image": "", "dailyDouble": false }
+        ]
+      },
+      {
+        "name": "Pop Culture & Movies",
+        "clues": [
+          { "value": 200, "clue": "In the Marvel Cinematic Universe, what is the name of Thor's home realm?", "answer": "Asgard", "image": "", "dailyDouble": false },
+          { "value": 400, "clue": "Which movie won the Academy Award for Best Picture in 2020, becoming the first non-English film to win?", "answer": "Parasite", "image": "", "dailyDouble": false },
+          { "value": 600, "clue": "What colour pill does Neo take in The Matrix to discover the truth?", "answer": "Red Pill", "image": "", "dailyDouble": false },
+          { "value": 800, "clue": "Who directed the sci-fi epics Interstellar, Inception, and Oppenheimer?", "answer": "Christopher Nolan", "image": "", "dailyDouble": false },
+          { "value": 1000, "clue": "What is the name of the fictional kingdom where Disney's 'Frozen' is set?", "answer": "Arendelle", "image": "", "dailyDouble": false }
+        ]
+      },
+      {
+        "name": "Gaming",
+        "clues": [
+          { "value": 200, "clue": "This plumber in blue overalls and a red cap is Nintendo's flagship mascot.", "answer": "Mario", "image": "", "dailyDouble": false },
+          { "value": 400, "clue": "What block-building sandbox game created by Markus 'Notch' Persson became the best-selling video game in history?", "answer": "Minecraft", "image": "", "dailyDouble": false },
+          { "value": 600, "clue": "In 'The Legend of Zelda' series, what is the primary name of the heroic protagonist with green tunic?", "answer": "Link", "image": "", "dailyDouble": false },
+          { "value": 800, "clue": "What fictional video game island is the primary setting of Fortnite Battle Royale?", "answer": "Apollo / Athena / The Island", "image": "", "dailyDouble": false },
+          { "value": 1000, "clue": "What year was the original Sony PlayStation console released in Japan?", "answer": "1994", "image": "", "dailyDouble": false }
+        ]
+      },
+      {
+        "name": "Food & Drink",
+        "clues": [
+          { "value": 200, "clue": "What primary ingredient is used to make guacamole?", "answer": "Avocado", "image": "", "dailyDouble": false },
+          { "value": 400, "clue": "What Italian dish consists of thin layers of pasta alternated with sauce, cheese, and meat or vegetables?", "answer": "Lasagne", "image": "", "dailyDouble": false },
+          { "value": 600, "clue": "What type of tea is flavoured with oil of bergamot orange?", "answer": "Earl Grey", "image": "", "dailyDouble": false },
+          { "value": 800, "clue": "From which country does the dish Kimchi originate?", "answer": "South Korea (Korea)", "image": "", "dailyDouble": false },
+          { "value": 1000, "clue": "What is the main spirit in a classic Mojito cocktail?", "answer": "White Rum", "image": "", "dailyDouble": false }
+        ]
+      }
+    ]
+  },
+  "round2": {
+    "title": "Double Jeopardy! Round",
+    "categories": [
+      {
+        "name": "Advanced Science",
+        "clues": [
+          { "value": 400, "clue": "What subatomic particle with a negative charge orbits the atomic nucleus?", "answer": "Electron", "image": "", "dailyDouble": false },
+          { "value": 800, "clue": "Which organelle is often referred to as the powerhouse of the eukaryotic cell?", "answer": "Mitochondria", "image": "", "dailyDouble": true },
+          { "value": 1200, "clue": "What law of thermodynamics states that entropy of an isolated system always increases over time?", "answer": "Second Law of Thermodynamics", "image": "", "dailyDouble": false },
+          { "value": 1600, "clue": "What element is named after the physicist who developed the theory of relativity?", "answer": "Einsteinium (Es)", "image": "", "dailyDouble": false },
+          { "value": 2000, "clue": "What quantum phenomenon describes two particles remaining inextricably linked regardless of distance?", "answer": "Quantum Entanglement", "image": "", "dailyDouble": false }
+        ]
+      },
+      {
+        "name": "Global History",
+        "clues": [
+          { "value": 400, "clue": "Which French military commander declared himself Emperor of the French in 1804?", "answer": "Napoleon Bonaparte", "image": "", "dailyDouble": false },
+          { "value": 800, "clue": "In what year did the Berlin Wall fall, signaling the end of the Cold War division in Germany?", "answer": "1989", "image": "", "dailyDouble": false },
+          { "value": 1200, "clue": "Which ancient Mesopotamian ruler created one of the earliest written legal codes?", "answer": "Hammurabi", "image": "", "dailyDouble": false },
+          { "value": 1600, "clue": "What treaty signed in 1919 officially ended World War I?", "answer": "Treaty of Versailles", "image": "", "dailyDouble": true },
+          { "value": 2000, "clue": "Which West African empire was ruled by Mansa Musa, believed to be the wealthiest person in history?", "answer": "Mali Empire", "image": "", "dailyDouble": false }
+        ]
+      },
+      {
+        "name": "Literature & Myths",
+        "clues": [
+          { "value": 400, "clue": "Who wrote the classic play 'Romeo and Juliet'?", "answer": "William Shakespeare", "image": "", "dailyDouble": false },
+          { "value": 800, "clue": "In Greek mythology, who was the god of the sea who wielded a trident?", "answer": "Poseidon", "image": "", "dailyDouble": false },
+          { "value": 1200, "clue": "What 1851 novel by Herman Melville begins with the famous line 'Call me Ishmael'?", "answer": "Moby-Dick", "image": "", "dailyDouble": false },
+          { "value": 1600, "clue": "What dystopian novel by George Orwell introduced the concept of Big Brother and newspeak?", "answer": "1984", "image": "", "dailyDouble": false },
+          { "value": 2000, "clue": "Which epic Sanskrit poem details the struggle between two groups of cousins, the Kauravas and the Pandavas?", "answer": "Mahabharata", "image": "", "dailyDouble": false }
+        ]
+      },
+      {
+        "name": "World Capitals",
+        "clues": [
+          { "value": 400, "clue": "What is the capital city of Canada?", "answer": "Ottawa", "image": "", "dailyDouble": false },
+          { "value": 800, "clue": "What high-altitude South American capital sits over 3,600 metres above sea level?", "answer": "La Paz / Sucre (Bolivia)", "image": "", "dailyDouble": false },
+          { "value": 1200, "clue": "What capital city of Iceland is the northernmost capital of a sovereign nation?", "answer": "Reykjavik", "image": "", "dailyDouble": false },
+          { "value": 1600, "clue": "What is the capital city of Kenya?", "answer": "Nairobi", "image": "", "dailyDouble": false },
+          { "value": 2000, "clue": "What capital city on the Danube River was formed in 1873 by combining two historic towns?", "answer": "Budapest", "image": "", "dailyDouble": false }
+        ]
+      },
+      {
+        "name": "Music & Arts",
+        "clues": [
+          { "value": 400, "clue": "Which German composer continued to write masterworks like the 9th Symphony even after becoming completely deaf?", "answer": "Ludwig van Beethoven", "image": "", "dailyDouble": false },
+          { "value": 800, "clue": "Which Dutch post-impressionist painter created 'The Starry Night' in 1889?", "answer": "Vincent van Gogh", "image": "", "dailyDouble": false },
+          { "value": 1200, "clue": "What famous opera by Georges Bizet features the Habanera aria and a tragic love story in Spain?", "answer": "Carmen", "image": "", "dailyDouble": false },
+          { "value": 1600, "clue": "Which Spanish artist co-founded the Cubist movement alongside Georges Braque?", "answer": "Pablo Picasso", "image": "", "dailyDouble": false },
+          { "value": 2000, "clue": "What Italian Renaissance polymath painted 'The Last Supper' and the 'Mona Lisa'?", "answer": "Leonardo da Vinci", "image": "", "dailyDouble": false }
+        ]
+      }
+    ]
+  },
+  "finalJeopardy": {
+    "category": "World History & Explorers",
+    "clue": "This Portuguese explorer was the first European to reach India by sea, opening the Cape Route in 1498.",
+    "answer": "Vasco da Gama"
+  }
 }

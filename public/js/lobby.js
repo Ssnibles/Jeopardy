@@ -548,9 +548,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const ws = new WebSocket(`${protocol}//${window.location.host}`);
 
       ws.onopen = () => {
+        const gameModeSelect = document.getElementById('gameModeSelect');
+        const gameMode = gameModeSelect ? gameModeSelect.value : 'STANDARD';
         ws.send(JSON.stringify({
           type: 'CREATE_ROOM',
-          gamePack: packToUse
+          gamePack: packToUse,
+          gameMode: gameMode
         }));
       };
 

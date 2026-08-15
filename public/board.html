@@ -18,6 +18,7 @@
         <span class="tunnel-label">TUNNEL:</span>
         <span id="tunnelUrlText" class="tunnel-url"></span>
       </div>
+      <div id="tvRoundBadge" class="room-badge" style="font-size: 1.15rem; background: rgba(251,191,36,0.2); color: var(--jeopardy-gold);">Jeopardy! Round</div>
       <div id="roomBadge" class="room-badge" style="font-size: 1.15rem;">ROOM: ----</div>
       <button id="btnFullscreen" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">Fullscreen</button>
       <button id="btnExitTV" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">Exit TV Mode</button>
@@ -61,8 +62,9 @@
       </div>
 
       <!-- TV BUZZ ALERT POPUP -->
-      <div id="tvBuzzAlert" style="display: none; margin-top: 1.5rem; background: var(--jeopardy-gold); color: #000; padding: 1rem 2.5rem; border-radius: var(--radius-full); font-size: 2rem; font-weight: 900; box-shadow: var(--shadow-lg);">
-        <span id="tvBuzzPlayerName">Player</span> BUZZED IN!
+      <div id="tvBuzzAlert" style="display: none; margin-top: 1.5rem; background: var(--jeopardy-gold); color: #000; padding: 1rem 2.5rem; border-radius: var(--radius-full); font-size: 2rem; font-weight: 900; box-shadow: var(--shadow-lg); align-items: center; gap: 1rem;">
+        <span><span id="tvBuzzPlayerName">Player</span> BUZZED IN!</span>
+        <span id="tvAnswerTimerBadge" style="background: rgba(0,0,0,0.85); color: #ef4444; border-radius: 999px; padding: 0.2rem 0.8rem; font-size: 1.6rem; border: 2px solid #ef4444;">⌛ 7s</span>
       </div>
     </div>
   </div>
@@ -87,6 +89,24 @@
         <div id="tvPodiumStandings" class="podium-standings-grid" style="max-height: 320px;">
           <!-- Rendered dynamically -->
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TV FINAL JEOPARDY OVERLAY -->
+  <div id="tvFJModal" class="clue-modal">
+    <div class="clue-content" style="max-width: 1100px; text-align: center;">
+      <div style="font-size: 1.6rem; color: var(--jeopardy-gold); font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem;">🏆 FINAL JEOPARDY 🏆</div>
+      <div id="tvFJCategory" class="clue-category-title" style="font-size: 2.5rem; margin-bottom: 1.5rem; text-transform: uppercase;">CATEGORY</div>
+      
+      <div id="tvFJStageMessage" style="font-size: 1.8rem; color: #ffffff; font-weight: 700; background: rgba(251,191,36,0.15); padding: 1rem 2rem; border-radius: var(--radius-md); border: 2px solid var(--jeopardy-gold); margin-bottom: 1.5rem;">
+        Contestants are entering their secret wagers...
+      </div>
+
+      <div id="tvFJClueText" class="clue-text" style="display: none; font-size: 2.2rem; margin-bottom: 2rem;"></div>
+
+      <div id="tvFJPlayerGrid" style="display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap; margin-top: 1.5rem;">
+        <!-- Dynamically rendered contestant cards for FJ -->
       </div>
     </div>
   </div>

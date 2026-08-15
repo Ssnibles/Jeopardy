@@ -102,30 +102,38 @@ class SoundFX {
     });
   }
 
-  // Daily Double fan-fare
+  // Daily Double fan-fare (Authentic retro synth using sawtooth waves)
   playDailyDouble() {
     if (this.isMuted) return;
     this.init();
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
-    const notes = [440, 554.37, 659.25, 880, 1108.73, 1318.51]; // A4, C#5, E5, A5, C#6, E6
+    // Classic Daily Double synth arpeggio notes: Bb4, D5, F5, Bb5, D6, F6
+    const notes = [466.16, 587.33, 698.46, 932.33, 1174.66, 1396.91];
 
     notes.forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
 
-      gain.gain.setValueAtTime(0.3, now + idx * 0.09);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.35);
+      // Lowpass filter for warm, punchy synth tone
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(3200, now + idx * 0.08);
+      filter.frequency.exponentialRampToValueAtTime(800, now + idx * 0.08 + 0.3);
 
-      osc.connect(gain);
+      gain.gain.setValueAtTime(0.22, now + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(this.ctx.destination);
 
-      osc.start(now + idx * 0.09);
-      osc.stop(now + idx * 0.09 + 0.35);
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.35);
     });
   }
 

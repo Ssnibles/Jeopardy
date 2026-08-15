@@ -41,6 +41,50 @@
       <img id="playerClueImage" src="" alt="" class="clue-image-preview" style="display: none;">
     </div>
 
+    <!-- DAILY DOUBLE CONTESTANT WAGER CARD -->
+    <div id="playerDDWagerBox" class="glass-panel" style="display: none; width: 100%; max-width: 500px; margin: 0 auto 1.5rem auto; padding: 1.25rem; border: 2px solid var(--jeopardy-gold); background: rgba(251,191,36,0.12); border-radius: var(--radius-md); text-align: center;">
+      <h3 style="color: var(--jeopardy-gold); font-size: 1.3rem; font-weight: 900; margin-bottom: 0.4rem;">⭐ YOU GOT THE DAILY DOUBLE! ⭐</h3>
+      <p id="playerDDMaxWagerHint" style="font-size: 0.95rem; color: #ffffff; margin-bottom: 1rem; font-weight: 600;">Enter your wager ($5 to $1,000):</p>
+      
+      <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 0.85rem;">
+        <button type="button" class="btn dd-quick-btn" data-wager="500">$500</button>
+        <button type="button" class="btn dd-quick-btn" data-wager="1000">$1,000</button>
+        <button type="button" class="btn btn-gold dd-quick-btn" id="btnTrueDD">True Daily Double</button>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; max-width: 340px; margin: 0 auto;">
+        <input type="number" id="playerWagerInput" class="form-control" placeholder="Wager $" min="5" style="text-align: center; font-size: 1.15rem; font-weight: 800;">
+        <button type="button" id="btnPlayerSubmitWager" class="btn btn-gold" style="font-weight: 800; padding: 0.6rem 1.25rem;">Submit Wager</button>
+      </div>
+    </div>
+
+    <!-- FINAL JEOPARDY CONTESTANT CARD -->
+    <div id="playerFJCard" class="glass-panel" style="display: none; width: 100%; max-width: 500px; margin: 0 auto 1.5rem auto; padding: 1.25rem; border: 2px solid var(--jeopardy-gold); background: rgba(15, 23, 42, 0.95); border-radius: var(--radius-md); text-align: center;">
+      <h3 style="color: var(--jeopardy-gold); font-size: 1.4rem; font-weight: 900; margin-bottom: 0.4rem;">🏆 FINAL JEOPARDY 🏆</h3>
+      <p id="playerFJCategory" style="font-size: 1.1rem; color: #ffffff; margin-bottom: 0.8rem; font-weight: 700; text-transform: uppercase;">Category</p>
+      
+      <!-- Wager Sub-Panel -->
+      <div id="playerFJWagerPanel" style="display: block;">
+        <p id="playerFJMaxWagerHint" style="font-size: 0.9rem; color: #e2e8f0; margin-bottom: 0.75rem;">Enter your secret wager ($0 to $[Score]):</p>
+        <div style="display: flex; gap: 0.5rem; max-width: 340px; margin: 0 auto;">
+          <input type="number" id="playerFJWagerInput" class="form-control" placeholder="Wager $" min="0" style="text-align: center; font-size: 1.1rem; font-weight: 800;">
+          <button type="button" id="btnPlayerSubmitFJWager" class="btn btn-gold" style="font-weight: 800; padding: 0.6rem 1.1rem;">Lock Wager</button>
+        </div>
+      </div>
+
+      <!-- Response Sub-Panel -->
+      <div id="playerFJResponsePanel" style="display: none; margin-top: 1rem;">
+        <div id="playerFJClueText" style="font-size: 1.15rem; color: #ffffff; margin-bottom: 1rem; font-weight: 600; line-height: 1.4;"></div>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem;">Type your answer:</p>
+        <div style="display: flex; gap: 0.5rem; max-width: 380px; margin: 0 auto;">
+          <input type="text" id="playerFJResponseInput" class="form-control" placeholder="What is..." style="font-size: 1.05rem; font-weight: 700;">
+          <button type="button" id="btnPlayerSubmitFJResponse" class="btn btn-gold" style="font-weight: 800; padding: 0.6rem 1.1rem;">Submit Answer</button>
+        </div>
+      </div>
+
+      <div id="playerFJStatus" style="font-size: 0.9rem; font-weight: 700; color: var(--jeopardy-gold); margin-top: 0.85rem; display: none;"></div>
+    </div>
+
     <!-- GIANT BUZZER CONTAINER -->
     <div class="buzzer-container">
       <button id="btnBuzzer" class="buzzer-btn" disabled>

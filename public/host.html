@@ -15,7 +15,11 @@
       </a>
       <div id="roomBadge" class="room-badge">ROOM: ----</div>
     </div>
-    <div class="nav-links">
+    <div class="nav-links" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+      <select id="selectHostGamePack" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.85rem; width: auto; max-width: 180px; background: rgba(15,23,42,0.8); border: 1px solid var(--jeopardy-gold); color: #fff;">
+        <option value="default_game.json">Default Pack</option>
+      </select>
+      <button id="btnLoadHostPack" class="btn btn-gold" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;">Load Pack</button>
       <button id="btnToggleMusic" class="btn btn-music-toggle">🎵 Think Music</button>
       <button id="btnTriggerGameOver" class="btn btn-gold">🏆 Winner Screen</button>
       <button id="btnPublicTunnel" class="btn btn-gold">Enable Internet Access</button>
@@ -81,13 +85,37 @@
 
       <!-- Active Buzz Winner Action Box -->
       <div id="buzzWinnerBox" class="buzz-winner-banner" style="display: none;">
-        <div class="buzz-winner-title">
+        <div class="buzz-winner-title" style="display: flex; align-items: center; gap: 0.75rem;">
           <span id="buzzWinnerName">Player Buzzed In!</span>
+          <span id="hostAnswerTimerBadge" class="room-badge" style="background: rgba(239, 68, 68, 0.25); color: #f87171; font-weight: 900; border: 1px solid rgba(239, 68, 68, 0.5); padding: 0.2rem 0.6rem; font-size: 0.95rem;">⌛ 7s</span>
         </div>
         <div style="display: flex; gap: 0.75rem;">
           <button id="btnMarkWrong" class="btn btn-danger" style="font-size: 1rem; padding: 0.6rem 1.25rem;">Incorrect (-<span class="clueValSpan"></span>)</button>
           <button id="btnMarkCorrect" class="btn btn-success" style="font-size: 1rem; padding: 0.6rem 1.25rem;">Correct (+<span class="clueValSpan"></span>)</button>
         </div>
+    <!-- FINAL JEOPARDY HOST CONTROL PANEL -->
+    <div id="hostFJPanel" class="glass-panel" style="display: none; margin-bottom: 1.5rem; padding: 1.5rem; border: 2px solid var(--jeopardy-gold); background: rgba(15, 23, 42, 0.95); border-radius: var(--radius-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+        <h2 style="font-size: 1.35rem; font-weight: 900; color: var(--jeopardy-gold);">🏆 HOST FINAL JEOPARDY CONTROL</h2>
+        <div id="hostFJStageBadge" class="room-badge" style="background: rgba(251, 191, 36, 0.2); color: var(--jeopardy-gold); font-weight: 800;">STAGE: WAGER</div>
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <p style="font-size: 1rem; color: #ffffff; font-weight: 700; margin-bottom: 0.3rem;" id="hostFJCategory">CATEGORY: </p>
+        <p style="font-size: 1.05rem; color: var(--text-muted); font-style: italic;" id="hostFJClue">CLUE: </p>
+        <p style="font-size: 0.95rem; color: var(--jeopardy-gold); font-weight: 800; margin-top: 0.3rem;" id="hostFJAnswer">ANSWER: </p>
+      </div>
+
+      <!-- Controls bar -->
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+        <button id="btnHostRevealFJClue" class="btn btn-gold" style="font-weight: 800;">Reveal Final Clue to Players</button>
+        <button id="btnHostFinishFJ" class="btn btn-success" style="font-weight: 800;">End Game & Declare Winner</button>
+      </div>
+
+      <!-- Player Wager & Response Table -->
+      <h3 style="font-size: 1rem; color: #ffffff; font-weight: 800; margin-bottom: 0.65rem;">Contestant Wagers & Responses:</h3>
+      <div id="hostFJPlayerList" style="display: flex; flex-direction: column; gap: 0.65rem;">
+        <!-- Dynamically rendered -->
       </div>
     </div>
 
@@ -97,8 +125,14 @@
       <!-- JEOPARDY BOARD GRID -->
       <div class="glass-panel" style="padding: 1.25rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
-          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--jeopardy-gold);">Host Interactive Game Board</h2>
-          <span style="font-size: 0.85rem; color: var(--text-muted);">Click any clue tile to present to players</span>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--jeopardy-gold);">Host Interactive Game Board</h2>
+            <span id="hostRoundBadge" class="room-badge" style="background: rgba(251,191,36,0.2); color: var(--jeopardy-gold); font-weight: 800; font-size: 0.85rem;">Jeopardy! Round</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button id="btnAdvanceRound" class="btn btn-gold" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Advance Round →</button>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Click clue to select</span>
+          </div>
         </div>
         <div id="hostBoard" class="jeopardy-board">
           <!-- Rendered dynamically -->

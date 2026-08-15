@@ -77,6 +77,31 @@ app.get('/api/avatar/:id', (req, res) => {
   res.send(avatar.buffer);
 });
 
+// API route to list available game packs (.json files in workspace)
+app.get('/api/packs', (req, res) => {
+  try {
+    const files = fs.readdirSync(__dirname);
+    const packs = [];
+    files.forEach(file => {
+      if (file.endsWith('.json') && file !== 'package.json' && file !== 'package-lock.json') {
+        try {
+          const content = fs.readFileSync(path.join(__dirname, file), 'utf8');
+          const json = JSON.parse(content);
+          if (json.categories || json.round1 || json.title) {
+            packs.push({
+              filename: file,
+              title: json.title || file.replace('.json', '')
+            });
+          }
+        } catch (e) {}
+      }
+    });
+    res.json({ packs });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read game packs' });
+  }
+});
+
 let publicUrl = null;
 let tunnelProcess = null;
 
@@ -230,6 +255,48 @@ function broadcastRoom(roomCode, type, data = {}) {
   });
 }
 
+// Helper: Get active category list for current round
+function getActiveCategories(room) {
+  if (!room || !room.gamePack) return [];
+  const currentRound = room.currentRound || 'JEOPARDY';
+
+  if (currentRound === 'DOUBLE_JEOPARDY') {
+    if (room.gamePack.round2 && room.gamePack.round2.categories) {
+      return room.gamePack.round2.categories;
+    }
+    const base = room.gamePack.round1 ? room.gamePack.round1.categories : (room.gamePack.categories || []);
+    return base.map((cat) => ({
+      name: `${cat.name} (Double)`,
+      clues: (cat.clues || []).map((c, i) => ({
+        ...c,
+        value: (i + 1) * 400,
+        dailyDouble: i === 1 || i === 3
+      }))
+    }));
+  }
+
+  if (room.gamePack.round1 && room.gamePack.round1.categories) {
+    return room.gamePack.round1.categories;
+  }
+  return room.gamePack.categories || [];
+}
+
+function getBoardState(room) {
+  const currentRound = room.currentRound || 'JEOPARDY';
+  if (currentRound === 'DOUBLE_JEOPARDY') {
+    if (!room.round2BoardState) room.round2BoardState = {};
+    return room.round2BoardState;
+  }
+  if (!room.round1BoardState) room.round1BoardState = room.boardState || {};
+  return room.round1BoardState;
+}
+
+function getLowestScoringPlayerId(room) {
+  if (!room || !room.players || room.players.length === 0) return null;
+  const sorted = [...room.players].sort((a, b) => a.score - b.score);
+  return sorted[0].id;
+}
+
 // Helper: Calculate game over state and standings
 function calculateStandings(room) {
   return [...room.players].sort((a, b) => b.score - a.score);
@@ -244,6 +311,14 @@ function triggerGameOver(room) {
     rankings: standings
   });
 }
+
+function clearAnswerTimer(room) {
+  if (room && room.answerTimerInterval) {
+    clearInterval(room.answerTimerInterval);
+    room.answerTimerInterval = null;
+  }
+}
+
 function resolveBuzzerWinner(roomCode) {
   const room = rooms[roomCode];
   if (!room || !room.buzzerState || (room.buzzerState.state !== 'COLLECTING' && room.buzzerState.state !== 'UNLOCKED')) return;
@@ -253,27 +328,102 @@ function resolveBuzzerWinner(roomCode) {
     room.buzzerState.collectionTimer = null;
   }
 
-  const candidates = room.buzzerState.candidates || [];
-  if (candidates.length === 0) {
-    room.buzzerState.state = 'UNLOCKED';
+  const lockedOut = (room.currentClue && room.currentClue.lockedOutPlayerIds) ? room.currentClue.lockedOutPlayerIds : [];
+  const rawCandidates = room.buzzerState.candidates || [];
+  const validCandidates = rawCandidates.filter(c => !lockedOut.includes(c.playerId));
+
+  if (validCandidates.length === 0) {
+    const eligiblePlayers = room.players.filter(p => p.connected && !lockedOut.includes(p.id));
+    if (eligiblePlayers.length > 0 && room.currentClue && !room.currentClue.dailyDouble) {
+      room.buzzerState.state = 'UNLOCKED';
+      room.buzzerState.unlockTime = Date.now();
+      broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime, state: getPublicRoomState(room) });
+    } else {
+      room.buzzerState.state = 'LOCKED';
+      broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+    }
     return;
   }
 
   // Sort candidate buzzes by lowest reactionTimeMs (Fair network compensation!)
-  candidates.sort((a, b) => a.reactionTimeMs - b.reactionTimeMs);
-  const winner = candidates[0];
+  validCandidates.sort((a, b) => a.reactionTimeMs - b.reactionTimeMs);
+  const winner = validCandidates[0];
 
   room.buzzerState.state = 'BUZZED';
   room.buzzerState.activePlayerId = winner.playerId;
   if (!room.buzzerState.buzzedQueue) room.buzzerState.buzzedQueue = [];
-  room.buzzerState.buzzedQueue.push({
-    playerId: winner.playerId,
-    name: winner.playerName,
-    latency: winner.reactionTimeMs,
-    time: winner.arrivalTime
-  });
+  if (!room.buzzerState.buzzedQueue.some(b => b.playerId === winner.playerId)) {
+    room.buzzerState.buzzedQueue.push({
+      playerId: winner.playerId,
+      name: winner.playerName,
+      latency: winner.reactionTimeMs,
+      time: winner.arrivalTime
+    });
+  }
 
   const player = room.players.find(p => p.id === winner.playerId);
+
+  // Clear existing answer timer if any
+  clearAnswerTimer(room);
+
+  // 7-Second Answer Timer after player buzzes in
+  room.answerSecondsLeft = 7;
+  room.answerTimerInterval = setInterval(() => {
+    if (!rooms[roomCode] || !room.currentClue || room.buzzerState.state !== 'BUZZED' || room.buzzerState.activePlayerId !== winner.playerId) {
+      clearAnswerTimer(room);
+      return;
+    }
+
+    room.answerSecondsLeft--;
+
+    if (room.answerSecondsLeft > 0) {
+      broadcastRoom(roomCode, 'ANSWER_TIMER_TICK', {
+        secondsLeft: room.answerSecondsLeft,
+        activePlayerId: winner.playerId,
+        activePlayerName: winner.playerName
+      });
+    } else {
+      clearAnswerTimer(room);
+      console.log(`[Room ${roomCode}] Contestant answer timer EXPIRED for ${winner.playerName}!`);
+
+      const p = room.players.find(pl => pl.id === winner.playerId);
+      const clueVal = (room.currentClue && (room.currentClue.wager || room.currentClue.value)) || 200;
+
+      if (p) p.score -= clueVal;
+
+      if (!room.currentClue.lockedOutPlayerIds) room.currentClue.lockedOutPlayerIds = [];
+      if (!room.currentClue.lockedOutPlayerIds.includes(winner.playerId)) {
+        room.currentClue.lockedOutPlayerIds.push(winner.playerId);
+      }
+
+      room.buzzerState.activePlayerId = null;
+
+      broadcastRoom(roomCode, 'ANSWER_EVALUATED', {
+        isCorrect: false,
+        playerId: winner.playerId,
+        playerName: winner.playerName,
+        scoreChange: -clueVal,
+        timedOut: true,
+        answer: room.currentClue.answer,
+        state: getPublicRoomState(room)
+      });
+
+      const remainingCandidates = (room.buzzerState.candidates || []).filter(c => !room.currentClue.lockedOutPlayerIds.includes(c.playerId));
+      if (remainingCandidates.length > 0) {
+        resolveBuzzerWinner(roomCode);
+      } else {
+        const eligiblePlayers = room.players.filter(pl => pl.connected && !room.currentClue.lockedOutPlayerIds.includes(pl.id));
+        if (eligiblePlayers.length > 0 && !room.currentClue.dailyDouble) {
+          room.buzzerState.state = 'UNLOCKED';
+          room.buzzerState.unlockTime = Date.now();
+          broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime, state: getPublicRoomState(room) });
+        } else {
+          room.buzzerState.state = 'LOCKED';
+          broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+        }
+      }
+    }
+  }, 1000);
 
   broadcastRoom(roomCode, 'PLAYER_BUZZED', {
     playerId: winner.playerId,
@@ -281,22 +431,77 @@ function resolveBuzzerWinner(roomCode) {
     playerColor: player ? player.color : '#3b82f6',
     latency: winner.reactionTimeMs,
     compensated: true,
+    answerSecondsLeft: 7,
     buzzerState: getPublicRoomState(room).buzzerState
   });
 
-  console.log(`[Room ${roomCode}] Fair buzz winner awarded: ${winner.playerName} (Reaction: ${winner.reactionTimeMs}ms, Compensated)`);
+  console.log(`[Room ${roomCode}] Fair buzz winner awarded: ${winner.playerName} (Reaction: ${winner.reactionTimeMs}ms)`);
+}
+
+function startFinalJeopardy(room) {
+  if (!room) return;
+  if (room.finalJeopardy && room.finalJeopardy.state === 'FINISHED') return;
+
+  room.currentRound = 'FINAL_JEOPARDY';
+  const packFJ = (room.gamePack && room.gamePack.finalJeopardy) ? room.gamePack.finalJeopardy : null;
+  const fjCategory = packFJ ? packFJ.category : 'World History & Explorers';
+  const fjClue = packFJ ? packFJ.clue : 'This Portuguese explorer was the first European to reach India by sea, opening the Cape Route in 1498.';
+  const fjAnswer = packFJ ? packFJ.answer : 'Vasco da Gama';
+
+  // Disqualify players with score <= 0 per broadcast show rules
+  const disqualified = room.players.filter(p => p.score <= 0).map(p => p.id);
+  room.disqualifiedPlayerIds = disqualified;
+
+  room.finalJeopardy = {
+    state: 'WAGER', // WAGER -> CLUE -> EVALUATION -> FINISHED
+    category: fjCategory,
+    clue: fjClue,
+    answer: fjAnswer,
+    wagers: {},
+    responses: {},
+    evaluated: {}
+  };
+
+  broadcastRoom(room.code, 'FINAL_JEOPARDY_STARTED', {
+    state: getPublicRoomState(room),
+    disqualifiedPlayerIds: disqualified
+  });
+  console.log(`[Room ${room.code}] Final Jeopardy Round started! Category: ${fjCategory}. Disqualified: ${disqualified.length} players.`);
 }
 
 function checkGameOver(room) {
-  if (!room || !room.gamePack || !room.gamePack.categories) return false;
+  if (!room || !room.gamePack) return false;
+  const currentRound = room.currentRound || 'JEOPARDY';
+  const cats = getActiveCategories(room);
   let totalClues = 0;
-  room.gamePack.categories.forEach(c => {
+  cats.forEach(c => {
     totalClues += (c.clues || []).length;
   });
-  const revealedCount = Object.keys(room.boardState).length;
+  const bState = getBoardState(room);
+  const revealedCount = Object.keys(bState).length;
+
   if (totalClues > 0 && revealedCount >= totalClues) {
-    triggerGameOver(room);
-    return true;
+    if (currentRound === 'JEOPARDY') {
+      if (room.gameMode === 'BLITZ') {
+        startFinalJeopardy(room);
+      } else {
+        room.currentRound = 'DOUBLE_JEOPARDY';
+        room.currentClue = null;
+        room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
+        room.controllingPlayerId = getLowestScoringPlayerId(room);
+        broadcastRoom(room.code, 'ROUND_TRANSITION', {
+          newRound: 'DOUBLE_JEOPARDY',
+          state: getPublicRoomState(room)
+        });
+        console.log(`[Room ${room.code}] Standard mode: Advanced to Double Jeopardy! Board control -> lowest scorer.`);
+      }
+      return false;
+    } else if (currentRound === 'DOUBLE_JEOPARDY') {
+      if (!room.finalJeopardy) {
+        startFinalJeopardy(room);
+      }
+      return false;
+    }
   }
   return false;
 }
@@ -304,23 +509,40 @@ function checkGameOver(room) {
 // Helper: Get sanitised room state for broadcast
 function getPublicRoomState(room) {
   const standings = calculateStandings(room);
+  const activeCats = getActiveCategories(room);
+  const bState = getBoardState(room);
+  let maxClueVal = 1000;
+  activeCats.forEach(cat => {
+    (cat.clues || []).forEach(c => {
+      if (c.value && c.value > maxClueVal) maxClueVal = c.value;
+    });
+  });
+
+  const eligiblePlayer = room.players.find(p => p.id === (room.currentClue && room.currentClue.eligiblePlayerId));
+  const maxWager = eligiblePlayer ? Math.max(eligiblePlayer.score, maxClueVal) : maxClueVal;
+
   return {
     roomCode: room.code,
     publicUrl: publicUrl,
     title: room.gamePack ? room.gamePack.title : 'Jeopardy Game',
-    categories: room.gamePack ? room.gamePack.categories.map(cat => ({
+    gameMode: room.gameMode || 'STANDARD',
+    currentRound: room.currentRound || 'JEOPARDY',
+    roundTitle: room.currentRound === 'DOUBLE_JEOPARDY' ? 'Double Jeopardy!' : (room.currentRound === 'FINAL_JEOPARDY' ? 'Final Jeopardy!' : 'Jeopardy! Round'),
+    categories: activeCats.map(cat => ({
       name: cat.name,
-      clues: cat.clues.map(c => ({ value: c.value }))
-    })) : [],
+      clues: (cat.clues || []).map(c => ({ value: c.value }))
+    })),
     players: room.players.map(p => ({
       id: p.id,
       name: p.name,
       score: p.score,
       color: p.color,
       avatar: p.avatar || '',
-      connected: p.connected
+      connected: p.connected,
+      isDisqualified: (room.disqualifiedPlayerIds || []).includes(p.id)
     })),
-    boardState: room.boardState,
+    disqualifiedPlayerIds: room.disqualifiedPlayerIds || [],
+    boardState: bState,
     currentClue: room.currentClue ? {
       catIndex: room.currentClue.catIndex,
       clueIndex: room.currentClue.clueIndex,
@@ -331,12 +553,23 @@ function getPublicRoomState(room) {
       dailyDouble: room.currentClue.dailyDouble,
       eligiblePlayerId: room.currentClue.eligiblePlayerId || null,
       eligiblePlayerName: room.currentClue.eligiblePlayerName || null,
+      wager: room.currentClue.wager || room.currentClue.value,
+      maxWager: maxWager,
       wagerSet: room.currentClue.wagerSet || false,
+      lockedOutPlayerIds: room.currentClue.lockedOutPlayerIds || [],
       answerRevealed: room.currentClue.answerRevealed || false,
       answer: room.currentClue.answerRevealed ? room.currentClue.answer : undefined
     } : null,
     buzzerState: room.buzzerState,
-    controllingPlayerId: room.controllingPlayerId || null,
+    controllingPlayerId: room.controllingPlayerId || (room.players.length > 0 ? room.players[0].id : null),
+    finalJeopardy: room.finalJeopardy ? {
+      state: room.finalJeopardy.state,
+      category: room.finalJeopardy.category,
+      clue: (room.finalJeopardy.state === 'CLUE' || room.finalJeopardy.state === 'EVALUATION' || room.finalJeopardy.state === 'FINISHED') ? room.finalJeopardy.clue : undefined,
+      wagers: room.finalJeopardy.wagers || {},
+      responses: (room.finalJeopardy.state === 'EVALUATION' || room.finalJeopardy.state === 'FINISHED') ? (room.finalJeopardy.responses || {}) : {},
+      evaluated: room.finalJeopardy.evaluated || {}
+    } : null,
     isGameOver: room.isGameOver || false,
     winner: room.winner || (standings.length > 0 ? standings[0] : null),
     rankings: standings
@@ -400,8 +633,14 @@ wss.on('connection', (ws) => {
               hostWs: ws,
               boardWs: null,
               gamePack: pack,
+              gameMode: msg.gameMode || 'STANDARD',
+              currentRound: 'JEOPARDY',
               players: [],
-              boardState: {}, // key: "catIndex-clueIndex" -> true if done
+              boardState: {},
+              round1BoardState: {},
+              round2BoardState: {},
+              earlyBuzzPlayerIds: {},
+              disqualifiedPlayerIds: [],
               currentClue: null,
               buzzerState: { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] },
               controllingPlayerId: null,
@@ -411,12 +650,13 @@ wss.on('connection', (ws) => {
           } else {
             room.hostWs = ws;
             if (msg.gamePack) room.gamePack = msg.gamePack;
+            if (msg.gameMode) room.gameMode = msg.gameMode;
             room.lastActivity = Date.now();
           }
 
           clientMeta = { role: 'HOST', roomCode: code, playerId: null };
           send(ws, 'ROOM_CREATED', { roomCode: code, state: getPublicRoomState(room), fullPack: room.gamePack });
-          console.log(`[Room ${code}] Host attached/created.`);
+          console.log(`[Room ${code}] Host attached/created (Mode: ${room.gameMode}).`);
           break;
         }
 
@@ -502,6 +742,10 @@ wss.on('connection', (ws) => {
             console.log(`[Conn#${connId}] [Room ${roomCode}] New player joined: ${name} (${playerId})`);
           }
 
+          if (!room.controllingPlayerId && room.players.length > 0) {
+            room.controllingPlayerId = room.players[0].id;
+          }
+
           clientMeta = { role: 'PLAYER', roomCode, playerId };
           room.lastActivity = Date.now();
           send(ws, 'PLAYER_JOIN_SUCCESS', { playerId, roomCode, state: getPublicRoomState(room) });
@@ -527,16 +771,26 @@ wss.on('connection', (ws) => {
           if (!room || clientMeta.role !== 'HOST') return;
 
           const { catIndex, clueIndex } = msg;
-          const category = room.gamePack.categories[catIndex];
+          const activeCats = getActiveCategories(room);
+          const category = activeCats[catIndex];
           if (!category) return;
-          const clueObj = category.clues[clueIndex];
+          const clueObj = category.clues ? category.clues[clueIndex] : null;
           if (!clueObj) return;
 
+          const bState = getBoardState(room);
           const clueKey = `${catIndex}-${clueIndex}`;
-          if (room.boardState[clueKey]) return; // already revealed
+          if (bState[clueKey]) return; // already revealed
+
+          if (!room.controllingPlayerId && room.players.length > 0) {
+            room.controllingPlayerId = room.players[0].id;
+          }
 
           let defaultEligibleId = room.controllingPlayerId || (room.players.length > 0 ? room.players[0].id : null);
           let defaultEligiblePlayer = room.players.find(p => p.id === defaultEligibleId);
+          let defaultDailyDoubleWager = clueObj.value * 2;
+          if (defaultEligiblePlayer && defaultEligiblePlayer.score > defaultDailyDoubleWager) {
+            defaultDailyDoubleWager = defaultEligiblePlayer.score;
+          }
 
           room.currentClue = {
             catIndex,
@@ -549,12 +803,17 @@ wss.on('connection', (ws) => {
             dailyDouble: !!clueObj.dailyDouble,
             eligiblePlayerId: clueObj.dailyDouble ? (defaultEligiblePlayer ? defaultEligiblePlayer.id : null) : null,
             eligiblePlayerName: clueObj.dailyDouble ? (defaultEligiblePlayer ? defaultEligiblePlayer.name : null) : null,
-            wager: clueObj.value,
+            wager: clueObj.dailyDouble ? defaultDailyDoubleWager : clueObj.value,
             wagerSet: !clueObj.dailyDouble,
+            lockedOutPlayerIds: [],
             answerRevealed: false
           };
 
-          room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
+          if (clueObj.dailyDouble) {
+            room.buzzerState = { state: 'DAILY_DOUBLE', activePlayerId: defaultEligibleId, buzzedQueue: [] };
+          } else {
+            room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
+          }
 
           broadcastRoom(roomCode, 'CLUE_SELECTED', {
             state: getPublicRoomState(room),
@@ -579,6 +838,8 @@ wss.on('connection', (ws) => {
           if (targetPlayer) {
             room.currentClue.eligiblePlayerId = targetPlayer.id;
             room.currentClue.eligiblePlayerName = targetPlayer.name;
+            room.controllingPlayerId = targetPlayer.id;
+            if (room.buzzerState) room.buzzerState.activePlayerId = targetPlayer.id;
             broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
             console.log(`[Room ${roomCode}] Daily Double assigned to ${targetPlayer.name} (${targetPlayer.id})`);
           }
@@ -591,9 +852,23 @@ wss.on('connection', (ws) => {
           const room = rooms[roomCode];
           if (!room || !room.currentClue || !room.currentClue.dailyDouble) return;
 
-          const wagerVal = parseInt(msg.wager, 10) || 0;
-          room.currentClue.wager = Math.max(0, wagerVal);
+          let maxClueVal = 1000;
+          const activeCats = getActiveCategories(room);
+          activeCats.forEach(cat => {
+            (cat.clues || []).forEach(c => {
+              if (c.value && c.value > maxClueVal) maxClueVal = c.value;
+            });
+          });
+
+          const eligiblePlayer = room.players.find(p => p.id === room.currentClue.eligiblePlayerId);
+          const playerMaxWager = eligiblePlayer ? Math.max(eligiblePlayer.score, maxClueVal) : maxClueVal;
+
+          const wagerVal = parseInt(msg.wager, 10) || 5;
+          const validatedWager = Math.max(5, Math.min(wagerVal, playerMaxWager));
+
+          room.currentClue.wager = validatedWager;
           room.currentClue.wagerSet = true;
+          room.buzzerState = { state: 'DAILY_DOUBLE', activePlayerId: room.currentClue.eligiblePlayerId, buzzedQueue: [] };
 
           broadcastRoom(roomCode, 'WAGER_SET', { state: getPublicRoomState(room), wager: room.currentClue.wager });
           break;
@@ -604,7 +879,7 @@ wss.on('connection', (ws) => {
         case 'UNLOCK_BUZZERS': {
           const { roomCode } = clientMeta;
           const room = rooms[roomCode];
-          if (!room || !room.currentClue) return;
+          if (!room || !room.currentClue || clientMeta.role !== 'HOST') return;
 
           if (room.countdownTimer) {
             clearInterval(room.countdownTimer);
@@ -637,12 +912,36 @@ wss.on('connection', (ws) => {
           break;
         }
 
-        // --- 7. PRESS BUZZER (PLAYER - LATENCY COMPENSATED) ---
+        // --- 7. PRESS BUZZER (PLAYER - LATENCY COMPENSATED + EARLY LOCKOUT) ---
         case 'PRESS_BUZZER': {
           const { roomCode, playerId } = clientMeta;
           const room = rooms[roomCode];
           if (!room || !room.currentClue || clientMeta.role !== 'PLAYER') return;
+
+          if (!room.earlyBuzzPlayerIds) room.earlyBuzzPlayerIds = {};
+
+          // 1. Early buzz penalty registration (pressed during countdown or locked state)
+          if (room.buzzerState.state === 'COUNTDOWN' || room.buzzerState.state === 'LOCKED') {
+            room.earlyBuzzPlayerIds[playerId] = Date.now();
+            send(ws, 'EARLY_BUZZ_PENALTY', { message: 'Early Buzz! 250ms penalty applied when buzzers unlock.' });
+            console.log(`[Room ${roomCode}] Early buzz penalty registered for player ${playerId}`);
+            return;
+          }
+
           if (room.buzzerState.state !== 'UNLOCKED' && room.buzzerState.state !== 'COLLECTING') return;
+
+          // 2. Enforce 250ms early buzz lockout after unlock time
+          if (room.earlyBuzzPlayerIds[playerId]) {
+            const unlockTime = room.buzzerState.unlockTime || 0;
+            if (Date.now() < unlockTime + 250) {
+              return send(ws, 'BUZZER_REJECTED', { message: 'Early Buzz Penalty: Locked out for 0.25s after unlock!' });
+            }
+          }
+
+          // Check if player is locked out on this clue
+          if (room.currentClue.lockedOutPlayerIds && room.currentClue.lockedOutPlayerIds.includes(playerId)) {
+            return send(ws, 'BUZZER_REJECTED', { message: 'You are locked out for this clue' });
+          }
 
           // Exclusive Daily Double Validation!
           if (room.currentClue.dailyDouble && room.currentClue.eligiblePlayerId) {
@@ -692,23 +991,50 @@ wss.on('connection', (ws) => {
           const room = rooms[roomCode];
           if (!room || !room.currentClue || clientMeta.role !== 'HOST') return;
 
+          clearAnswerTimer(room);
+
           const { isCorrect } = msg;
           const activePlayerId = room.buzzerState.activePlayerId || room.currentClue.eligiblePlayerId || msg.playerId;
           const player = room.players.find(p => p.id === activePlayerId);
           const clueVal = room.currentClue.wager || room.currentClue.value;
+
+          if (!room.currentClue.lockedOutPlayerIds) room.currentClue.lockedOutPlayerIds = [];
 
           if (player) {
             if (isCorrect) {
               player.score += clueVal;
               room.controllingPlayerId = player.id;
               room.buzzerState.state = 'LOCKED';
+              const bState = getBoardState(room);
               const key = `${room.currentClue.catIndex}-${room.currentClue.clueIndex}`;
-              room.boardState[key] = true;
+              bState[key] = true;
               room.currentClue.answerRevealed = true;
             } else {
               player.score -= clueVal;
-              room.buzzerState.state = 'LOCKED'; // Host can reset buzzers or close clue
               room.currentClue.answerRevealed = true;
+
+              if (!room.currentClue.lockedOutPlayerIds.includes(player.id)) {
+                room.currentClue.lockedOutPlayerIds.push(player.id);
+              }
+
+              if (!room.controllingPlayerId) {
+                room.controllingPlayerId = player.id;
+              }
+
+              const remainingCandidates = (room.buzzerState.candidates || []).filter(c => !room.currentClue.lockedOutPlayerIds.includes(c.playerId));
+
+              if (remainingCandidates.length > 0) {
+                resolveBuzzerWinner(roomCode);
+              } else {
+                const eligiblePlayers = room.players.filter(p => p.connected && !room.currentClue.lockedOutPlayerIds.includes(p.id));
+                if (eligiblePlayers.length > 0 && !room.currentClue.dailyDouble) {
+                  room.buzzerState.state = 'UNLOCKED';
+                  room.buzzerState.unlockTime = Date.now();
+                  broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime, state: getPublicRoomState(room) });
+                } else {
+                  room.buzzerState.state = 'LOCKED';
+                }
+              }
             }
           } else {
             room.currentClue.answerRevealed = true;
@@ -746,6 +1072,7 @@ wss.on('connection', (ws) => {
           const room = rooms[roomCode];
           if (!room || !room.currentClue || clientMeta.role !== 'HOST') return;
 
+          clearAnswerTimer(room);
           room.buzzerState.state = 'UNLOCKED';
           room.buzzerState.activePlayerId = null;
           room.buzzerState.unlockTime = Date.now();
@@ -760,8 +1087,10 @@ wss.on('connection', (ws) => {
           const room = rooms[roomCode];
           if (!room || !room.currentClue || clientMeta.role !== 'HOST') return;
 
+          clearAnswerTimer(room);
+          const bState = getBoardState(room);
           const key = `${room.currentClue.catIndex}-${room.currentClue.clueIndex}`;
-          room.boardState[key] = true;
+          bState[key] = true;
           room.currentClue = null;
           room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
 
@@ -776,6 +1105,7 @@ wss.on('connection', (ws) => {
           const room = rooms[roomCode];
           if (!room || clientMeta.role !== 'HOST') return;
 
+          clearAnswerTimer(room);
           triggerGameOver(room);
           break;
         }
@@ -786,14 +1116,66 @@ wss.on('connection', (ws) => {
           const room = rooms[roomCode];
           if (!room || clientMeta.role !== 'HOST') return;
 
+          clearAnswerTimer(room);
+          room.currentRound = 'JEOPARDY';
           room.boardState = {};
+          room.round1BoardState = {};
+          room.round2BoardState = {};
+          room.earlyBuzzPlayerIds = {};
+          room.disqualifiedPlayerIds = [];
           room.currentClue = null;
           room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
+          room.finalJeopardy = null;
           room.isGameOver = false;
           room.winner = null;
           room.players.forEach(p => p.score = 0);
+          if (room.players.length > 0) room.controllingPlayerId = room.players[0].id;
 
           broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+          break;
+        }
+
+        // --- 13b. CHANGE GAME PACK DIRECTLY FROM DASHBOARD (HOST) ---
+        case 'CHANGE_GAME_PACK': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || clientMeta.role !== 'HOST') return;
+
+          let newPack = null;
+          if (msg.gamePack) {
+            newPack = msg.gamePack;
+          } else if (msg.packFileName) {
+            try {
+              const filePath = path.join(__dirname, msg.packFileName);
+              if (fs.existsSync(filePath)) {
+                const raw = fs.readFileSync(filePath, 'utf8');
+                newPack = JSON.parse(raw);
+              }
+            } catch (err) {
+              console.error('Error loading game pack:', err);
+            }
+          }
+
+          if (newPack) {
+            clearAnswerTimer(room);
+            room.gamePack = newPack;
+            room.currentRound = 'JEOPARDY';
+            room.boardState = {};
+            room.round1BoardState = {};
+            room.round2BoardState = {};
+            room.earlyBuzzPlayerIds = {};
+            room.disqualifiedPlayerIds = [];
+            room.currentClue = null;
+            room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
+            room.finalJeopardy = null;
+            room.isGameOver = false;
+            room.winner = null;
+
+            broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+            console.log(`[Room ${roomCode}] Host changed active game pack to: ${newPack.title || msg.packFileName}`);
+          } else {
+            send(ws, 'ERROR', { message: 'Failed to load selected game pack.' });
+          }
           break;
         }
 
@@ -812,14 +1194,143 @@ wss.on('connection', (ws) => {
           break;
         }
 
-        // --- 13. KICK PLAYER (HOST) ---
+        // --- 15. KICK PLAYER (HOST) ---
         case 'KICK_PLAYER': {
           const { roomCode } = clientMeta;
           const room = rooms[roomCode];
           if (!room || clientMeta.role !== 'HOST') return;
 
           room.players = room.players.filter(p => p.id !== msg.playerId);
+          if (room.controllingPlayerId === msg.playerId) {
+            room.controllingPlayerId = room.players.length > 0 ? room.players[0].id : null;
+          }
           broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+          break;
+        }
+
+        // --- 15b. ADVANCE ROUND MANUALLY (HOST) ---
+        case 'ADVANCE_ROUND': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || clientMeta.role !== 'HOST') return;
+
+          clearAnswerTimer(room);
+
+          if (room.currentRound === 'JEOPARDY') {
+            room.currentRound = 'DOUBLE_JEOPARDY';
+            room.currentClue = null;
+            room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
+            room.controllingPlayerId = getLowestScoringPlayerId(room);
+            broadcastRoom(roomCode, 'ROUND_TRANSITION', { newRound: 'DOUBLE_JEOPARDY', state: getPublicRoomState(room) });
+            console.log(`[Room ${roomCode}] Host manually advanced to Double Jeopardy! Control -> lowest scorer.`);
+          } else if (room.currentRound === 'DOUBLE_JEOPARDY') {
+            startFinalJeopardy(room);
+          }
+          break;
+        }
+
+        // --- 16. START FINAL JEOPARDY (HOST) ---
+        case 'START_FINAL_JEOPARDY': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || clientMeta.role !== 'HOST') return;
+
+          startFinalJeopardy(room);
+          break;
+        }
+
+        // --- 17. SUBMIT FINAL JEOPARDY WAGER (PLAYER) ---
+        case 'SUBMIT_FINAL_WAGER': {
+          const { roomCode, playerId } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || !room.finalJeopardy || clientMeta.role !== 'PLAYER') return;
+
+          if (room.disqualifiedPlayerIds && room.disqualifiedPlayerIds.includes(playerId)) {
+            return send(ws, 'ERROR', { message: 'You are disqualified from Final Jeopardy due to a score of $0 or less.' });
+          }
+
+          const player = room.players.find(p => p.id === playerId);
+          if (!player) return;
+
+          const maxW = Math.max(0, player.score);
+          const rawWager = parseInt(msg.wager, 10);
+          const validatedWager = isNaN(rawWager) ? 0 : Math.max(0, Math.min(rawWager, maxW));
+
+          if (!room.finalJeopardy.wagers) room.finalJeopardy.wagers = {};
+          room.finalJeopardy.wagers[playerId] = validatedWager;
+
+          broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+          console.log(`[Room ${roomCode}] Final Jeopardy Wager set by ${player.name}: $${validatedWager}`);
+          break;
+        }
+
+        // --- 18. REVEAL FINAL JEOPARDY CLUE (HOST) ---
+        case 'REVEAL_FINAL_CLUE': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || !room.finalJeopardy || clientMeta.role !== 'HOST') return;
+
+          room.finalJeopardy.state = 'CLUE';
+          broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+          break;
+        }
+
+        // --- 19. SUBMIT FINAL JEOPARDY RESPONSE (PLAYER) ---
+        case 'SUBMIT_FINAL_RESPONSE': {
+          const { roomCode, playerId } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || !room.finalJeopardy || clientMeta.role !== 'PLAYER') return;
+
+          if (room.disqualifiedPlayerIds && room.disqualifiedPlayerIds.includes(playerId)) {
+            return send(ws, 'ERROR', { message: 'You are disqualified from Final Jeopardy due to a score of $0 or less.' });
+          }
+
+          const player = room.players.find(p => p.id === playerId);
+          if (!player) return;
+
+          if (!room.finalJeopardy.responses) room.finalJeopardy.responses = {};
+          room.finalJeopardy.responses[playerId] = (msg.response || '').trim();
+
+          broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+          console.log(`[Room ${roomCode}] Final Jeopardy Response submitted by ${player.name}`);
+          break;
+        }
+
+        // --- 20. EVALUATE FINAL JEOPARDY PLAYER (HOST) ---
+        case 'EVALUATE_FINAL_PLAYER': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || !room.finalJeopardy || clientMeta.role !== 'HOST') return;
+
+          const { targetPlayerId, isCorrect } = msg;
+          const player = room.players.find(p => p.id === targetPlayerId);
+          if (player) {
+            const wager = room.finalJeopardy.wagers[targetPlayerId] || 0;
+            if (isCorrect) {
+              player.score += wager;
+            } else {
+              player.score -= wager;
+            }
+            if (!room.finalJeopardy.evaluated) room.finalJeopardy.evaluated = {};
+            room.finalJeopardy.evaluated[targetPlayerId] = {
+              isCorrect: !!isCorrect,
+              wager: wager,
+              response: room.finalJeopardy.responses[targetPlayerId] || '(No answer)'
+            };
+
+            broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+          }
+          break;
+        }
+
+        // --- 21. FINISH FINAL JEOPARDY & DECLARE WINNER (HOST) ---
+        case 'FINISH_FINAL_JEOPARDY': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || clientMeta.role !== 'HOST') return;
+
+          if (room.finalJeopardy) room.finalJeopardy.state = 'FINISHED';
+          triggerGameOver(room);
           break;
         }
 

@@ -54,7 +54,40 @@ document.addEventListener('DOMContentLoaded', () => {
   const hostWinnerScore = document.getElementById('hostWinnerScore');
   const hostPodiumStandings = document.getElementById('hostPodiumStandings');
   const btnDismissWinscreen = document.getElementById('btnDismissWinscreen');
-  const btnResetGame = document.getElementById('btnResetGame');
+  const selectHostGamePack = document.getElementById('selectHostGamePack');
+  const btnLoadHostPack = document.getElementById('btnLoadHostPack');
+  const hostAnswerTimerBadge = document.getElementById('hostAnswerTimerBadge');
+
+  if (selectHostGamePack) {
+    fetch('/api/packs')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.packs && data.packs.length > 0) {
+          selectHostGamePack.innerHTML = '';
+          data.packs.forEach(pack => {
+            const opt = document.createElement('option');
+            opt.value = pack.filename;
+            opt.innerText = pack.title;
+            selectHostGamePack.appendChild(opt);
+          });
+        }
+      })
+      .catch(err => console.error('Failed to load pack list:', err));
+  }
+
+  if (btnLoadHostPack) {
+    btnLoadHostPack.onclick = () => {
+      if (selectHostGamePack && ws && ws.readyState === WebSocket.OPEN) {
+        const selectedText = selectHostGamePack.options[selectHostGamePack.selectedIndex] ? selectHostGamePack.options[selectHostGamePack.selectedIndex].text : selectHostGamePack.value;
+        if (confirm(`Load game pack "${selectedText}"? This will reset the current game board for all players.`)) {
+          ws.send(JSON.stringify({
+            type: 'CHANGE_GAME_PACK',
+            packFileName: selectHostGamePack.value
+          }));
+        }
+      }
+    };
+  }
 
   roomBadge.innerText = `ROOM: ${roomCode}`;
   linkTV.href = `/board.html?room=${roomCode}`;
@@ -200,12 +233,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
           case 'ROOM_STATE':
           case 'CLUE_CLOSED':
+          case 'FINAL_JEOPARDY_STARTED':
             gameState = msg.state;
             if (hostCountdownOverlay) hostCountdownOverlay.classList.remove('active');
             renderHostBoard();
             renderPlayers();
             updateActiveClueUI();
+            renderHostFinalJeopardy(gameState);
             checkGameOverDisplay();
+            break;
+
+          case 'ROUND_TRANSITION':
+            gameState = msg.state;
+            if (hostCountdownOverlay) hostCountdownOverlay.classList.remove('active');
+            renderHostBoard();
+            renderPlayers();
+            updateActiveClueUI();
+            if (window.soundFX) window.soundFX.playWinnerFanfare();
             break;
 
           case 'CLUE_SELECTED':
@@ -239,12 +283,21 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPlayers();
             break;
 
+          case 'ANSWER_TIMER_TICK':
+            if (hostAnswerTimerBadge) {
+              hostAnswerTimerBadge.innerText = `⌛ ${msg.secondsLeft}s`;
+            }
+            if (window.soundFX && msg.secondsLeft <= 3) {
+              window.soundFX.playCountdownTick();
+            }
+            break;
+
           case 'PLAYER_BUZZED':
             if (gameState) {
               gameState.buzzerState = msg.buzzerState;
             }
             if (window.soundFX) window.soundFX.playBuzzer();
-            showBuzzWinner(msg.playerName, msg.latency, msg.compensated);
+            showBuzzWinner(msg.playerName, msg.latency, msg.compensated, msg.answerSecondsLeft);
             break;
 
           case 'ANSWER_EVALUATED':
@@ -280,12 +333,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initHostWebSocket();
 
+  const btnAdvanceRound = document.getElementById('btnAdvanceRound');
+  if (btnAdvanceRound) {
+    btnAdvanceRound.onclick = () => {
+      if (confirm('Advance to the next round now?')) {
+        ws.send(JSON.stringify({ type: 'ADVANCE_ROUND' }));
+      }
+    };
+  }
+
   // Render Host Jeopardy Board Grid
   function renderHostBoard() {
-    if (!gameState || !fullGamePack) return;
+    if (!gameState) return;
+
+    const hostRoundBadge = document.getElementById('hostRoundBadge');
+    const btnAdvance = document.getElementById('btnAdvanceRound');
+
+    if (hostRoundBadge) {
+      hostRoundBadge.innerText = gameState.roundTitle || 'Jeopardy! Round';
+    }
+
+    if (btnAdvance) {
+      if (gameState.currentRound === 'JEOPARDY') {
+        btnAdvance.style.display = 'inline-block';
+        btnAdvance.innerText = 'Advance to Double Jeopardy →';
+      } else if (gameState.currentRound === 'DOUBLE_JEOPARDY') {
+        btnAdvance.style.display = 'inline-block';
+        btnAdvance.innerText = 'Advance to Final Jeopardy →';
+      } else {
+        btnAdvance.style.display = 'none';
+      }
+    }
 
     hostBoard.innerHTML = '';
-    const categories = fullGamePack.categories;
+    const categories = gameState.categories || [];
 
     categories.forEach((cat, catIdx) => {
       const col = document.createElement('div');
@@ -301,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.className = 'clue-card';
 
         const key = `${catIdx}-${clueIdx}`;
-        if (gameState.boardState[key]) {
+        if (gameState.boardState && gameState.boardState[key]) {
           card.classList.add('revealed');
           card.innerText = '';
         } else {
@@ -343,15 +424,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const clueValSpans = document.querySelectorAll('.clueValSpan');
     clueValSpans.forEach(s => s.innerText = `$${effectiveVal}`);
 
-    if (c.dailyDouble && !c.wagerSet) {
-      dailyDoubleForm.style.display = 'block';
-      updateDailyDoublePlayersDropdown(c.eligiblePlayerId);
-      if (window.soundFX) window.soundFX.playDailyDouble();
+    if (c.dailyDouble) {
+      if (!c.wagerSet) {
+        dailyDoubleForm.style.display = 'block';
+        buzzWinnerBox.style.display = 'none';
+        btnUnlockBuzzers.style.display = 'none';
+        if (btnInstantUnlock) btnInstantUnlock.style.display = 'none';
+        updateDailyDoublePlayersDropdown(c.eligiblePlayerId);
+
+        const maxW = c.maxWager || 1000;
+        if (wagerInput) {
+          wagerInput.placeholder = `Enter wager ($5 to $${maxW})`;
+        }
+        if (window.soundFX) window.soundFX.playDailyDouble();
+      } else {
+        dailyDoubleForm.style.display = 'none';
+        btnUnlockBuzzers.style.display = 'none';
+        if (btnInstantUnlock) btnInstantUnlock.style.display = 'none';
+
+        // Automatically present evaluation box for Daily Double player
+        buzzWinnerName.innerText = `🎯 ${c.eligiblePlayerName || 'Contestant'} (Daily Double Wager: $${c.wager})`;
+        buzzWinnerBox.style.display = 'block';
+      }
     } else {
       dailyDoubleForm.style.display = 'none';
+      btnUnlockBuzzers.style.display = 'inline-block';
+      if (btnInstantUnlock) btnInstantUnlock.style.display = 'inline-block';
     }
 
-    if (gameState.buzzerState.state === 'UNLOCKED') {
+    if (gameState.buzzerState && gameState.buzzerState.state === 'UNLOCKED') {
       btnUnlockBuzzers.disabled = true;
       btnUnlockBuzzers.innerText = 'BUZZERS ACTIVE';
     } else {
@@ -376,7 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
     gameState.players.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.innerText = `${p.name} (Score: $${p.score})`;
+      const isCtrl = p.id === gameState.controllingPlayerId ? ' 🎯 (Board Control)' : '';
+      opt.innerText = `${p.name} (Score: $${p.score})${isCtrl}`;
       if (selectedId ? (p.id === selectedId) : (p.id === gameState.controllingPlayerId)) {
         opt.selected = true;
       }
@@ -396,9 +498,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  function showBuzzWinner(name, latency, compensated) {
+  function showBuzzWinner(name, latency, compensated, secondsLeft) {
     const label = compensated ? `⚡ ${latency}ms reaction` : `${latency}ms`;
     buzzWinnerName.innerText = `${name} Buzzed In! (${label})`;
+    if (hostAnswerTimerBadge) {
+      hostAnswerTimerBadge.innerText = `⌛ ${secondsLeft || 7}s`;
+    }
     buzzWinnerBox.style.display = 'block';
   }
 
@@ -595,9 +700,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const details = document.createElement('div');
+      const isControlling = gameState.controllingPlayerId ? (p.id === gameState.controllingPlayerId) : false;
+      const controlTag = isControlling ? `<span style="font-size: 0.7rem; font-weight: 800; background: var(--jeopardy-gold); color: #000000; padding: 0.15rem 0.45rem; border-radius: 4px; margin-left: 0.4rem; box-shadow: 0 0 8px rgba(251,191,36,0.5);">🎯 CONTROL</span>` : '';
       details.innerHTML = `
-        <div style="font-weight: 800; font-size: 0.95rem; color: ${p.color || '#ffffff'}; line-height: 1.2;">
-          ${p.name} ${p.connected ? '' : '<span style="color: var(--text-muted); font-weight:400; font-size: 0.75rem;">(offline)</span>'}
+        <div style="font-weight: 800; font-size: 0.95rem; color: ${p.color || '#ffffff'}; line-height: 1.2; display: flex; align-items: center;">
+          ${p.name} ${controlTag} ${p.connected ? '' : '<span style="color: var(--text-muted); font-weight:400; font-size: 0.75rem; margin-left:0.3rem;">(offline)</span>'}
         </div>
       `;
 
@@ -672,5 +779,119 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function adjustScore(playerId, delta) {
     ws.send(JSON.stringify({ type: 'ADJUST_SCORE', playerId, delta }));
+  }
+
+  function renderHostFinalJeopardy(state) {
+    const hostFJPanel = document.getElementById('hostFJPanel');
+    if (!hostFJPanel || !state) return;
+
+    if (!state.finalJeopardy) {
+      hostFJPanel.style.display = 'none';
+      return;
+    }
+
+    const fj = state.finalJeopardy;
+    hostFJPanel.style.display = 'block';
+
+    const hostFJCategory = document.getElementById('hostFJCategory');
+    const hostFJClue = document.getElementById('hostFJClue');
+    const hostFJAnswer = document.getElementById('hostFJAnswer');
+    const hostFJStageBadge = document.getElementById('hostFJStageBadge');
+    const hostFJPlayerList = document.getElementById('hostFJPlayerList');
+
+    if (hostFJCategory) hostFJCategory.innerText = `CATEGORY: ${fj.category}`;
+    if (hostFJClue) hostFJClue.innerText = `CLUE: ${fj.clue || '(Hidden until revealed)'}`;
+    if (hostFJAnswer) hostFJAnswer.innerText = `ANSWER: ${fj.answer || ''}`;
+    if (hostFJStageBadge) hostFJStageBadge.innerText = `STAGE: ${fj.state}`;
+
+    if (!hostFJPlayerList) return;
+    hostFJPlayerList.innerHTML = '';
+
+    (state.players || []).forEach(p => {
+      const wager = fj.wagers ? fj.wagers[p.id] : undefined;
+      const resp = fj.responses ? fj.responses[p.id] : undefined;
+      const evalData = fj.evaluated ? fj.evaluated[p.id] : undefined;
+
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.alignItems = 'center';
+      row.style.background = 'rgba(255, 255, 255, 0.05)';
+      row.style.padding = '0.75rem 1rem';
+      row.style.borderRadius = 'var(--radius-sm)';
+
+      const nameCol = document.createElement('div');
+      nameCol.innerHTML = `<strong style="color: ${p.color || '#fff'};">${p.name}</strong> <span style="color: var(--jeopardy-gold); margin-left: 0.5rem;">($${p.score})</span>`;
+
+      const infoCol = document.createElement('div');
+      infoCol.style.display = 'flex';
+      infoCol.style.alignItems = 'center';
+      infoCol.style.gap = '1rem';
+
+      let statusHtml = `<span>Wager: <strong>${wager !== undefined ? '$' + wager : 'Pending...'}</strong></span>`;
+      statusHtml += `<span style="margin-left: 0.5rem;">Response: <strong>${resp !== undefined ? '"' + resp + '"' : 'Pending...'}</strong></span>`;
+      infoCol.innerHTML = statusHtml;
+
+      const btnGroup = document.createElement('div');
+      btnGroup.style.display = 'flex';
+      btnGroup.style.gap = '0.4rem';
+
+      if (evalData) {
+        const badge = document.createElement('span');
+        badge.className = evalData.isCorrect ? 'btn btn-success' : 'btn btn-danger';
+        badge.style.padding = '0.3rem 0.6rem';
+        badge.style.fontSize = '0.8rem';
+        badge.innerText = evalData.isCorrect ? `Correct (+${evalData.wager})` : `Wrong (-${evalData.wager})`;
+        btnGroup.appendChild(badge);
+      } else {
+        const btnWrong = document.createElement('button');
+        btnWrong.className = 'btn btn-danger';
+        btnWrong.style.fontSize = '0.8rem';
+        btnWrong.style.padding = '0.3rem 0.65rem';
+        btnWrong.innerText = 'Incorrect';
+        btnWrong.onclick = () => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'EVALUATE_FINAL_PLAYER', targetPlayerId: p.id, isCorrect: false }));
+          }
+        };
+
+        const btnCorrect = document.createElement('button');
+        btnCorrect.className = 'btn btn-success';
+        btnCorrect.style.fontSize = '0.8rem';
+        btnCorrect.style.padding = '0.3rem 0.65rem';
+        btnCorrect.innerText = 'Correct';
+        btnCorrect.onclick = () => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'EVALUATE_FINAL_PLAYER', targetPlayerId: p.id, isCorrect: true }));
+          }
+        };
+
+        btnGroup.appendChild(btnWrong);
+        btnGroup.appendChild(btnCorrect);
+      }
+
+      row.appendChild(nameCol);
+      row.appendChild(infoCol);
+      row.appendChild(btnGroup);
+      hostFJPlayerList.appendChild(row);
+    });
+  }
+
+  const btnHostRevealFJClue = document.getElementById('btnHostRevealFJClue');
+  if (btnHostRevealFJClue) {
+    btnHostRevealFJClue.onclick = () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'REVEAL_FINAL_CLUE' }));
+      }
+    };
+  }
+
+  const btnHostFinishFJ = document.getElementById('btnHostFinishFJ');
+  if (btnHostFinishFJ) {
+    btnHostFinishFJ.onclick = () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'FINISH_FINAL_JEOPARDY' }));
+      }
+    };
   }
 });
