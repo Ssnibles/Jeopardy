@@ -525,6 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
           case 'ROOM_STATE':
           case 'CLUE_CLOSED':
           case 'FINAL_JEOPARDY_STARTED':
+          case 'WAGER_SET':
             gameState = msg.state;
             if (hostCountdownOverlay) hostCountdownOverlay.classList.remove('active');
             renderHostBoard();
@@ -577,9 +578,23 @@ document.addEventListener('DOMContentLoaded', () => {
           case 'ANSWER_TIMER_TICK':
             if (hostAnswerTimerBadge) {
               hostAnswerTimerBadge.innerText = `${msg.secondsLeft}s`;
+              hostAnswerTimerBadge.style.background = 'rgba(239, 68, 68, 0.2)';
             }
             if (window.soundFX && msg.secondsLeft <= 3) {
               window.soundFX.playCountdownTick();
+            }
+            break;
+
+          case 'ANSWER_TIMER_EXPIRED':
+            if (hostAnswerTimerBadge) {
+              hostAnswerTimerBadge.innerText = '0s (TIME EXPIRED)';
+              hostAnswerTimerBadge.style.background = 'var(--color-danger)';
+            }
+            if (window.soundFX) window.soundFX.playCountdownGo();
+            if (msg.state) gameState = msg.state;
+            buzzWinnerBox.style.display = 'block';
+            if (msg.activePlayerName) {
+              buzzWinnerName.innerText = `${msg.activePlayerName} - TIME EXPIRED! (Evaluate Answer)`;
             }
             break;
 
@@ -999,12 +1014,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const details = document.createElement('div');
       const isControlling = gameState.controllingPlayerId ? (p.id === gameState.controllingPlayerId) : false;
-      const controlTag = isControlling ? `<span style="font-size: 0.7rem; font-weight: 800; background: var(--jeopardy-gold); color: #000000; padding: 0.15rem 0.45rem; border-radius: 4px; margin-left: 0.4rem; box-shadow: 0 0 8px rgba(251,191,36,0.5);">CONTROL</span>` : '';
+      const controlTag = isControlling 
+        ? `<span style="font-size: 0.7rem; font-weight: 800; background: var(--jeopardy-gold); color: #000000; padding: 0.15rem 0.45rem; border-radius: 4px; margin-left: 0.4rem; box-shadow: 0 0 8px rgba(251,191,36,0.5);" title="Currently has Board Control">CONTROL</span>`
+        : `<button class="btn btn-secondary btn-set-control" data-player-id="${p.id}" style="font-size: 0.65rem; padding: 0.1rem 0.4rem; margin-left: 0.4rem; border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;" title="Click to give board control to this player">Give Control</button>`;
       details.innerHTML = `
         <div style="font-weight: 800; font-size: 0.95rem; color: ${p.color || '#ffffff'}; line-height: 1.2; display: flex; align-items: center;">
           ${p.name} ${controlTag} ${p.connected ? '' : '<span style="color: var(--text-muted); font-weight:400; font-size: 0.75rem; margin-left:0.3rem;">(offline)</span>'}
         </div>
       `;
+
+      // Attach click event for Give Control button
+      const ctrlBtn = details.querySelector('.btn-set-control');
+      if (ctrlBtn) {
+        ctrlBtn.onclick = (e) => {
+          e.stopPropagation();
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'SET_CONTROLLING_PLAYER', playerId: p.id }));
+          }
+        };
+      }
 
       leftInfo.appendChild(avatar);
       leftInfo.appendChild(details);

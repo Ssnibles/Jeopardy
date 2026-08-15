@@ -362,6 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
           case 'ROOM_STATE':
           case 'CLUE_CLOSED':
           case 'CLUE_SELECTED':
+          case 'WAGER_SET':
             if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
             updatePlayerState(msg.state);
             break;
@@ -379,6 +380,10 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
 
           case 'BUZZER_COUNTDOWN':
+            if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
+              setBuzzerLockedOut('You answered incorrectly on this clue.');
+              break;
+            }
             if (playerCountdownOverlay && playerCountdownNum) {
               playerCountdownNum.innerText = msg.secondsLeft;
               playerCountdownOverlay.classList.add('active');
@@ -388,12 +393,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
           case 'BUZZERS_UNLOCKED':
             if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
-            if (window.soundFX) window.soundFX.playCountdownGo();
             if (msg.state) updatePlayerState(msg.state);
-            setBuzzerUnlocked();
+            if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
+              setBuzzerLockedOut('You answered incorrectly on this clue.');
+            } else {
+              if (window.soundFX) window.soundFX.playCountdownGo();
+              setBuzzerUnlocked();
+            }
             break;
 
           case 'ANSWER_TIMER_TICK':
+            if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
+              setBuzzerLockedOut('You answered incorrectly on this clue.');
+              break;
+            }
             if (msg.activePlayerId === playerId) {
               setBuzzerWinner(0, msg.secondsLeft);
               if (window.soundFX && msg.secondsLeft <= 3) {
@@ -404,7 +417,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             break;
 
+          case 'ANSWER_TIMER_EXPIRED':
+            if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
+            if (msg.activePlayerId === playerId) {
+              buzzerStatus.innerText = 'TIME EXPIRED! Host evaluating answer...';
+              buzzerStatus.style.color = 'var(--color-danger)';
+            } else {
+              setBuzzerLockedOut(`${msg.activePlayerName || 'Contestant'} - TIME EXPIRED! Host evaluating...`);
+            }
+            break;
+
           case 'PLAYER_BUZZED':
+            if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
+              setBuzzerLockedOut('You answered incorrectly on this clue.');
+              break;
+            }
             if (msg.playerId === playerId) {
               setBuzzerWinner(msg.latency, msg.answerSecondsLeft || 7);
             } else {
@@ -417,6 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
 
           case 'ANSWER_EVALUATED':
+            if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
             updatePlayerState(msg.state);
             if (msg.playerId === playerId) {
               if (msg.isCorrect) {
@@ -424,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 buzzerStatus.style.color = 'var(--color-success)';
                 if (window.soundFX) window.soundFX.playCorrect();
               } else {
-                buzzerStatus.innerText = `INCORRECT! -$${Math.abs(msg.scoreChange)}`;
+                setBuzzerLockedOut(`INCORRECT! -$${Math.abs(msg.scoreChange)} (Locked out)`);
                 buzzerStatus.style.color = 'var(--color-danger)';
                 if (window.soundFX) window.soundFX.playWrong();
               }
@@ -613,7 +641,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (playerDDWagerBox) playerDDWagerBox.style.display = 'none';
       currentClueObj = null;
       playerClueBox.style.display = 'none';
-      setBuzzerLocked('Waiting for Host to pick next clue...');
+
+      if (state.controllingPlayerId === playerId) {
+        setBuzzerLocked('YOU HAVE BOARD CONTROL! Tell Host your clue choice.');
+        buzzerStatus.style.color = 'var(--jeopardy-gold)';
+      } else {
+        const ctrlPlayer = state.players ? state.players.find(p => p.id === state.controllingPlayerId) : null;
+        const ctrlName = ctrlPlayer ? ctrlPlayer.name : 'Contestant';
+        setBuzzerLocked(`Board Control: ${ctrlName} (Waiting for Host to pick clue...)`);
+      }
     }
   }
 
@@ -802,6 +838,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // BUZZER BUTTON STATES
   function setBuzzerUnlocked() {
+    // Re-check lockout on current clue
+    if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
+      if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
+      setBuzzerLockedOut('You answered incorrectly on this clue.');
+      return;
+    }
+
     // Re-check Daily Double lock before unlocking button
     if (currentClueObj && currentClueObj.dailyDouble && currentClueObj.eligiblePlayerId && currentClueObj.eligiblePlayerId !== playerId) {
       setBuzzerLockedOut(`Daily Double locked for ${currentClueObj.eligiblePlayerName || 'selected player'}`);
@@ -822,6 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setBuzzerWinner(latency, answerSecondsLeft) {
+    if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
     buzzerState = 'WINNER';
     btnBuzzer.disabled = true;
     btnBuzzer.className = 'buzzer-btn buzzed-winner';
@@ -833,6 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setBuzzerLockedOut(reason) {
+    if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
     buzzerState = 'LOCKED_OUT';
     btnBuzzer.disabled = true;
     btnBuzzer.className = 'buzzer-btn';
@@ -861,6 +906,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.code === 'Space' || e.code === 'Enter') {
       e.preventDefault();
       if (buzzerState === 'UNLOCKED' && !btnBuzzer.disabled) {
+        if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
+          setBuzzerLockedOut('You answered incorrectly on this clue.');
+          return;
+        }
         btnBuzzer.click();
       }
     }
@@ -869,6 +918,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Press Buzzer Action
   btnBuzzer.onclick = () => {
     if (buzzerState !== 'UNLOCKED') return;
+    if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
+      setBuzzerLockedOut('You answered incorrectly on this clue.');
+      return;
+    }
 
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       initWebSocket();

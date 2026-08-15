@@ -154,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
           case 'BOARD_JOINED':
           case 'ROOM_STATE':
           case 'FINAL_JEOPARDY_STARTED':
+          case 'WAGER_SET':
             gameState = msg.state;
             renderBoard();
             renderScoreboard();
@@ -215,6 +216,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const tvTimerBadge = document.getElementById('tvAnswerTimerBadge');
             if (tvTimerBadge) {
               tvTimerBadge.innerText = `${msg.secondsLeft}s`;
+            }
+            break;
+
+          case 'ANSWER_TIMER_EXPIRED':
+            if (tvBuzzAlert) {
+              tvBuzzAlert.style.background = 'var(--color-danger)';
+              tvBuzzAlert.style.color = '#ffffff';
+              tvBuzzAlert.innerHTML = `<span><span id="tvBuzzPlayerName">${msg.activePlayerName || 'Contestant'}</span> - TIME EXPIRED!</span> <span id="tvAnswerTimerBadge" style="background: rgba(0,0,0,0.85); color: #ef4444; border-radius: 999px; padding: 0.2rem 0.8rem; font-size: 1.6rem; border: 2px solid #ef4444; margin-left: 0.8rem;">0s</span>`;
+              tvBuzzAlert.style.display = 'inline-flex';
             }
             break;
 

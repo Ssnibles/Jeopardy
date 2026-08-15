@@ -446,44 +446,13 @@ function resolveBuzzerWinner(roomCode) {
       });
     } else {
       clearAnswerTimer(room);
-      console.log(`[Room ${roomCode}] Contestant answer timer EXPIRED for ${winner.playerName}!`);
-
-      const p = room.players.find(pl => pl.id === winner.playerId);
-      const clueVal = (room.currentClue && (room.currentClue.wager || room.currentClue.value)) || 200;
-
-      if (p) p.score -= clueVal;
-
-      if (!room.currentClue.lockedOutPlayerIds) room.currentClue.lockedOutPlayerIds = [];
-      if (!room.currentClue.lockedOutPlayerIds.includes(winner.playerId)) {
-        room.currentClue.lockedOutPlayerIds.push(winner.playerId);
-      }
-
-      room.buzzerState.activePlayerId = null;
-
-      broadcastRoom(roomCode, 'ANSWER_EVALUATED', {
-        isCorrect: false,
-        playerId: winner.playerId,
-        playerName: winner.playerName,
-        scoreChange: -clueVal,
-        timedOut: true,
-        answer: room.currentClue.answer,
+      console.log(`[Room ${roomCode}] Contestant answer timer reached 0s for ${winner.playerName}. Awaiting Host evaluation.`);
+      broadcastRoom(roomCode, 'ANSWER_TIMER_EXPIRED', {
+        secondsLeft: 0,
+        activePlayerId: winner.playerId,
+        activePlayerName: winner.playerName,
         state: getPublicRoomState(room)
       });
-
-      const remainingCandidates = (room.buzzerState.candidates || []).filter(c => !room.currentClue.lockedOutPlayerIds.includes(c.playerId));
-      if (remainingCandidates.length > 0) {
-        resolveBuzzerWinner(roomCode);
-      } else {
-        const eligiblePlayers = room.players.filter(pl => pl.connected && !room.currentClue.lockedOutPlayerIds.includes(pl.id));
-        if (eligiblePlayers.length > 0 && !room.currentClue.dailyDouble) {
-          room.buzzerState.state = 'UNLOCKED';
-          room.buzzerState.unlockTime = Date.now();
-          broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime, state: getPublicRoomState(room) });
-        } else {
-          room.buzzerState.state = 'LOCKED';
-          broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
-        }
-      }
     }
   }, 1000);
 
@@ -927,6 +896,22 @@ wss.on('connection', (ws) => {
           break;
         }
 
+        // --- 4c. SET CONTROLLING PLAYER (HOST) ---
+        case 'SET_CONTROLLING_PLAYER': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || clientMeta.role !== 'HOST') return;
+
+          const { playerId } = msg;
+          const targetPlayer = room.players.find(p => p.id === playerId);
+          if (targetPlayer) {
+            room.controllingPlayerId = targetPlayer.id;
+            broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+            console.log(`[Room ${roomCode}] Host assigned board control to ${targetPlayer.name}`);
+          }
+          break;
+        }
+
         // --- 5. SET DAILY DOUBLE WAGER ---
         case 'SET_WAGER': {
           const { roomCode } = clientMeta;
@@ -951,7 +936,9 @@ wss.on('connection', (ws) => {
           room.currentClue.wagerSet = true;
           room.buzzerState = { state: 'DAILY_DOUBLE', activePlayerId: room.currentClue.eligiblePlayerId, buzzedQueue: [] };
 
-          broadcastRoom(roomCode, 'WAGER_SET', { state: getPublicRoomState(room), wager: room.currentClue.wager });
+          const statePayload = getPublicRoomState(room);
+          broadcastRoom(roomCode, 'WAGER_SET', { state: statePayload, wager: room.currentClue.wager });
+          broadcastRoom(roomCode, 'ROOM_STATE', { state: statePayload });
           break;
         }
 
@@ -1073,6 +1060,10 @@ wss.on('connection', (ws) => {
           if (!room || !room.currentClue || clientMeta.role !== 'HOST') return;
 
           clearAnswerTimer(room);
+          if (room.countdownTimer) {
+            clearInterval(room.countdownTimer);
+            room.countdownTimer = null;
+          }
 
           const { isCorrect } = msg;
           const activePlayerId = room.buzzerState.activePlayerId || room.currentClue.eligiblePlayerId || msg.playerId;
@@ -1085,14 +1076,24 @@ wss.on('connection', (ws) => {
             if (isCorrect) {
               player.score += clueVal;
               room.controllingPlayerId = player.id;
-              room.buzzerState.state = 'LOCKED';
+              room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [], candidates: [] };
               const bState = getBoardState(room);
               const key = `${room.currentClue.catIndex}-${room.currentClue.clueIndex}`;
               bState[key] = true;
               room.currentClue.answerRevealed = true;
+
+              broadcastRoom(roomCode, 'ANSWER_EVALUATED', {
+                isCorrect: true,
+                playerId: activePlayerId,
+                playerName: player.name,
+                scoreChange: clueVal,
+                answer: room.currentClue.answer,
+                state: getPublicRoomState(room)
+              });
+
+              checkGameOver(room);
             } else {
               player.score -= clueVal;
-              room.currentClue.answerRevealed = true;
 
               if (!room.currentClue.lockedOutPlayerIds.includes(player.id)) {
                 room.currentClue.lockedOutPlayerIds.push(player.id);
@@ -1102,36 +1103,57 @@ wss.on('connection', (ws) => {
                 room.controllingPlayerId = player.id;
               }
 
+              room.buzzerState.activePlayerId = null;
+
               const remainingCandidates = (room.buzzerState.candidates || []).filter(c => !room.currentClue.lockedOutPlayerIds.includes(c.playerId));
 
               if (remainingCandidates.length > 0) {
+                broadcastRoom(roomCode, 'ANSWER_EVALUATED', {
+                  isCorrect: false,
+                  playerId: activePlayerId,
+                  playerName: player.name,
+                  scoreChange: -clueVal,
+                  answer: room.currentClue.answerRevealed ? room.currentClue.answer : undefined,
+                  state: getPublicRoomState(room)
+                });
                 resolveBuzzerWinner(roomCode);
               } else {
                 const eligiblePlayers = room.players.filter(p => p.connected && !room.currentClue.lockedOutPlayerIds.includes(p.id));
                 if (eligiblePlayers.length > 0 && !room.currentClue.dailyDouble) {
-                  room.buzzerState.state = 'UNLOCKED';
-                  room.buzzerState.unlockTime = Date.now();
+                  room.buzzerState = { state: 'UNLOCKED', activePlayerId: null, buzzedQueue: [], candidates: [], unlockTime: Date.now() };
+                  broadcastRoom(roomCode, 'ANSWER_EVALUATED', {
+                    isCorrect: false,
+                    playerId: activePlayerId,
+                    playerName: player.name,
+                    scoreChange: -clueVal,
+                    answer: room.currentClue.answerRevealed ? room.currentClue.answer : undefined,
+                    state: getPublicRoomState(room)
+                  });
                   broadcastRoom(roomCode, 'BUZZERS_UNLOCKED', { timestamp: room.buzzerState.unlockTime, state: getPublicRoomState(room) });
                 } else {
-                  room.buzzerState.state = 'LOCKED';
+                  room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [], candidates: [] };
+                  room.currentClue.answerRevealed = true;
+                  broadcastRoom(roomCode, 'ANSWER_EVALUATED', {
+                    isCorrect: false,
+                    playerId: activePlayerId,
+                    playerName: player.name,
+                    scoreChange: -clueVal,
+                    answer: room.currentClue.answer,
+                    state: getPublicRoomState(room)
+                  });
                 }
               }
             }
           } else {
             room.currentClue.answerRevealed = true;
-          }
-
-          broadcastRoom(roomCode, 'ANSWER_EVALUATED', {
-            isCorrect,
-            playerId: activePlayerId,
-            playerName: player ? player.name : '',
-            scoreChange: isCorrect ? clueVal : -clueVal,
-            answer: room.currentClue.answer,
-            state: getPublicRoomState(room)
-          });
-
-          if (isCorrect) {
-            checkGameOver(room);
+            broadcastRoom(roomCode, 'ANSWER_EVALUATED', {
+              isCorrect: false,
+              playerId: activePlayerId,
+              playerName: '',
+              scoreChange: -clueVal,
+              answer: room.currentClue.answer,
+              state: getPublicRoomState(room)
+            });
           }
           break;
         }
