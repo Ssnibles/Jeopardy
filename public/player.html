@@ -11,34 +11,34 @@
   <header class="header-bar">
     <div id="btnPlayerProfile" class="profile-header-button" title="Click to customize profile">
       <div class="header-avatar-wrapper">
-        <div id="playerAvatar" class="player-avatar" style="background: var(--jeopardy-gold);">P</div>
+        <div id="playerAvatar" class="player-avatar">P</div>
         <div class="header-avatar-overlay">
-          <span class="overlay-cog">⚙️</span>
+          <svg class="overlay-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           <span>Edit</span>
         </div>
       </div>
-      <div>
-        <h2 id="playerNameHeader" style="font-size: 1.1rem; font-weight: 800; color: #fff;">Player</h2>
-        <div id="playerScoreHeader" style="font-size: 1rem; font-weight: 900; color: var(--jeopardy-gold);">$0</div>
+      <div class="header-profile-meta">
+        <h2 id="playerNameHeader" class="player-header-name">Player</h2>
+        <div id="playerScoreHeader" class="player-header-score">$0</div>
       </div>
     </div>
 
     <!-- CONTESTANT SCOREBOARD IN HEADER (Middle) -->
-    <div id="playerScoreboard" class="scoreboard" style="display: flex; gap: 0.5rem; overflow-x: auto; max-width: 60%; padding: 0.25rem 0.5rem; justify-content: center; border-left: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); border-radius: 0;"></div>
+    <div id="playerScoreboard" class="scoreboard"></div>
 
-    <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+    <div class="header-right">
       <div id="roomBadge" class="room-badge">ROOM: ----</div>
     </div>
   </header>
 
-  <main class="container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh;">
+  <main class="container player-main">
 
-    <!-- CLUE DISPLAY BOX (Player view of active clue + image if attached) -->
-    <div id="playerClueBox" class="glass-panel" style="display: none; width: 100%; max-width: 600px; text-align: center; margin-bottom: 1.5rem; border-color: var(--border-subtle);">
-      <div id="playerClueCategory" style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; font-weight: 700;">Category</div>
-      <div id="playerClueValue" style="font-size: 1.75rem; font-weight: 900; color: var(--jeopardy-gold); margin: 0.25rem 0;">$200</div>
-      <div id="playerClueText" style="font-size: 1.25rem; font-weight: 600; line-height: 1.4; color: #fff; margin-top: 0.5rem;"></div>
-      <img id="playerClueImage" src="" alt="" style="display: none; max-width: 100%; max-height: 200px; border-radius: var(--radius-md); margin-top: 0.75rem; border: 1px solid var(--border-subtle);">
+    <!-- CLUE DISPLAY BOX (Borderless TV-Mode Style Text) -->
+    <div id="playerClueBox" class="clue-card-display" style="display: none;">
+      <div id="playerClueCategory" class="clue-category-label">Category</div>
+      <div id="playerClueValue" class="clue-value-text">$200</div>
+      <div id="playerClueText" class="clue-body-text"></div>
+      <img id="playerClueImage" src="" alt="" class="clue-image-preview" style="display: none;">
     </div>
 
     <!-- GIANT BUZZER CONTAINER -->
@@ -47,17 +47,17 @@
         BUZZ
       </button>
 
-      <div id="buzzerStatus" class="buzzer-status" style="color: var(--text-muted);">
+      <div id="buzzerStatus" class="buzzer-status">
         Waiting for Host to start clue...
       </div>
-      <div id="buzzerKeyHint" style="font-size: 0.85rem; color: var(--text-subtle); margin-top: -0.5rem;">
+      <div id="buzzerKeyHint" class="buzzer-key-hint">
         Press <kbd class="key-pill">Spacebar</kbd> or <kbd class="key-pill">Enter</kbd> to buzz
       </div>
     </div>
 
     <!-- LIVE GAME BOARD (READ-ONLY FOR CONTESTANTS) -->
-    <div id="playerBoardContainer" class="glass-panel" style="display: none; width: 100%; max-width: 900px; margin-top: 1.5rem; text-align: center;">
-      <div style="font-size: 0.88rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.08em; margin-bottom: 0.75rem;">
+    <div id="playerBoardContainer" class="glass-panel player-board-panel" style="display: none;">
+      <div class="board-panel-title">
         LIVE GAME BOARD
       </div>
       <div id="playerBoardGrid" class="jeopardy-board"></div>
@@ -65,16 +65,16 @@
 
   </main>
 
-  <!-- PLAYER SETUP / JOIN MODAL -->
-  <div id="playerJoinModal" class="clue-modal active" style="display: flex;">
-    <div class="clue-content glass-panel" style="max-width: 480px; width: 90%; text-align: center; padding: 2rem;">
-      <h2 style="font-size: 1.8rem; font-weight: 900; color: var(--jeopardy-gold); margin-bottom: 0.5rem;">Contestant Setup</h2>
-      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">Set up your profile to join the Jeopardy room</p>
+  <!-- PLAYER SETUP / JOIN MODAL (100% Opaque Screen Backdrop) -->
+  <div id="playerJoinModal" class="clue-modal active">
+    <div class="setup-modal-card">
+      <h2 class="setup-modal-title">Contestant Setup</h2>
+      <p class="setup-modal-desc">Set up your profile to join the Jeopardy room</p>
 
-      <form id="playerSetupForm" style="width: 100%;">
+      <form id="playerSetupForm" class="setup-form">
         <div class="form-group">
           <label for="setupRoomCode">ROOM CODE</label>
-          <input type="text" id="setupRoomCode" class="form-control" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.1em;" required placeholder="e.g. F28D" maxlength="4">
+          <input type="text" id="setupRoomCode" class="form-control setup-input-code" required placeholder="e.g. F28D" maxlength="4">
         </div>
 
         <div class="form-group">
@@ -86,13 +86,16 @@
           <label>AVATAR & BUZZER COLOR</label>
           <div class="identity-customizer">
             <div class="avatar-upload-wrapper" id="btnUploadSetupAvatar" title="Click to upload custom photo">
-              <div id="avatarPreviewBubble" class="avatar-bubble-lg" style="background: #3b82f6;">?</div>
-              <div class="avatar-overlay">📷<span>Edit</span></div>
+              <div id="avatarPreviewBubble" class="avatar-bubble-lg">?</div>
+              <div class="avatar-overlay">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span>Edit</span>
+              </div>
             </div>
             <input type="file" id="setupAvatarFile" accept="image/*" style="display: none;">
 
             <div class="color-swatches-container">
-              <span class="color-swatches-label">Select Color (Click avatar to change photo)</span>
+              <span class="color-swatches-label">Select Color (Click avatar for photo)</span>
               <div class="color-swatches-row" id="setupColorSwatches">
                 <div class="color-dot active" data-color="#3b82f6" style="background: #3b82f6;"></div>
                 <div class="color-dot" data-color="#10b981" style="background: #10b981;"></div>
@@ -108,7 +111,7 @@
           </div>
         </div>
 
-        <button type="submit" id="btnSubmitSetup" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1.1rem; margin-top: 0.75rem;">
+        <button type="submit" id="btnSubmitSetup" class="btn btn-primary setup-submit-btn">
           Join Contestant Screen
         </button>
       </form>
@@ -124,14 +127,16 @@
   <!-- WINSCREEN OVERLAY -->
   <div id="playerWinscreenModal" class="winscreen-modal">
     <div class="winscreen-card">
-      <div class="winner-crown">👑 🥇</div>
-      <h1 class="winner-title">GAME COMPLETED!</h1>
+      <div class="winner-badge-icon">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--jeopardy-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+      </div>
+      <h1 class="winner-title">GAME COMPLETED</h1>
       <div id="playerWinnerAvatar" class="winner-avatar-lg">?</div>
-      <h2 id="playerWinnerName" style="font-size: 2rem; color: #fff; font-weight: 900;">Winner Name</h2>
+      <h2 id="playerWinnerName" class="winner-name-text">Winner Name</h2>
       <div id="playerWinnerScore" class="winner-score-display">$0</div>
 
-      <div style="width: 100%;">
-        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem;">FINAL LEADERBOARD</h3>
+      <div class="podium-section">
+        <h3 class="podium-title">FINAL LEADERBOARD</h3>
         <div id="playerPodiumStandings" class="podium-standings-grid">
           <!-- Rendered dynamically -->
         </div>

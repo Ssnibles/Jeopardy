@@ -77,12 +77,20 @@ document.addEventListener('DOMContentLoaded', () => {
       setupName.value = playerName;
       setupColor.value = playerColor;
       updateAvatarPreview();
+      updateSetupButtonColor(playerColor || setupColor.value || '#3b82f6');
+      if (btnSubmitSetup) btnSubmitSetup.innerText = 'Save Profile Updates';
       playerJoinModal.style.display = 'flex';
     };
   }
 
   const btnUploadSetupAvatar = document.getElementById('btnUploadSetupAvatar');
   const setupColorSwatches = document.getElementById('setupColorSwatches');
+
+  function updateSetupButtonColor(color) {
+    if (!btnSubmitSetup) return;
+    btnSubmitSetup.style.backgroundColor = color;
+    btnSubmitSetup.style.borderColor = color;
+  }
 
   if (btnUploadSetupAvatar && setupAvatarFile) {
     btnUploadSetupAvatar.onclick = () => setupAvatarFile.click();
@@ -96,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dot.classList.add('active');
         const c = dot.getAttribute('data-color');
         setupColor.value = c;
+        updateSetupButtonColor(c);
         if (!selectedAvatarFile && !playerAvatarUrl) {
           avatarPreviewBubble.style.background = c;
         }
@@ -104,10 +113,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupColor.oninput = () => {
       dots.forEach(d => d.classList.remove('active'));
+      const c = setupColor.value;
+      updateSetupButtonColor(c);
       if (!selectedAvatarFile && !playerAvatarUrl) {
-        avatarPreviewBubble.style.background = setupColor.value;
+        avatarPreviewBubble.style.background = c;
       }
     };
+
+    // Initial sync
+    updateSetupButtonColor(setupColor.value || '#3b82f6');
   }
 
   if (setupName) {
@@ -134,6 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   function updateAvatarPreview() {
+    const c = setupColor.value || playerColor || '#3b82f6';
+    updateSetupButtonColor(c);
     if (playerAvatarUrl) {
       avatarPreviewBubble.style.backgroundImage = `url('${playerAvatarUrl}')`;
       avatarPreviewBubble.style.backgroundSize = 'cover';
@@ -141,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
       avatarPreviewBubble.innerText = '';
     } else {
       avatarPreviewBubble.style.backgroundImage = 'none';
-      avatarPreviewBubble.style.background = setupColor.value;
+      avatarPreviewBubble.style.background = c;
       avatarPreviewBubble.innerText = (setupName.value || 'P').charAt(0).toUpperCase();
     }
   }
@@ -635,10 +651,10 @@ document.addEventListener('DOMContentLoaded', () => {
       sorted.forEach((p, idx) => {
         const row = document.createElement('div');
         row.className = `podium-row rank-${idx + 1}`;
-        const medal = idx === 0 ? '🥇 1st' : (idx === 1 ? '🥈 2nd' : (idx === 2 ? '🥉 3rd' : `#${idx + 1}`));
+        const medal = idx === 0 ? '1ST' : (idx === 1 ? '2ND' : (idx === 2 ? '3RD' : `#${idx + 1}`));
         row.innerHTML = `
           <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <span style="font-weight: 900; font-size: 1.1rem; min-width: 55px; color: var(--jeopardy-gold);">${medal}</span>
+            <span class="rank-badge rank-badge-${idx + 1}">${medal}</span>
             <span style="font-weight: 800; color: ${p.color || '#fff'}; font-size: 1.05rem;">${p.name}</span>
           </div>
           <span style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.2rem; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
@@ -679,7 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnBuzzer.disabled = true;
     btnBuzzer.className = 'buzzer-btn buzzed-winner';
     btnBuzzer.innerText = 'BUZZED!';
-    buzzerStatus.innerText = `YOU BUZZED FIRST! (⚡ ${latency}ms reaction)`;
+    buzzerStatus.innerText = `YOU BUZZED FIRST! (${latency}ms reaction)`;
     buzzerStatus.style.color = 'var(--jeopardy-gold)';
   }
 

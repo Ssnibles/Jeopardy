@@ -21,56 +21,69 @@
 
     <div class="grid-2" style="max-width: 1050px; margin: 0 auto; align-items: stretch;">
 
-      <!-- HOST CARD -->
+      <!-- HOST CARD WITH PREMADE PACKS & DIRECT CUSTOM FILE PICKER -->
       <div class="glass-panel" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem;">
         <div>
-          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
-            <div>
-              <h2 style="font-size: 1.5rem; font-weight: 800;">Host a New Game</h2>
-              <p style="color: var(--text-muted); font-size: 0.9rem;">Start a game room and control the board</p>
-            </div>
+          <div style="margin-bottom: 1.15rem;">
+            <h2 style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">Host a New Game</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Choose a pre-made trivia pack or upload your custom .json file</p>
           </div>
 
+          <!-- PACK METHOD CHOICE -->
           <div class="form-group">
-            <label>Select Question Pack</label>
-            <div class="pack-selector-grid">
-              <div class="pack-choice-card active" id="cardDefaultPack">
-                <input type="radio" name="packChoice" value="default" checked id="radioDefaultPack" style="display: none;">
-                <span class="pack-choice-title">Default Pack</span>
-                <span class="pack-choice-desc">Ultimate Trivia Showdown</span>
+            <label>QUESTION PACK SOURCE</label>
+            <div class="pack-method-grid">
+              <div class="pack-method-btn active" id="btnMethodPremade">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <span>Pre-Made Packs (5)</span>
               </div>
 
-              <div class="pack-choice-card" id="cardCustomPack">
-                <input type="radio" name="packChoice" value="custom" id="radioCustomPack" style="display: none;">
-                <span class="pack-choice-title">Custom Pack</span>
-                <span class="pack-choice-desc">Upload .json trivia file</span>
+              <div class="pack-method-btn btn-dashed" id="btnMethodCustom">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Load Custom Pack (.json)</span>
               </div>
+            </div>
+            <input type="file" id="customPackFile" accept=".json" style="display: none;">
+          </div>
+
+          <!-- PRE-MADE DROPDOWN SELECTOR -->
+          <div id="premadePackSection" class="form-group" style="margin-top: 0.85rem; width: 100%; box-sizing: border-box;">
+            <label for="premadePackSelect">SELECT PRE-MADE PACK</label>
+            <select id="premadePackSelect" class="form-control" style="width: 100%; max-width: 100%; box-sizing: border-box; font-weight: 700; color: var(--jeopardy-gold);">
+              <option value="0">Ultimate Trivia Showdown (General Trivia)</option>
+              <option value="1">Pop Culture & Cinema (Movies, TV & Music)</option>
+              <option value="2">Science, Tech & Cosmos (Physics, Space & Coding)</option>
+              <option value="3">World History & Geography (Empires & Landmarks)</option>
+              <option value="4">Video Games & Anime (Gaming Classics & Series)</option>
+            </select>
+          </div>
+
+          <!-- CUSTOM FILE STATUS MSG -->
+          <div id="customPackStatus" class="pack-dropzone-status" style="margin-top: 0.5rem; display: none;"></div>
+
+          <!-- PACK QUESTIONS PREVIEW LIST -->
+          <div id="packPreviewContainer" class="pack-preview-panel">
+            <div class="pack-preview-header">
+              <span id="packPreviewTitle" class="pack-preview-title">Pack Preview</span>
+              <span id="packPreviewBadge" class="pack-preview-badge">5 Categories • 25 Clues</span>
+            </div>
+            <div id="packPreviewList" class="pack-preview-list">
+              <!-- Questions loaded dynamically -->
             </div>
           </div>
 
-          <div id="customPackFileGroup" style="display: none;">
-            <div class="pack-dropzone" id="packDropzone">
-              <input type="file" id="customPackFile" accept=".json" style="display: none;">
-              <div class="pack-dropzone-text">
-                Click or drop <strong>.json</strong> pack file
-              </div>
-              <div id="customPackStatus" class="pack-dropzone-status"></div>
-            </div>
-          </div>
         </div>
 
-        <button id="btnCreateRoom" class="btn btn-gold" style="width: 100%; padding: 0.85rem; font-size: 1.1rem; margin-top: 1rem;">
+        <button id="btnCreateRoom" class="btn btn-gold" style="width: 100%; padding: 0.85rem; font-size: 1.05rem; font-weight: 800; margin-top: 1rem;">
           Launch Game Room
         </button>
       </div>
 
-      <!-- PLAYER CARD WITH FULL CUSTOMIZATION (AVATAR UPLOAD, COLOR & NICKNAME) -->
+      <!-- PLAYER CARD -->
       <div class="glass-panel" style="display: flex; flex-direction: column; gap: 1.25rem;">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div>
-            <h2 style="font-size: 1.5rem; font-weight: 800;">Join as Player</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Set up your profile and buzzer</p>
-          </div>
+        <div>
+          <h2 style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">Join as Player</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Set up your profile and buzzer</p>
         </div>
 
         <form id="joinRoomForm" style="display: flex; flex-direction: column; gap: 1rem;">
@@ -89,12 +102,15 @@
             <div class="identity-customizer">
               <div class="avatar-upload-wrapper" id="btnUploadJoinAvatar" title="Click to upload custom photo">
                 <div id="joinAvatarPreview" class="avatar-bubble-lg" style="background: #3b82f6;">?</div>
-                <div class="avatar-overlay">📷<span>Edit</span></div>
+                <div class="avatar-overlay">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  <span>Edit</span>
+                </div>
               </div>
               <input type="file" id="joinAvatarFile" accept="image/*" style="display: none;">
 
               <div class="color-swatches-container">
-                <span class="color-swatches-label">Select Color (Click avatar to change photo)</span>
+                <span class="color-swatches-label">Select Color (Click avatar for photo)</span>
                 <div class="color-swatches-row" id="joinColorSwatches">
                   <div class="color-dot active" data-color="#3b82f6" style="background: #3b82f6;"></div>
                   <div class="color-dot" data-color="#10b981" style="background: #10b981;"></div>
@@ -110,7 +126,7 @@
             </div>
           </div>
 
-          <button type="submit" id="btnSubmitJoin" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1.1rem; margin-top: 0.25rem;">
+          <button type="submit" id="btnSubmitJoin" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1.05rem; font-weight: 700; margin-top: 0.25rem;">
             Join Game Lobby
           </button>
         </form>

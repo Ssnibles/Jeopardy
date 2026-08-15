@@ -31,10 +31,9 @@
       <!-- Rendered dynamically -->
     </div>
 
-    <!-- BOTTOM PLAYER SCORE STRIP -->
-    <div style="margin-top: 1.5rem; background: rgba(19, 27, 46, 0.75); backdrop-filter: blur(12px); padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: var(--shadow-md);">
-      <h3 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 0.5rem;">CONTESTANTS</h3>
-      <div id="tvScoreboard" class="scoreboard">
+    <!-- BOTTOM PLAYER SCORE STRIP (INDIVIDUAL PLAYER CARDS FLOATING DIRECTLY ON TV BACKGROUND, HORIZONTALLY CENTERED) -->
+    <div style="margin-top: 1.25rem; width: 100%; display: flex; justify-content: center; align-items: center;">
+      <div id="tvScoreboard" class="scoreboard" style="width: 100%; max-width: 100%; border: none; justify-content: center; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0; margin: 0 auto;">
         <!-- Rendered dynamically -->
       </div>
     </div>

@@ -1,11 +1,65 @@
 // Custom Question Creator Logic
 document.addEventListener('DOMContentLoaded', () => {
-  let pack = {
-    title: 'My Custom Jeopardy Pack',
+
+  // Default Starter Trivia Pack Template
+  const SAMPLE_STARTER_PACK = {
+    title: 'Custom Trivia Showdown',
     author: 'Quiz Master',
-    categories: []
+    categories: [
+      {
+        name: 'Science & Tech',
+        clues: [
+          { value: 200, clue: 'This programming language named after a coffee bean was developed at Sun Microsystems.', answer: 'Java', image: '', dailyDouble: false },
+          { value: 400, clue: 'What is the chemical symbol for Gold on the periodic table?', answer: 'Au', image: '', dailyDouble: false },
+          { value: 600, clue: 'This tech giant introduced the revolutionary iPhone in 2007.', answer: 'Apple', image: '', dailyDouble: false },
+          { value: 800, clue: 'Which space telescope launched in 2021 as Hubble\'s successor?', answer: 'James Webb Space Telescope', image: '', dailyDouble: true },
+          { value: 1000, clue: 'What physical constant approximately equal to 3x10^8 m/s is denoted by c?', answer: 'Speed of light', image: '', dailyDouble: false }
+        ]
+      },
+      {
+        name: 'World History',
+        clues: [
+          { value: 200, clue: 'Which ancient civilization built the Great Pyramids at Giza along the Nile?', answer: 'Ancient Egypt', image: '', dailyDouble: false },
+          { value: 400, clue: 'Who was the Macedonian king who created a vast empire by age 30?', answer: 'Alexander the Great', image: '', dailyDouble: false },
+          { value: 600, clue: 'What Roman general was assassinated on the Ides of March in 44 BC?', answer: 'Julius Caesar', image: '', dailyDouble: false },
+          { value: 800, clue: 'In what 1815 battle was Napoleon Bonaparte finally defeated?', answer: 'Battle of Waterloo', image: '', dailyDouble: false },
+          { value: 1000, clue: 'Which empire ruled from Constantinople after Western Rome fell?', answer: 'Byzantine Empire', image: '', dailyDouble: false }
+        ]
+      },
+      {
+        name: 'Pop Culture',
+        clues: [
+          { value: 200, clue: 'In the MCU, what is the name of Thor\'s home realm?', answer: 'Asgard', image: '', dailyDouble: false },
+          { value: 400, clue: 'Which movie won Best Picture in 2020, becoming the first non-English film to win?', answer: 'Parasite', image: '', dailyDouble: false },
+          { value: 600, clue: 'What color pill does Neo take in The Matrix to learn the truth?', answer: 'Red Pill', image: '', dailyDouble: false },
+          { value: 800, clue: 'Who directed Interstellar, Inception, and Oppenheimer?', answer: 'Christopher Nolan', image: '', dailyDouble: false },
+          { value: 1000, clue: 'What pop superstar earned the title King of Pop with Thriller?', answer: 'Michael Jackson', image: '', dailyDouble: false }
+        ]
+      },
+      {
+        name: 'Geography',
+        clues: [
+          { value: 200, clue: 'What is the capital city of Japan?', answer: 'Tokyo', image: '', dailyDouble: false },
+          { value: 400, clue: 'Which iron landmark built in 1889 dominates the skyline of Paris?', answer: 'Eiffel Tower', image: '', dailyDouble: false },
+          { value: 600, clue: 'What is the longest river in South America by water volume?', answer: 'Amazon River', image: '', dailyDouble: false },
+          { value: 800, clue: 'What mountain range contains Mount Everest?', answer: 'Himalayas', image: '', dailyDouble: false },
+          { value: 1000, clue: 'What is the capital city of Australia?', answer: 'Canberra', image: '', dailyDouble: false }
+        ]
+      },
+      {
+        name: 'Gaming',
+        clues: [
+          { value: 200, clue: 'What blue-overalled plumber is Nintendo\'s flagship mascot?', answer: 'Mario', image: '', dailyDouble: false },
+          { value: 400, clue: 'What sandbox game created by Notch became the best-selling game of all time?', answer: 'Minecraft', image: '', dailyDouble: false },
+          { value: 600, clue: 'In The Legend of Zelda, what is the name of the main hero in green?', answer: 'Link', image: '', dailyDouble: false },
+          { value: 800, clue: 'What fighting game franchise introduced Ryu and the Hadoken?', answer: 'Street Fighter', image: '', dailyDouble: true },
+          { value: 1000, clue: 'What year was the original Sony PlayStation released in Japan?', answer: '1994', image: '', dailyDouble: false }
+        ]
+      }
+    ]
   };
 
+  let pack = JSON.parse(JSON.stringify(SAMPLE_STARTER_PACK));
   let activeCatIndex = null;
   let activeClueIndex = null;
   let currentImageUrl = '';
@@ -18,7 +72,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const importFile = document.getElementById('importFile');
   const btnAddCategory = document.getElementById('btnAddCategory');
   const btnResetPack = document.getElementById('btnResetPack');
+  const btnPrefillSample = document.getElementById('btnPrefillSample');
   const btnLaunchRoom = document.getElementById('btnLaunchRoom');
+
+  // Health Stats Bar elements
+  const packProgressPercent = document.getElementById('packProgressPercent');
+  const packHealthBarFill = document.getElementById('packHealthBarFill');
+  const badgeFilledClues = document.getElementById('badgeFilledClues');
+  const badgeDailyDoubles = document.getElementById('badgeDailyDoubles');
+  const badgeImages = document.getElementById('badgeImages');
 
   // Modal elements
   const modal = document.getElementById('clueEditorModal');
@@ -38,13 +100,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const imagePreviewContainer = document.getElementById('imagePreviewContainer');
   const imagePreview = document.getElementById('imagePreview');
   const btnRemoveImage = document.getElementById('btnRemoveImage');
+  const previewTvClueText = document.getElementById('previewTvClueText');
+  const previewTvAnswerText = document.getElementById('previewTvAnswerText');
+
   const btnCloseModal = document.getElementById('btnCloseModal');
   const btnCancelModal = document.getElementById('btnCancelModal');
   const btnSaveClue = document.getElementById('btnSaveClue');
   const btnPrevClue = document.getElementById('btnPrevClue');
   const btnNextClue = document.getElementById('btnNextClue');
 
-  // Title / Author Listeners
+  // Metadata Input Listeners
   packTitle.oninput = () => {
     pack.title = packTitle.value.trim() || 'My Custom Jeopardy Pack';
     persistPack();
@@ -56,19 +121,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function persistPack() {
     sessionStorage.setItem('jeopardy_pack', JSON.stringify(pack));
+    updatePackHealthStats();
   }
 
-  // Initialize with default categories if empty
-  function initDefaultPack() {
-    pack.categories = [
-      createEmptyCategory('Category 1'),
-      createEmptyCategory('Category 2'),
-      createEmptyCategory('Category 3'),
-      createEmptyCategory('Category 4'),
-      createEmptyCategory('Category 5')
-    ];
-    persistPack();
-    renderGrid();
+  // Update Pack Health & Completion Bar
+  function updatePackHealthStats() {
+    let totalClues = 0;
+    let filledClues = 0;
+    let dailyDoubles = 0;
+    let imagesCount = 0;
+
+    if (pack && pack.categories && Array.isArray(pack.categories)) {
+      pack.categories.forEach(cat => {
+        if (cat.clues && Array.isArray(cat.clues)) {
+          cat.clues.forEach(clue => {
+            totalClues++;
+            if (clue.clue || clue.image) filledClues++;
+            if (clue.dailyDouble) dailyDoubles++;
+            if (clue.image) imagesCount++;
+          });
+        }
+      });
+    }
+
+    const pct = totalClues > 0 ? Math.round((filledClues / totalClues) * 100) : 0;
+    if (packProgressPercent) packProgressPercent.innerText = `${pct}% Completed`;
+    if (packHealthBarFill) packHealthBarFill.style.width = `${pct}%`;
+    if (badgeFilledClues) badgeFilledClues.innerText = `${filledClues} / ${totalClues} Clues Filled`;
+    if (badgeDailyDoubles) badgeDailyDoubles.innerText = `${dailyDoubles} Daily Doubles`;
+    if (badgeImages) badgeImages.innerText = `${imagesCount} Images Attached`;
   }
 
   function createEmptyCategory(name) {
@@ -85,7 +166,19 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Render Grid UI
+  function initDefaultEmptyPack() {
+    pack.categories = [
+      createEmptyCategory('Category 1'),
+      createEmptyCategory('Category 2'),
+      createEmptyCategory('Category 3'),
+      createEmptyCategory('Category 4'),
+      createEmptyCategory('Category 5')
+    ];
+    persistPack();
+    renderGrid();
+  }
+
+  // Render Category Board Grid UI
   function renderGrid() {
     grid.innerHTML = '';
 
@@ -93,40 +186,61 @@ document.addEventListener('DOMContentLoaded', () => {
       const col = document.createElement('div');
       col.className = 'board-column';
 
-      // Category Header Input
+      // Category Header Box & Action Controls
       const headerDiv = document.createElement('div');
       headerDiv.className = 'category-header';
       headerDiv.style.flexDirection = 'column';
-      headerDiv.style.gap = '0.5rem';
+      headerDiv.style.gap = '0.4rem';
 
       const catInput = document.createElement('input');
       catInput.type = 'text';
       catInput.value = cat.name;
       catInput.className = 'category-header-input form-control';
+      catInput.placeholder = `Category ${catIdx + 1}`;
       catInput.oninput = (e) => {
         cat.name = e.target.value;
         persistPack();
       };
-
       headerDiv.appendChild(catInput);
 
-      if (pack.categories.length > 1) {
-        const btnDeleteCat = document.createElement('button');
-        btnDeleteCat.className = 'btn btn-danger';
-        btnDeleteCat.style.padding = '0.2rem 0.5rem';
-        btnDeleteCat.style.fontSize = '0.75rem';
-        btnDeleteCat.innerText = 'Delete';
-        btnDeleteCat.onclick = () => {
+      // Category Actions: Move Left, Move Right, Delete
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'category-header-actions';
+
+      const leftBtn = document.createElement('button');
+      leftBtn.className = 'cat-action-btn';
+      leftBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+      leftBtn.title = 'Move Category Left';
+      leftBtn.disabled = catIdx === 0;
+      leftBtn.onclick = () => moveCategory(catIdx, -1);
+
+      const rightBtn = document.createElement('button');
+      rightBtn.className = 'cat-action-btn';
+      rightBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+      rightBtn.title = 'Move Category Right';
+      rightBtn.disabled = catIdx === pack.categories.length - 1;
+      rightBtn.onclick = () => moveCategory(catIdx, 1);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'cat-action-btn danger';
+      delBtn.innerText = 'Delete';
+      delBtn.disabled = pack.categories.length <= 1;
+      delBtn.onclick = () => {
+        if (confirm(`Delete category "${cat.name}"?`)) {
           pack.categories.splice(catIdx, 1);
           persistPack();
           renderGrid();
-        };
-        headerDiv.appendChild(btnDeleteCat);
-      }
+        }
+      };
+
+      actionsDiv.appendChild(leftBtn);
+      actionsDiv.appendChild(delBtn);
+      actionsDiv.appendChild(rightBtn);
+      headerDiv.appendChild(actionsDiv);
 
       col.appendChild(headerDiv);
 
-      // Clue cards
+      // Render Clue Cards
       cat.clues.forEach((clueObj, clueIdx) => {
         const card = document.createElement('div');
         card.className = 'creator-clue-card';
@@ -147,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (clueObj.image) icons.push('Img');
         if (clueObj.dailyDouble) icons.push('DD');
 
-        statusSpan.innerText = icons.length ? icons.join(' • ') : '+ Add Clue';
+        statusSpan.innerText = icons.length ? icons.join(' • ') : '+ Edit Clue';
         card.appendChild(statusSpan);
 
         card.onclick = () => openClueEditor(catIdx, clueIdx);
@@ -156,9 +270,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
       grid.appendChild(col);
     });
+
+    updatePackHealthStats();
   }
 
-  // Open Clue Editor Modal
+  // Move Category Position
+  function moveCategory(index, direction) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= pack.categories.length) return;
+    const temp = pack.categories[index];
+    pack.categories[index] = pack.categories[targetIndex];
+    pack.categories[targetIndex] = temp;
+    persistPack();
+    renderGrid();
+  }
+
+  // Image Source Mode Toggle
   function setImgSourceMode(mode) {
     if (mode === 'url') {
       if (btnSourceUrl) btnSourceUrl.classList.add('active');
@@ -185,8 +312,22 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.preset-val-btn').forEach(btn => {
     btn.onclick = () => {
       clueValue.value = btn.getAttribute('data-val');
+      updateLiveTvPreview();
     };
   });
+
+  // Update Live TV Preview Box inside Modal
+  function updateLiveTvPreview() {
+    if (previewTvClueText) {
+      previewTvClueText.innerText = clueText.value.trim() || '(Clue question text will appear here...)';
+    }
+    if (previewTvAnswerText) {
+      previewTvAnswerText.innerText = clueAnswer.value.trim() ? `A: ${clueAnswer.value.trim()}` : 'A: (Correct answer will appear here...)';
+    }
+  }
+
+  clueText.oninput = updateLiveTvPreview;
+  clueAnswer.oninput = updateLiveTvPreview;
 
   // Open Clue Editor Modal
   function openClueEditor(catIdx, clueIdx) {
@@ -194,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     activeClueIndex = clueIdx;
     const clueObj = pack.categories[catIdx].clues[clueIdx];
 
-    document.getElementById('modalTitle').innerText = `Edit ${pack.categories[catIdx].name} - $${clueObj.value}`;
+    document.getElementById('modalTitle').innerText = `Edit ${pack.categories[catIdx].name || 'Category'} - $${clueObj.value}`;
     clueText.value = clueObj.clue || '';
     clueAnswer.value = clueObj.answer || '';
     clueValue.value = clueObj.value;
@@ -214,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updateImagePreview();
+    updateLiveTvPreview();
     modal.classList.add('active');
   }
 
@@ -250,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Helper: Process and compress image file in-memory using Canvas and Base64 Data URL
+  // Image Processing in Memory (Base64)
   function processImageFile(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -288,23 +430,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Image Upload File Handler (RAM / Base64)
   imageFileInput.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    uploadStatus.innerText = 'Processing image in memory...';
+    uploadStatus.innerText = 'Processing image...';
     try {
       const dataUrl = await processImageFile(file);
       currentImageUrl = dataUrl;
-      uploadStatus.innerText = 'Image loaded into RAM!';
+      uploadStatus.innerText = 'Image attached!';
       updateImagePreview();
     } catch (err) {
       uploadStatus.innerText = 'Load error: ' + err.message;
     }
   };
 
-  // External URL input change & live input
   imageUrlInput.oninput = (e) => {
     currentImageUrl = e.target.value.trim();
     updateImagePreview();
@@ -327,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
     imageUrlInput.value = '';
   };
 
-  // Save Clue Form Listener
+  // Save Clue Handler
   clueForm.onsubmit = async (e) => {
     e.preventDefault();
     if (activeCatIndex === null || activeClueIndex === null) return;
@@ -337,16 +477,14 @@ document.addEventListener('DOMContentLoaded', () => {
       btnSaveClue.innerText = 'Saving...';
     }
 
-    // Resolve Image Source
     const isUrlMode = btnSourceUrl && btnSourceUrl.classList.contains('active');
     if (isUrlMode && imageUrlInput.value.trim()) {
       currentImageUrl = imageUrlInput.value.trim();
     } else if (!isUrlMode && imageFileInput.files[0] && !currentImageUrl) {
       try {
-        uploadStatus.innerText = 'Loading image into memory...';
         currentImageUrl = await processImageFile(imageFileInput.files[0]);
       } catch (err) {
-        console.error('Image RAM load error:', err);
+        console.error('Image load error:', err);
       }
     }
 
@@ -363,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnSaveClue) {
       btnSaveClue.disabled = false;
-      btnSaveClue.innerText = 'Save Clue';
+      btnSaveClue.innerText = 'Save Clue (Ctrl+Enter)';
     }
   };
 
@@ -377,6 +515,18 @@ document.addEventListener('DOMContentLoaded', () => {
     targetClue.image = currentImageUrl;
     persistPack();
   }
+
+  // Keyboard Shortcuts (Ctrl+Enter save, Esc cancel)
+  document.addEventListener('keydown', (e) => {
+    if (modal.classList.contains('active')) {
+      if (e.key === 'Escape') {
+        closeModal();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        clueForm.dispatchEvent(new Event('submit'));
+      }
+    }
+  });
 
   if (btnPrevClue) {
     btnPrevClue.onclick = () => {
@@ -420,19 +570,35 @@ document.addEventListener('DOMContentLoaded', () => {
     renderGrid();
   };
 
-  // Reset Board
+  // Pre-Fill Starter Sample Pack Template
+  if (btnPrefillSample) {
+    btnPrefillSample.onclick = () => {
+      if (confirm('Load starter sample pack template into editor? Current edits will be overwritten.')) {
+        pack = JSON.parse(JSON.stringify(SAMPLE_STARTER_PACK));
+        packTitle.value = pack.title;
+        packAuthor.value = pack.author;
+        persistPack();
+        renderGrid();
+      }
+    };
+  }
+
+  // Reset Board to Empty
   btnResetPack.onclick = () => {
-    if (confirm('Are you sure you want to reset the current pack?')) {
-      initDefaultPack();
+    if (confirm('Are you sure you want to reset all categories and clues?')) {
+      initDefaultEmptyPack();
     }
   };
 
-  // Launch Game Room Directly
+  // Launch Game Room Directly from Creator
   if (btnLaunchRoom) {
     btnLaunchRoom.onclick = () => {
       pack.title = packTitle.value.trim() || 'My Custom Jeopardy Pack';
       pack.author = packAuthor.value.trim() || 'Quiz Master';
       persistPack();
+
+      btnLaunchRoom.disabled = true;
+      btnLaunchRoom.innerText = 'Launching...';
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const ws = new WebSocket(`${protocol}//${window.location.host}`);
@@ -452,6 +618,12 @@ document.addEventListener('DOMContentLoaded', () => {
           sessionStorage.setItem('jeopardy_pack', JSON.stringify(pack));
           window.location.href = `/host.html?room=${msg.roomCode}`;
         }
+      };
+
+      ws.onerror = () => {
+        btnLaunchRoom.disabled = false;
+        btnLaunchRoom.innerText = 'Launch Room';
+        alert('Failed to launch room via WebSocket connection.');
       };
     };
   }
@@ -488,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
           packAuthor.value = pack.author || 'Unknown';
           persistPack();
           renderGrid();
-          alert('Game Pack imported successfully!');
+          alert('Jeopardy Pack imported successfully!');
         } else {
           alert('Invalid Jeopardy Pack JSON structure.');
         }
@@ -499,38 +671,21 @@ document.addEventListener('DOMContentLoaded', () => {
     reader.readAsText(file);
   };
 
-  // Check if session pack exists or load default starter pack
+  // Initialize Pack from Session Storage or Starter Template
   const storedPack = sessionStorage.getItem('jeopardy_pack');
   if (storedPack) {
     try {
       const parsed = JSON.parse(storedPack);
       if (parsed && parsed.categories && Array.isArray(parsed.categories)) {
         pack = parsed;
-        packTitle.value = pack.title || 'My Custom Jeopardy Pack';
+        packTitle.value = pack.title || 'Custom Trivia Showdown';
         packAuthor.value = pack.author || 'Quiz Master';
         renderGrid();
       } else {
-        fetchDefaultPack();
+        renderGrid();
       }
-    } catch(e) { fetchDefaultPack(); }
+    } catch(e) { renderGrid(); }
   } else {
-    fetchDefaultPack();
-  }
-
-  function fetchDefaultPack() {
-    fetch('/api/default-game')
-      .then(res => res.json())
-      .then(defaultData => {
-        if (defaultData && defaultData.categories) {
-          pack = defaultData;
-          packTitle.value = pack.title || 'Ultimate Trivia Showdown';
-          packAuthor.value = pack.author || 'Jeopardy Host';
-          persistPack();
-          renderGrid();
-        } else {
-          initDefaultPack();
-        }
-      })
-      .catch(() => initDefaultPack());
+    renderGrid();
   }
 });
