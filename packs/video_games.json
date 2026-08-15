@@ -1,0 +1,56 @@
+{
+  "title": "Video Games & Anime",
+  "author": "Otaku Gamer",
+  "categories": [
+    {
+      "name": "Retro Arcade",
+      "clues": [
+        { "value": 200, "clue": "What yellow circle eats dots and avoids ghosts Blinky, Pinky, Inky, and Clyde?", "answer": "Pac-Man", "dailyDouble": false },
+        { "value": 400, "clue": "In Space Invaders, what direction do the enemy alien rows shift as they descend?", "answer": "Side to side (Horizontal)", "dailyDouble": false },
+        { "value": 600, "clue": "What fighting game introduced Ryu, Ken, Chun-Li, and the Hadoken in 1987/1991?", "answer": "Street Fighter", "dailyDouble": false },
+        { "value": 800, "clue": "What Nintendo arcade game featured Jumpman trying to save Pauline from a giant ape?", "answer": "Donkey Kong", "dailyDouble": false },
+        { "value": 1000, "clue": "What puzzle game created by Alexey Pajitnov involves fitting falling tetrominoes together?", "answer": "Tetris", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "RPG Worlds",
+      "clues": [
+        { "value": 200, "clue": "In Final Fantasy VII, what main protagonist wields the iconic Buster Sword?", "answer": "Cloud Strife", "dailyDouble": false },
+        { "value": 400, "clue": "What open-world RPG by Bethesda features the Dragonborn fighting Alduin in Skyrim?", "answer": "The Elder Scrolls V: Skyrim", "dailyDouble": false },
+        { "value": 600, "clue": "What FromSoftware game set in the Lands Between won Game of the Year in 2022?", "answer": "Elden Ring", "dailyDouble": false },
+        { "value": 800, "clue": "In Geralt's world in The Witcher, what monster hunting guild does he belong to?", "answer": "School of the Wolf", "dailyDouble": true },
+        { "value": 1000, "clue": "What classic Chrono Trigger RPG featured time travel between prehistoric, medieval, and futuristic eras?", "answer": "Chrono Trigger", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Anime Heroes",
+      "clues": [
+        { "value": 200, "clue": "Which Saiyan warrior searches for the Dragon Balls and loves eating massive meals?", "answer": "Goku", "dailyDouble": false },
+        { "value": 400, "clue": "In Naruto, what is the title given to the strongest ninja and leader of Konohagakure?", "answer": "Hokage", "dailyDouble": false },
+        { "value": 600, "clue": "What pirate captain wears a straw hat and aims to find the One Piece treasure?", "answer": "Monkey D. Luffy", "dailyDouble": false },
+        { "value": 800, "clue": "Who is the protagonist of Attack on Titan who vows to eradicate all Titans?", "answer": "Eren Yeager", "dailyDouble": false },
+        { "value": 1000, "clue": "Which alchemy prodigy is known as the Fullmetal Alchemist alongside his brother Alphonse?", "answer": "Edward Elric", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Boss Battles",
+      "clues": [
+        { "value": 200, "clue": "What spike-shelled Koopa King repeatedly kidnaps Princess Peach in Super Mario?", "answer": "Bowser", "dailyDouble": false },
+        { "value": 400, "clue": "Which main antagonist in The Legend of Zelda seeks the Triforce of Power?", "answer": "Ganondorf (Ganon)", "dailyDouble": false },
+        { "value": 600, "clue": "What egg-shaped mad scientist builds robot badniks in the Sonic the Hedgehog series?", "answer": "Dr. Robotnik (Eggman)", "dailyDouble": false },
+        { "value": 800, "clue": "In Portal 1 & 2, what AI passive-aggressively tests Chell with portal puzzles?", "answer": "GLaDOS", "dailyDouble": false },
+        { "value": 1000, "clue": "What one-winged angel with long silver hair is the primary villain of Final Fantasy VII?", "answer": "Sephiroth", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Console History",
+      "clues": [
+        { "value": 200, "clue": "Which 1985 8-bit home console resurrected the North American video game market?", "answer": "NES (Nintendo Entertainment System)", "dailyDouble": false },
+        { "value": 400, "clue": "What 16-bit console competed against the SNES with the slogan 'Genesis does what Nintendon't'?", "answer": "Sega Genesis (Mega Drive)", "dailyDouble": false },
+        { "value": 600, "clue": "What is the best-selling home video game console of all time, releasing in 2000?", "answer": "PlayStation 2 (PS2)", "dailyDouble": false },
+        { "value": 800, "clue": "What handheld Nintendo console featured two screens, the bottom one being a touchscreen?", answer: "Nintendo DS", "dailyDouble": false },
+        { "value": 1000, "clue": "What 1998 Sega console featured an integrated modem and VMU memory cards before Sega left hardware?", answer: "Sega Dreamcast", "dailyDouble": false }
+      ]
+    }
+  ]
+}

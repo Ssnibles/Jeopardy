@@ -54,38 +54,329 @@ document.addEventListener('DOMContentLoaded', () => {
   const hostWinnerScore = document.getElementById('hostWinnerScore');
   const hostPodiumStandings = document.getElementById('hostPodiumStandings');
   const btnDismissWinscreen = document.getElementById('btnDismissWinscreen');
-  const selectHostGamePack = document.getElementById('selectHostGamePack');
-  const btnLoadHostPack = document.getElementById('btnLoadHostPack');
   const hostAnswerTimerBadge = document.getElementById('hostAnswerTimerBadge');
 
-  if (selectHostGamePack) {
+  // NEW GAME MODAL LOGIC
+  const btnOpenNewGameModal = document.getElementById('btnOpenNewGameModal');
+  const newGameModal = document.getElementById('newGameModal');
+  const btnCloseNewGameModal = document.getElementById('btnCloseNewGameModal');
+  const btnCancelNewGame = document.getElementById('btnCancelNewGame');
+  const btnConfirmStartNewGame = document.getElementById('btnConfirmStartNewGame');
+  const modalPackSelect = document.getElementById('modalPackSelect');
+  const modalCustomPackFile = document.getElementById('modalCustomPackFile');
+  const modalPackStatus = document.getElementById('modalPackStatus');
+  const modalGameModeInput = document.getElementById('modalGameModeInput');
+  const modalModeToggleGroup = document.getElementById('modalModeToggleGroup');
+  const chkKeepPlayers = document.getElementById('chkKeepPlayers');
+
+  const modalPackSelectRound2 = document.getElementById('modalPackSelectRound2');
+  const modalRound2Group = document.getElementById('modalRound2Group');
+
+  const modalPackPreviewTitle = document.getElementById('modalPackPreviewTitle');
+  const modalPackPreviewBadge = document.getElementById('modalPackPreviewBadge');
+  const modalPackPreviewList = document.getElementById('modalPackPreviewList');
+  const btnModalPreviewTabRound1 = document.getElementById('btnModalPreviewTabRound1');
+  const btnModalPreviewTabRound2 = document.getElementById('btnModalPreviewTabRound2');
+
+  let modalPacksData = [];
+  let modalActivePackR1 = null;
+  let modalActivePackR2 = null;
+  let modalActivePreviewTab = 'round1';
+
+  // Modal preview tab handlers
+  if (btnModalPreviewTabRound1) {
+    btnModalPreviewTabRound1.onclick = () => {
+      modalActivePreviewTab = 'round1';
+      btnModalPreviewTabRound1.classList.add('active', 'btn-gold');
+      if (btnModalPreviewTabRound2) btnModalPreviewTabRound2.classList.remove('active', 'btn-gold');
+      renderModalActivePreview();
+    };
+  }
+
+  if (btnModalPreviewTabRound2) {
+    btnModalPreviewTabRound2.onclick = () => {
+      modalActivePreviewTab = 'round2';
+      btnModalPreviewTabRound2.classList.add('active', 'btn-gold');
+      if (btnModalPreviewTabRound1) btnModalPreviewTabRound1.classList.remove('active', 'btn-gold');
+      renderModalActivePreview();
+    };
+  }
+
+  function getModalPackCategories(pack, roundKey) {
+    if (!pack) return [];
+    if (roundKey === 'round1' && pack.round1 && Array.isArray(pack.round1.categories)) {
+      return pack.round1.categories;
+    }
+    if (roundKey === 'round2' && pack.round2 && Array.isArray(pack.round2.categories)) {
+      return pack.round2.categories;
+    }
+    if (Array.isArray(pack.categories)) {
+      return pack.categories;
+    }
+    return [];
+  }
+
+  function renderModalActivePreview() {
+    const isR1 = modalActivePreviewTab === 'round1';
+    const targetPack = isR1 ? modalActivePackR1 : modalActivePackR2;
+    const tabLabel = isR1 ? 'Round 1 (Jeopardy!)' : 'Round 2 (Double Jeopardy!)';
+    renderModalPackPreview(targetPack, tabLabel);
+  }
+
+  function renderModalPackPreview(pack, roundLabel = 'Round 1 (Jeopardy!)') {
+    if (!modalPackPreviewList) return;
+    const categories = getModalPackCategories(pack, modalActivePreviewTab);
+
+    if (!categories || categories.length === 0) {
+      if (modalPackPreviewTitle) modalPackPreviewTitle.innerText = `${roundLabel} Preview`;
+      if (modalPackPreviewBadge) modalPackPreviewBadge.innerText = '0 Categories • 0 Clues';
+      modalPackPreviewList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem;">No questions available for this round preview.</div>';
+      return;
+    }
+
+    const titleText = (pack && pack.title) ? `${pack.title} (${roundLabel})` : `${roundLabel} Preview`;
+    if (modalPackPreviewTitle) modalPackPreviewTitle.innerText = titleText;
+
+    let totalClues = 0;
+    categories.forEach(c => {
+      if (c.clues) totalClues += c.clues.length;
+    });
+
+    if (modalPackPreviewBadge) modalPackPreviewBadge.innerText = `${categories.length} Categories • ${totalClues} Clues`;
+
+    let html = '';
+    categories.forEach((cat, cIdx) => {
+      html += `
+        <div class="preview-category-card">
+          <div class="preview-category-name">${cIdx + 1}. ${escapeHtmlHost(cat.name)}</div>
+      `;
+      if (cat.clues && Array.isArray(cat.clues)) {
+        cat.clues.forEach(clue => {
+          html += `
+            <div class="preview-clue-item">
+              <span class="preview-clue-val">$${clue.value}</span>
+              <span class="preview-clue-text">${escapeHtmlHost(clue.clue)}</span>
+              <span class="preview-clue-ans">A: ${escapeHtmlHost(clue.answer)}</span>
+            </div>
+          `;
+        });
+      }
+      html += `</div>`;
+    });
+
+    modalPackPreviewList.innerHTML = html;
+  }
+
+  function escapeHtmlHost(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  if (modalModeToggleGroup && modalGameModeInput) {
+    const btns = modalModeToggleGroup.querySelectorAll('.mode-toggle-btn');
+    btns.forEach(btn => {
+      btn.onclick = () => {
+        btns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = btn.getAttribute('data-mode') || 'STANDARD';
+        modalGameModeInput.value = mode;
+
+        if (modalRound2Group) {
+          modalRound2Group.style.display = mode === 'STANDARD' ? 'block' : 'none';
+        }
+        if (btnModalPreviewTabRound2) {
+          btnModalPreviewTabRound2.style.display = mode === 'STANDARD' ? 'inline-block' : 'none';
+        }
+      };
+    });
+  }
+
+  if (modalPackSelect) {
+    modalPackSelect.onchange = () => {
+      const selectedFn = modalPackSelect.value;
+      const found = modalPacksData.find(p => p.filename === selectedFn);
+      if (found && found.packData) {
+        modalActivePackR1 = found.packData;
+        renderModalActivePreview();
+      }
+    };
+  }
+
+  if (modalPackSelectRound2) {
+    modalPackSelectRound2.onchange = () => {
+      const selectedFn = modalPackSelectRound2.value;
+      const found = modalPacksData.find(p => p.filename === selectedFn);
+      if (found && found.packData) {
+        modalActivePackR2 = found.packData;
+        renderModalActivePreview();
+      }
+    };
+  }
+
+  function loadAvailablePacksIntoModal() {
+    if (!modalPackSelect) return;
     fetch('/api/packs')
       .then(res => res.json())
       .then(data => {
         if (data && data.packs && data.packs.length > 0) {
-          selectHostGamePack.innerHTML = '';
-          data.packs.forEach(pack => {
-            const opt = document.createElement('option');
-            opt.value = pack.filename;
-            opt.innerText = pack.title;
-            selectHostGamePack.appendChild(opt);
+          modalPacksData = data.packs;
+          modalPackSelect.innerHTML = '';
+          if (modalPackSelectRound2) modalPackSelectRound2.innerHTML = '';
+
+          data.packs.forEach((pack, idx) => {
+            const opt1 = document.createElement('option');
+            opt1.value = pack.filename;
+            opt1.innerText = pack.title;
+            modalPackSelect.appendChild(opt1);
+
+            if (modalPackSelectRound2) {
+              const opt2 = document.createElement('option');
+              opt2.value = pack.filename;
+              opt2.innerText = pack.title;
+              if (idx === Math.min(1, data.packs.length - 1)) opt2.selected = true;
+              modalPackSelectRound2.appendChild(opt2);
+            }
           });
+
+          if (data.packs[0] && data.packs[0].packData) {
+            modalActivePackR1 = data.packs[0].packData;
+          }
+          if (data.packs.length > 1 && data.packs[1].packData) {
+            modalActivePackR2 = data.packs[1].packData;
+          } else {
+            modalActivePackR2 = modalActivePackR1;
+          }
+          renderModalActivePreview();
         }
       })
       .catch(err => console.error('Failed to load pack list:', err));
   }
 
-  if (btnLoadHostPack) {
-    btnLoadHostPack.onclick = () => {
-      if (selectHostGamePack && ws && ws.readyState === WebSocket.OPEN) {
-        const selectedText = selectHostGamePack.options[selectHostGamePack.selectedIndex] ? selectHostGamePack.options[selectHostGamePack.selectedIndex].text : selectHostGamePack.value;
-        if (confirm(`Load game pack "${selectedText}"? This will reset the current game board for all players.`)) {
-          ws.send(JSON.stringify({
-            type: 'CHANGE_GAME_PACK',
-            packFileName: selectHostGamePack.value
-          }));
+  loadAvailablePacksIntoModal();
+
+  const modalCustomPackFileRound2 = document.getElementById('modalCustomPackFileRound2');
+  const modalPackStatusRound2 = document.getElementById('modalPackStatusRound2');
+  let customModalUploadedPackR1 = null;
+  let customModalUploadedPackR2 = null;
+
+  if (btnOpenNewGameModal) {
+    btnOpenNewGameModal.onclick = () => {
+      customModalUploadedPackR1 = null;
+      customModalUploadedPackR2 = null;
+      if (modalPackStatus) modalPackStatus.style.display = 'none';
+      if (modalPackStatusRound2) modalPackStatusRound2.style.display = 'none';
+      renderModalActivePreview();
+      if (newGameModal) newGameModal.classList.add('active');
+    };
+  }
+
+  function closeNewGameModal() {
+    if (newGameModal) newGameModal.classList.remove('active');
+  }
+
+  if (btnCloseNewGameModal) btnCloseNewGameModal.onclick = closeNewGameModal;
+  if (btnCancelNewGame) btnCancelNewGame.onclick = closeNewGameModal;
+
+  if (modalCustomPackFile) {
+    modalCustomPackFile.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (parsed && (parsed.categories || parsed.round1)) {
+            customModalUploadedPackR1 = parsed;
+            modalActivePackR1 = parsed;
+
+            if (parsed.round2 && parsed.round2.categories) {
+              customModalUploadedPackR2 = parsed;
+              modalActivePackR2 = parsed;
+              if (modalPackStatusRound2) {
+                modalPackStatusRound2.style.display = 'block';
+                modalPackStatusRound2.innerText = `Loaded R2 from file: "${parsed.round2.title || parsed.title || file.name}"`;
+              }
+            }
+
+            if (modalPackStatus) {
+              modalPackStatus.style.display = 'block';
+              modalPackStatus.innerText = `Loaded R1: "${parsed.title || file.name}"`;
+            }
+            renderModalActivePreview();
+          } else {
+            alert('Invalid Jeopardy pack structure.');
+          }
+        } catch (err) {
+          alert('Error reading JSON: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+  }
+
+  if (modalCustomPackFileRound2) {
+    modalCustomPackFileRound2.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (parsed && (parsed.categories || parsed.round2 || parsed.round1)) {
+            customModalUploadedPackR2 = parsed;
+            modalActivePackR2 = parsed;
+            if (modalPackStatusRound2) {
+              modalPackStatusRound2.style.display = 'block';
+              modalPackStatusRound2.innerText = `Loaded R2: "${parsed.title || file.name}"`;
+            }
+            renderModalActivePreview();
+          } else {
+            alert('Invalid Jeopardy pack structure.');
+          }
+        } catch (err) {
+          alert('Error reading JSON: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+  }
+
+  if (btnConfirmStartNewGame) {
+    btnConfirmStartNewGame.onclick = () => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        return alert('WebSocket not connected to server.');
+      }
+
+      const mode = modalGameModeInput ? modalGameModeInput.value : 'STANDARD';
+      const keep = chkKeepPlayers ? chkKeepPlayers.checked : true;
+
+      const payload = {
+        type: 'CHANGE_GAME_PACK',
+        gameMode: mode,
+        keepPlayers: keep
+      };
+
+      if (customModalUploadedPackR1 || customModalUploadedPackR2) {
+        payload.gamePackRound1 = customModalUploadedPackR1 || customModalUploadedPackR2;
+        if (mode === 'STANDARD') {
+          payload.gamePackRound2 = customModalUploadedPackR2 || customModalUploadedPackR1;
+        }
+      } else {
+        payload.packFileNameRound1 = modalPackSelect ? modalPackSelect.value : null;
+        if (mode === 'STANDARD') {
+          payload.packFileNameRound2 = modalPackSelectRound2 ? modalPackSelectRound2.value : null;
         }
       }
+
+      ws.send(JSON.stringify(payload));
+      closeNewGameModal();
     };
   }
 
@@ -154,11 +445,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.soundFX.isMusicPlaying) {
         window.soundFX.stopThinkMusic();
         btnToggleMusic.classList.remove('active');
-        btnToggleMusic.innerText = '🎵 Think Music';
+        btnToggleMusic.innerText = 'Think Music';
       } else {
         window.soundFX.startThinkMusic();
         btnToggleMusic.classList.add('active');
-        btnToggleMusic.innerText = '🔊 Playing Music';
+        btnToggleMusic.innerText = 'Playing Music';
       }
     };
   }
@@ -285,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           case 'ANSWER_TIMER_TICK':
             if (hostAnswerTimerBadge) {
-              hostAnswerTimerBadge.innerText = `⌛ ${msg.secondsLeft}s`;
+              hostAnswerTimerBadge.innerText = `${msg.secondsLeft}s`;
             }
             if (window.soundFX && msg.secondsLeft <= 3) {
               window.soundFX.playCountdownTick();
@@ -368,6 +659,13 @@ document.addEventListener('DOMContentLoaded', () => {
     hostBoard.innerHTML = '';
     const categories = gameState.categories || [];
 
+    if (categories.length === 0) {
+      hostBoard.innerHTML = '<div style="grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--text-muted); font-weight: 700;">No board categories active in current round.</div>';
+      return;
+    }
+
+    hostBoard.style.gridTemplateColumns = `repeat(${categories.length}, 1fr)`;
+
     categories.forEach((cat, catIdx) => {
       const col = document.createElement('div');
       col.className = 'board-column';
@@ -377,7 +675,7 @@ document.addEventListener('DOMContentLoaded', () => {
       header.innerText = cat.name;
       col.appendChild(header);
 
-      cat.clues.forEach((clueObj, clueIdx) => {
+      (cat.clues || []).forEach((clueObj, clueIdx) => {
         const card = document.createElement('div');
         card.className = 'clue-card';
 
@@ -443,7 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnInstantUnlock) btnInstantUnlock.style.display = 'none';
 
         // Automatically present evaluation box for Daily Double player
-        buzzWinnerName.innerText = `🎯 ${c.eligiblePlayerName || 'Contestant'} (Daily Double Wager: $${c.wager})`;
+        buzzWinnerName.innerText = `${c.eligiblePlayerName || 'Contestant'} (Daily Double Wager: $${c.wager})`;
         buzzWinnerBox.style.display = 'block';
       }
     } else {
@@ -477,7 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
     gameState.players.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
-      const isCtrl = p.id === gameState.controllingPlayerId ? ' 🎯 (Board Control)' : '';
+      const isCtrl = p.id === gameState.controllingPlayerId ? ' (Board Control)' : '';
       opt.innerText = `${p.name} (Score: $${p.score})${isCtrl}`;
       if (selectedId ? (p.id === selectedId) : (p.id === gameState.controllingPlayerId)) {
         opt.selected = true;
@@ -499,10 +797,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showBuzzWinner(name, latency, compensated, secondsLeft) {
-    const label = compensated ? `⚡ ${latency}ms reaction` : `${latency}ms`;
+    const label = compensated ? `${latency}ms reaction` : `${latency}ms`;
     buzzWinnerName.innerText = `${name} Buzzed In! (${label})`;
     if (hostAnswerTimerBadge) {
-      hostAnswerTimerBadge.innerText = `⌛ ${secondsLeft || 7}s`;
+      hostAnswerTimerBadge.innerText = `${secondsLeft || 7}s`;
     }
     buzzWinnerBox.style.display = 'block';
   }
@@ -572,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showWinscreen(rankings) {
     if (!hostWinscreenModal) return;
-    const sorted = rankings || (gameState ? gameState.players.sort((a, b) => b.score - a.score) : []);
+    const sorted = rankings || (gameState ? [...gameState.players].sort((a, b) => b.score - a.score) : []);
     const winner = sorted.length > 0 ? sorted[0] : null;
 
     if (winner) {
@@ -596,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sorted.forEach((p, idx) => {
         const row = document.createElement('div');
         row.className = `podium-row rank-${idx + 1}`;
-        const medal = idx === 0 ? '🥇 1st' : (idx === 1 ? '🥈 2nd' : (idx === 2 ? '🥉 3rd' : `#${idx + 1}`));
+        const medal = idx === 0 ? '1st' : (idx === 1 ? '2nd' : (idx === 2 ? '3rd' : `#${idx + 1}`));
         row.innerHTML = `
           <div style="display: flex; align-items: center; gap: 0.75rem;">
             <span style="font-weight: 900; font-size: 1.1rem; min-width: 55px; color: var(--jeopardy-gold);">${medal}</span>
@@ -701,7 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const details = document.createElement('div');
       const isControlling = gameState.controllingPlayerId ? (p.id === gameState.controllingPlayerId) : false;
-      const controlTag = isControlling ? `<span style="font-size: 0.7rem; font-weight: 800; background: var(--jeopardy-gold); color: #000000; padding: 0.15rem 0.45rem; border-radius: 4px; margin-left: 0.4rem; box-shadow: 0 0 8px rgba(251,191,36,0.5);">🎯 CONTROL</span>` : '';
+      const controlTag = isControlling ? `<span style="font-size: 0.7rem; font-weight: 800; background: var(--jeopardy-gold); color: #000000; padding: 0.15rem 0.45rem; border-radius: 4px; margin-left: 0.4rem; box-shadow: 0 0 8px rgba(251,191,36,0.5);">CONTROL</span>` : '';
       details.innerHTML = `
         <div style="font-weight: 800; font-size: 0.95rem; color: ${p.color || '#ffffff'}; line-height: 1.2; display: flex; align-items: center;">
           ${p.name} ${controlTag} ${p.connected ? '' : '<span style="color: var(--text-muted); font-weight:400; font-size: 0.75rem; margin-left:0.3rem;">(offline)</span>'}

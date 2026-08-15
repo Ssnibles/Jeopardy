@@ -1,0 +1,56 @@
+{
+  "title": "World History & Geography",
+  "author": "Global Explorer",
+  "categories": [
+    {
+      "name": "Ancient Empires",
+      "clues": [
+        { "value": 200, "clue": "Which ancient civilization built the Great Pyramids at Giza along the Nile?", "answer": "Ancient Egypt", "dailyDouble": false },
+        { "value": 400, "clue": "Who was the Macedonian king who created one of history's largest empires by age 30?", "answer": "Alexander the Great", "dailyDouble": false },
+        { "value": 600, "clue": "What Roman general was assassinated on the Ides of March in 44 BC?", "answer": "Julius Caesar", "dailyDouble": false },
+        { "value": 800, "clue": "What ancient Greek city-state was known for its fierce military culture and Phalanx formation?", "answer": "Sparta", "dailyDouble": false },
+        { "value": 1000, "clue": "Which Empire ruled from Constantinople (now Istanbul) after the fall of Western Rome?", "answer": "Byzantine Empire", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Capital Cities",
+      "clues": [
+        { "value": 200, "clue": "What is the capital city of Japan, famed for Shibuya Crossing?", "answer": "Tokyo", "dailyDouble": false },
+        { "value": 400, "clue": "What is the capital city of Canada?", "answer": "Ottawa", "dailyDouble": false },
+        { "value": 600, "clue": "What high-altitude capital city of Australia was purpose-built between Sydney and Melbourne?", "answer": "Canberra", "dailyDouble": false },
+        { "value": 800, "clue": "What is the capital city of Brazil, famous for its airplane-shaped urban design?", "answer": "Brasília", "dailyDouble": false },
+        { "value": 1000, "clue": "What European capital is split by the Danube River, merging Buda and Pest?", "answer": "Budapest", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "World Wonders",
+      "clues": [
+        { "value": 200, "clue": "What massive fortification stretching thousands of miles across northern China protected against invasions?", "answer": "Great Wall of China", "dailyDouble": false },
+        { "value": 400, "clue": "In which South American country will you find the high-altitude Lake Titicaca?", "answer": "Peru / Bolivia", "dailyDouble": false },
+        { "value": 600, "clue": "What giant sandstone monolith in Australia's Northern Territory is also known as Ayers Rock?", "answer": "Uluru", "dailyDouble": false },
+        { "value": 800, "clue": "What African river is traditionally considered the longest river in the world?", "answer": "The Nile", "dailyDouble": true },
+        { "value": 1000, "clue": "What mountain range contains Mount Everest, the world's highest peak?", "answer": "Himalayas", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Historic Battles",
+      "clues": [
+        { "value": 200, "clue": "In what 1815 battle was Napoleon Bonaparte finally defeated by allied forces?", "answer": "Battle of Waterloo", "dailyDouble": false },
+        { "value": 400, "clue": "Which 1066 battle resulted in William the Conqueror taking the English throne?", "answer": "Battle of Hastings", "dailyDouble": false },
+        { "value": 600, "clue": "What major WWII naval battle in June 1942 turned the tide of the Pacific Theatre?", "answer": "Battle of Midway", "dailyDouble": false },
+        { "value": 800, "clue": "What American Civil War battle in Pennsylvania in 1863 was the deadliest of the war?", "answer": "Battle of Gettysburg", "dailyDouble": false },
+        { "value": 1000, "clue": "Which siege in WWII lasted nearly 900 days in a Soviet city now named St. Petersburg?", "answer": "Siege of Leningrad", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Explorers",
+      "clues": [
+        { "value": 200, "clue": "Which Italian navigator sailed across the Atlantic in 1492 under the Spanish flag?", "answer": "Christopher Columbus", "dailyDouble": false },
+        { "value": 400, "clue": "Which Portuguese explorer led the first expedition to circumnavigate the globe?", "answer": "Ferdinand Magellan", "dailyDouble": false },
+        { "value": 600, "clue": "What Venetian merchant traveled the Silk Road to China and served Kublai Khan?", "answer": "Marco Polo", "dailyDouble": false },
+        { "value": 800, "clue": "Who was the Norwegian explorer who led the first team to reach the South Pole in 1911?", "answer": "Roald Amundsen", "dailyDouble": false },
+        { "value": 1000, "clue": "Which English explorer navigated the Pacific Ocean, charting New Zealand and Hawaii?", "answer": "Captain James Cook", "dailyDouble": false }
+      ]
+    }
+  ]
+}

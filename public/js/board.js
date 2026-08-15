@@ -214,17 +214,17 @@ document.addEventListener('DOMContentLoaded', () => {
           case 'ANSWER_TIMER_TICK':
             const tvTimerBadge = document.getElementById('tvAnswerTimerBadge');
             if (tvTimerBadge) {
-              tvTimerBadge.innerText = `⌛ ${msg.secondsLeft}s`;
+              tvTimerBadge.innerText = `${msg.secondsLeft}s`;
             }
             break;
 
           case 'PLAYER_BUZZED':
             if (window.soundFX) window.soundFX.playBuzzer();
-            const labelMs = msg.latency ? ` (⚡ ${msg.latency}ms)` : '';
+            const labelMs = msg.latency ? ` (${msg.latency}ms)` : '';
             if (tvBuzzAlert) {
               tvBuzzAlert.style.background = 'var(--jeopardy-gold)';
               tvBuzzAlert.style.color = '#000000';
-              tvBuzzAlert.innerHTML = `<span><span id="tvBuzzPlayerName">${msg.playerName}${labelMs}</span> BUZZED IN!</span> <span id="tvAnswerTimerBadge" style="background: rgba(0,0,0,0.85); color: #ef4444; border-radius: 999px; padding: 0.2rem 0.8rem; font-size: 1.6rem; border: 2px solid #ef4444; margin-left: 0.8rem;">⌛ ${msg.answerSecondsLeft || 7}s</span>`;
+              tvBuzzAlert.innerHTML = `<span><span id="tvBuzzPlayerName">${msg.playerName}${labelMs}</span> BUZZED IN!</span> <span id="tvAnswerTimerBadge" style="background: rgba(0,0,0,0.85); color: #ef4444; border-radius: 999px; padding: 0.2rem 0.8rem; font-size: 1.6rem; border: 2px solid #ef4444; margin-left: 0.8rem;">${msg.answerSecondsLeft || 7}s</span>`;
               tvBuzzAlert.style.display = 'inline-flex';
             }
             renderScoreboard();
@@ -286,7 +286,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     tvBoard.innerHTML = '';
-    gameState.categories.forEach((cat, catIdx) => {
+    const categories = gameState.categories || [];
+    if (categories.length > 0) {
+      tvBoard.style.gridTemplateColumns = `repeat(${categories.length}, 1fr)`;
+    }
+
+    categories.forEach((cat, catIdx) => {
       const col = document.createElement('div');
       col.className = 'board-column';
 
@@ -295,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
       header.innerText = cat.name;
       col.appendChild(header);
 
-      cat.clues.forEach((clueObj, clueIdx) => {
+      (cat.clues || []).forEach((clueObj, clueIdx) => {
         const card = document.createElement('div');
         card.className = 'clue-card';
 
@@ -329,9 +334,9 @@ document.addEventListener('DOMContentLoaded', () => {
         tvDailyDoubleBanner.style.display = 'block';
         if (tvDailyDoublePlayer) {
           if (clue.wagerSet) {
-            tvDailyDoublePlayer.innerText = `⭐ DAILY DOUBLE! ${clue.eligiblePlayerName || 'Contestant'} | WAGER: $${clue.wager}`;
+            tvDailyDoublePlayer.innerText = `DAILY DOUBLE! ${clue.eligiblePlayerName || 'Contestant'} | WAGER: $${clue.wager}`;
           } else {
-            tvDailyDoublePlayer.innerText = `⭐ DAILY DOUBLE! Reserved for Contestant: ${clue.eligiblePlayerName || 'Contestant'}\n(Awaiting Wager...)`;
+            tvDailyDoublePlayer.innerText = `DAILY DOUBLE! Reserved for Contestant: ${clue.eligiblePlayerName || 'Contestant'}\n(Awaiting Wager...)`;
           }
         }
       }
@@ -395,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showWinscreen(rankings) {
     if (!tvWinscreenModal) return;
-    const sorted = rankings || (gameState ? gameState.players.sort((a, b) => b.score - a.score) : []);
+    const sorted = rankings || (gameState ? [...gameState.players].sort((a, b) => b.score - a.score) : []);
     const winner = sorted.length > 0 ? sorted[0] : null;
 
     if (winner) {
@@ -416,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sorted.forEach((p, idx) => {
         const row = document.createElement('div');
         row.className = `podium-row rank-${idx + 1}`;
-        const medal = idx === 0 ? '🥇 1st' : (idx === 1 ? '🥈 2nd' : (idx === 2 ? '🥉 3rd' : `#${idx + 1}`));
+        const medal = idx === 0 ? '1st' : (idx === 1 ? '2nd' : (idx === 2 ? '3rd' : `#${idx + 1}`));
         row.innerHTML = `
           <div style="display: flex; align-items: center; gap: 0.75rem;">
             <span style="font-weight: 900; font-size: 1.1rem; min-width: 55px; color: var(--jeopardy-gold);">${medal}</span>
@@ -472,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctrlBadge.style.padding = '0.1rem 0.35rem';
         ctrlBadge.style.borderRadius = '3px';
         ctrlBadge.style.marginLeft = '0.35rem';
-        ctrlBadge.innerText = '🎯 CONTROL';
+        ctrlBadge.innerText = 'CONTROL';
         name.appendChild(ctrlBadge);
       }
 

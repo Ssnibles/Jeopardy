@@ -9,9 +9,15 @@
 <body>
 
   <header class="header-bar">
-    <a href="/" class="brand">Jeopardy Arena</a>
+    <a href="/" class="brand">
+      <span class="brand-logo">JEOPARDY ARENA</span>
+      <span class="brand-tag">LOBBY</span>
+    </a>
     <div class="nav-links">
-      <a href="/creator.html" class="btn btn-gold">Custom Pack Creator</a>
+      <a href="/creator.html" class="btn btn-gold">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Custom Pack Creator
+      </a>
     </div>
   </header>
 
@@ -44,37 +50,59 @@
               </div>
             </div>
             <input type="file" id="customPackFile" accept=".json" style="display: none;">
+            <input type="file" id="customPackFileRound2" accept=".json" style="display: none;">
           </div>
 
           <!-- PRE-MADE DROPDOWN SELECTOR -->
           <div id="premadePackSection" class="form-group" style="margin-top: 0.85rem; width: 100%; box-sizing: border-box;">
-            <label for="premadePackSelect">SELECT PRE-MADE PACK</label>
+            <label for="premadePackSelect">ROUND 1 BOARD (JEOPARDY!)</label>
             <select id="premadePackSelect" class="form-control" style="width: 100%; max-width: 100%; box-sizing: border-box; font-weight: 700; color: var(--jeopardy-gold);">
-              <option value="0">Ultimate Trivia Showdown (General Trivia)</option>
-              <option value="1">Pop Culture & Cinema (Movies, TV & Music)</option>
-              <option value="2">Science, Tech & Cosmos (Physics, Space & Coding)</option>
-              <option value="3">World History & Geography (Empires & Landmarks)</option>
-              <option value="4">Video Games & Anime (Gaming Classics & Series)</option>
             </select>
+          </div>
+
+          <div id="round2PackGroup" class="form-group" style="margin-top: 0.85rem; width: 100%; box-sizing: border-box;">
+            <label for="premadePackSelectRound2">ROUND 2 BOARD (DOUBLE JEOPARDY!)</label>
+            <select id="premadePackSelectRound2" class="form-control" style="width: 100%; max-width: 100%; box-sizing: border-box; font-weight: 700; color: var(--jeopardy-gold);">
+            </select>
+          </div>
+
+          <!-- CUSTOM PACK SECTION -->
+          <div id="customPackSection" class="form-group" style="margin-top: 0.85rem; width: 100%; display: none; flex-direction: column; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" id="btnPickCustomR1" class="btn" style="flex: 1; padding: 0.5rem; font-size: 0.85rem; font-weight: 700;">Upload Round 1 (.json)</button>
+              <button type="button" id="btnPickCustomR2" class="btn" style="flex: 1; padding: 0.5rem; font-size: 0.85rem; font-weight: 700;">Upload Round 2 (.json)</button>
+            </div>
+            <div id="customPackStatus" class="pack-dropzone-status" style="margin-top: 0.25rem; display: none;"></div>
+            <div id="customPackStatusRound2" class="pack-dropzone-status" style="margin-top: 0.25rem; display: none;"></div>
           </div>
 
           <!-- GAME FORMAT SELECTOR -->
           <div class="form-group" style="margin-top: 0.85rem; width: 100%; box-sizing: border-box;">
-            <label for="gameModeSelect">GAME FORMAT / MODE</label>
-            <select id="gameModeSelect" class="form-control" style="width: 100%; font-weight: 700; color: var(--jeopardy-gold);">
-              <option value="STANDARD">Standard Broadcast (2 Rounds: Jeopardy & Double Jeopardy + Final)</option>
-              <option value="BLITZ">Blitz Mode (1 Round: Single Board + Final Jeopardy)</option>
-            </select>
+            <label>GAME FORMAT / MODE</label>
+            <input type="hidden" id="gameModeInput" value="STANDARD">
+            <div class="mode-toggle-group" id="lobbyModeToggleGroup">
+              <button type="button" class="mode-toggle-btn active" data-mode="STANDARD">
+                <span class="mode-title">Standard Mode</span>
+                <span class="mode-desc">2 Rounds (Jeopardy + Double)</span>
+              </button>
+              <button type="button" class="mode-toggle-btn" data-mode="BLITZ">
+                <span class="mode-title">Blitz Mode</span>
+                <span class="mode-desc">1 Round (Fast Single Board)</span>
+              </button>
+            </div>
           </div>
 
-          <!-- CUSTOM FILE STATUS MSG -->
-          <div id="customPackStatus" class="pack-dropzone-status" style="margin-top: 0.5rem; display: none;"></div>
-
-          <!-- PACK QUESTIONS PREVIEW LIST -->
+          <!-- PACK QUESTIONS PREVIEW LIST WITH TABS -->
           <div id="packPreviewContainer" class="pack-preview-panel">
-            <div class="pack-preview-header">
-              <span id="packPreviewTitle" class="pack-preview-title">Pack Preview</span>
-              <span id="packPreviewBadge" class="pack-preview-badge">5 Categories • 25 Clues</span>
+            <div class="pack-preview-header" style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="packPreviewTitle" class="pack-preview-title">Pack Preview</span>
+                <span id="packPreviewBadge" class="pack-preview-badge">5 Categories • 25 Clues</span>
+              </div>
+              <div id="previewTabGroup" style="display: flex; gap: 0.4rem; margin-top: 0.25rem;">
+                <button type="button" id="btnPreviewTabRound1" class="btn btn-gold active" style="padding: 0.255rem 0.65rem; font-size: 0.78rem; font-weight: 800;">Round 1 (Jeopardy!)</button>
+                <button type="button" id="btnPreviewTabRound2" class="btn" style="padding: 0.255rem 0.65rem; font-size: 0.78rem; font-weight: 800;">Round 2 (Double Jeopardy!)</button>
+              </div>
             </div>
             <div id="packPreviewList" class="pack-preview-list">
               <!-- Questions loaded dynamically -->

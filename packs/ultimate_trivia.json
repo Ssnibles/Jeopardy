@@ -1,0 +1,56 @@
+{
+  "title": "Ultimate Trivia Showdown",
+  "author": "Jeopardy Arena",
+  "categories": [
+    {
+      "name": "Science & Tech",
+      "clues": [
+        { "value": 200, "clue": "This programming language named after a coffee bean was developed by James Gosling at Sun Microsystems.", "answer": "Java", "dailyDouble": false },
+        { "value": 400, "clue": "What is the chemical symbol for Gold on the periodic table?", "answer": "Au", "dailyDouble": false },
+        { "value": 600, "clue": "This company introduced the iPhone in 2007, revolutionising smartphones.", "answer": "Apple", "dailyDouble": false },
+        { "value": 800, "clue": "Which space telescope launched in December 2021 as the successor to Hubble?", "answer": "James Webb Space Telescope", "dailyDouble": true },
+        { "value": 1000, "clue": "In physics, what constant approximately equal to 3 x 10^8 m/s is denoted by 'c'?", "answer": "Speed of light", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "World Landmarks",
+      "clues": [
+        { "value": 200, "clue": "Located in Paris, France, this iron lattice tower was constructed for the 1889 World's Fair.", "answer": "Eiffel Tower", "dailyDouble": false },
+        { "value": 400, "clue": "This ancient amphitheatre in Rome held gladiatorial contests and public spectacles.", "answer": "The Colosseum", "dailyDouble": false },
+        { "value": 600, "clue": "This white marble mausoleum on the Yamuna River in Agra was built by Shah Jahan.", "answer": "Taj Mahal", "dailyDouble": false },
+        { "value": 800, "clue": "This ancient Incan citadel located in the Andes mountains of Peru was built around 1450.", "answer": "Machu Picchu", "dailyDouble": false },
+        { "value": 1000, "clue": "This modernist building with shell-like sails opened in 1973 in Sydney, Australia.", "answer": "Sydney Opera House", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Pop Culture & Movies",
+      "clues": [
+        { "value": 200, "clue": "In the Marvel Cinematic Universe, what is the name of Thor's home realm?", "answer": "Asgard", "dailyDouble": false },
+        { "value": 400, "clue": "Which movie won Best Picture in 2020, becoming the first non-English film to win?", "answer": "Parasite", "dailyDouble": false },
+        { "value": 600, "clue": "What colour pill does Neo take in The Matrix to discover the truth?", "answer": "Red Pill", "dailyDouble": false },
+        { "value": 800, "clue": "Who directed the sci-fi epics Interstellar, Inception, and Oppenheimer?", "answer": "Christopher Nolan", "dailyDouble": false },
+        { "value": 1000, "clue": "What is the name of the fictional kingdom where Disney's 'Frozen' is set?", "answer": "Arendelle", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Gaming Classics",
+      "clues": [
+        { "value": 200, "clue": "This plumber in blue overalls and a red cap is Nintendo's flagship mascot.", "answer": "Mario", "dailyDouble": false },
+        { "value": 400, "clue": "What block-building sandbox game created by Markus 'Notch' Persson became the best-seller ever?", "answer": "Minecraft", "dailyDouble": false },
+        { "value": 600, "clue": "In 'The Legend of Zelda', what is the name of the tunic-wearing heroic protagonist?", "answer": "Link", "dailyDouble": false },
+        { "value": 800, "clue": "What fictional video game island is the primary setting of Fortnite Battle Royale?", "answer": "The Island", "dailyDouble": false },
+        { "value": 1000, "clue": "What year was the original Sony PlayStation console released in Japan?", "answer": "1994", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Food & Culinary",
+      "clues": [
+        { "value": 200, "clue": "What primary ingredient is used to make guacamole?", "answer": "Avocado", "dailyDouble": false },
+        { "value": 400, "clue": "What Italian dish consists of layers of flat pasta alternated with sauce, cheese, and meats?", "answer": "Lasagne", "dailyDouble": false },
+        { "value": 600, "clue": "What type of tea is flavoured with oil of bergamot orange?", "answer": "Earl Grey", "dailyDouble": false },
+        { "value": 800, "clue": "From which country does the traditional fermented cabbage dish Kimchi originate?", "answer": "South Korea", "dailyDouble": false },
+        { "value": 1000, "clue": "What is the main distilled spirit used in a classic Mojito cocktail?", "answer": "White Rum", "dailyDouble": false }
+      ]
+    }
+  ]
+}

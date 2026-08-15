@@ -77,25 +77,36 @@ app.get('/api/avatar/:id', (req, res) => {
   res.send(avatar.buffer);
 });
 
-// API route to list available game packs (.json files in workspace)
+// API route to list available game packs (.json files in workspace and packs folder)
 app.get('/api/packs', (req, res) => {
   try {
-    const files = fs.readdirSync(__dirname);
     const packs = [];
-    files.forEach(file => {
-      if (file.endsWith('.json') && file !== 'package.json' && file !== 'package-lock.json') {
-        try {
-          const content = fs.readFileSync(path.join(__dirname, file), 'utf8');
-          const json = JSON.parse(content);
-          if (json.categories || json.round1 || json.title) {
-            packs.push({
-              filename: file,
-              title: json.title || file.replace('.json', '')
-            });
-          }
-        } catch (e) {}
-      }
+    const dirsToScan = [
+      { dir: __dirname, rel: '' },
+      { dir: path.join(__dirname, 'packs'), rel: 'packs/' }
+    ];
+
+    dirsToScan.forEach(({ dir, rel }) => {
+      if (!fs.existsSync(dir)) return;
+      const files = fs.readdirSync(dir);
+      files.forEach(file => {
+        if (file.endsWith('.json') && file !== 'package.json' && file !== 'package-lock.json') {
+          try {
+            const content = fs.readFileSync(path.join(dir, file), 'utf8');
+            const json = JSON.parse(content);
+            if (json.categories || json.round1 || json.title) {
+              const packPath = rel ? `${rel}${file}` : file;
+              packs.push({
+                filename: packPath,
+                title: json.title || file.replace('.json', ''),
+                packData: json
+              });
+            }
+          } catch (e) {}
+        }
+      });
     });
+
     res.json({ packs });
   } catch (err) {
     res.status(500).json({ error: 'Failed to read game packs' });
@@ -256,15 +267,60 @@ function broadcastRoom(roomCode, type, data = {}) {
 }
 
 // Helper: Get active category list for current round
+function loadPackFile(packFileName) {
+  if (!packFileName) return null;
+  try {
+    const safeName = path.normalize(packFileName).replace(/^(\.\.[\/\\])+/, '');
+    const fullPath = path.join(__dirname, safeName);
+    if (fs.existsSync(fullPath)) {
+      return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    }
+  } catch (e) {
+    console.error(`Failed to load pack file ${packFileName}:`, e);
+  }
+  return null;
+}
+
+function buildDualRoundPack(pack1, pack2) {
+  if (!pack1 && !pack2) return null;
+  if (pack1 && !pack2) return pack1;
+  if (!pack1 && pack2) return pack2;
+
+  const r1Cats = pack1.categories || (pack1.round1 ? pack1.round1.categories : []);
+  const r2CatsRaw = pack2.categories || (pack2.round2 ? pack2.round2.categories : (pack2.round1 ? pack2.round1.categories : []));
+
+  const r2Cats = r2CatsRaw.map(cat => ({
+    name: cat.name,
+    clues: (cat.clues || []).map((c, i) => ({
+      ...c,
+      value: (i + 1) * 400
+    }))
+  }));
+
+  return {
+    title: `${pack1.title || 'Round 1'} / ${pack2.title || 'Round 2'}`,
+    round1: {
+      title: 'Jeopardy! Round',
+      categories: r1Cats
+    },
+    round2: {
+      title: 'Double Jeopardy! Round',
+      categories: r2Cats
+    },
+    finalJeopardy: pack2.finalJeopardy || pack1.finalJeopardy || null
+  };
+}
+
 function getActiveCategories(room) {
   if (!room || !room.gamePack) return [];
+  const pack = room.gamePack.gamePack || room.gamePack;
   const currentRound = room.currentRound || 'JEOPARDY';
 
   if (currentRound === 'DOUBLE_JEOPARDY') {
-    if (room.gamePack.round2 && room.gamePack.round2.categories) {
-      return room.gamePack.round2.categories;
+    if (pack.round2 && Array.isArray(pack.round2.categories) && pack.round2.categories.length > 0) {
+      return pack.round2.categories;
     }
-    const base = room.gamePack.round1 ? room.gamePack.round1.categories : (room.gamePack.categories || []);
+    const base = (pack.round1 && Array.isArray(pack.round1.categories)) ? pack.round1.categories : (Array.isArray(pack.categories) ? pack.categories : []);
     return base.map((cat) => ({
       name: `${cat.name} (Double)`,
       clues: (cat.clues || []).map((c, i) => ({
@@ -275,10 +331,16 @@ function getActiveCategories(room) {
     }));
   }
 
-  if (room.gamePack.round1 && room.gamePack.round1.categories) {
-    return room.gamePack.round1.categories;
+  if (pack.round1 && Array.isArray(pack.round1.categories) && pack.round1.categories.length > 0) {
+    return pack.round1.categories;
   }
-  return room.gamePack.categories || [];
+  if (Array.isArray(pack.categories) && pack.categories.length > 0) {
+    return pack.categories;
+  }
+  if (pack.round2 && Array.isArray(pack.round2.categories) && pack.round2.categories.length > 0) {
+    return pack.round2.categories;
+  }
+  return [];
 }
 
 function getBoardState(room) {
@@ -618,21 +680,34 @@ wss.on('connection', (ws) => {
             while (rooms[code]) code = generateRoomCode();
           }
 
+          let pack1 = msg.gamePackRound1 || msg.gamePack;
+          if (!pack1 && msg.packFileNameRound1) pack1 = loadPackFile(msg.packFileNameRound1);
+          if (!pack1 && msg.packFileName) pack1 = loadPackFile(msg.packFileName);
+
+          let pack2 = msg.gamePackRound2;
+          if (!pack2 && msg.packFileNameRound2) pack2 = loadPackFile(msg.packFileNameRound2);
+
+          let finalPack = null;
+          if (pack1 && pack2 && (msg.gameMode || 'STANDARD') === 'STANDARD') {
+            finalPack = buildDualRoundPack(pack1, pack2);
+          } else {
+            finalPack = pack1 || pack2;
+          }
+
+          if (!finalPack) {
+            const defaultPath = path.join(__dirname, 'default_game.json');
+            if (fs.existsSync(defaultPath)) {
+              try { finalPack = JSON.parse(fs.readFileSync(defaultPath, 'utf8')); } catch (e) {}
+            }
+          }
+
           let room = rooms[code];
           if (!room) {
-            let pack = msg.gamePack;
-            if (!pack) {
-              const defaultPath = path.join(__dirname, 'default_game.json');
-              if (fs.existsSync(defaultPath)) {
-                try { pack = JSON.parse(fs.readFileSync(defaultPath, 'utf8')); } catch (e) {}
-              }
-            }
-
             room = {
               code,
               hostWs: ws,
               boardWs: null,
-              gamePack: pack,
+              gamePack: finalPack,
               gameMode: msg.gameMode || 'STANDARD',
               currentRound: 'JEOPARDY',
               players: [],
@@ -649,8 +724,14 @@ wss.on('connection', (ws) => {
             rooms[code] = room;
           } else {
             room.hostWs = ws;
-            if (msg.gamePack) room.gamePack = msg.gamePack;
+            if (finalPack) room.gamePack = finalPack;
             if (msg.gameMode) room.gameMode = msg.gameMode;
+            if (!room.gamePack) {
+              const defaultPath = path.join(__dirname, 'default_game.json');
+              if (fs.existsSync(defaultPath)) {
+                try { room.gamePack = JSON.parse(fs.readFileSync(defaultPath, 'utf8')); } catch (e) {}
+              }
+            }
             room.lastActivity = Date.now();
           }
 
@@ -1141,24 +1222,25 @@ wss.on('connection', (ws) => {
           const room = rooms[roomCode];
           if (!room || clientMeta.role !== 'HOST') return;
 
+          let pack1 = msg.gamePackRound1 || msg.gamePack;
+          if (!pack1 && msg.packFileNameRound1) pack1 = loadPackFile(msg.packFileNameRound1);
+          if (!pack1 && msg.packFileName) pack1 = loadPackFile(msg.packFileName);
+
+          let pack2 = msg.gamePackRound2;
+          if (!pack2 && msg.packFileNameRound2) pack2 = loadPackFile(msg.packFileNameRound2);
+
           let newPack = null;
-          if (msg.gamePack) {
-            newPack = msg.gamePack;
-          } else if (msg.packFileName) {
-            try {
-              const filePath = path.join(__dirname, msg.packFileName);
-              if (fs.existsSync(filePath)) {
-                const raw = fs.readFileSync(filePath, 'utf8');
-                newPack = JSON.parse(raw);
-              }
-            } catch (err) {
-              console.error('Error loading game pack:', err);
-            }
+          if (pack1 && pack2 && (msg.gameMode || room.gameMode || 'STANDARD') === 'STANDARD') {
+            newPack = buildDualRoundPack(pack1, pack2);
+          } else {
+            newPack = pack1 || pack2;
           }
 
-          if (newPack) {
+          if (newPack || msg.gameMode) {
             clearAnswerTimer(room);
-            room.gamePack = newPack;
+            if (newPack) room.gamePack = newPack;
+            if (msg.gameMode) room.gameMode = msg.gameMode;
+
             room.currentRound = 'JEOPARDY';
             room.boardState = {};
             room.round1BoardState = {};
@@ -1171,8 +1253,15 @@ wss.on('connection', (ws) => {
             room.isGameOver = false;
             room.winner = null;
 
+            if (msg.keepPlayers !== false) {
+              (room.players || []).forEach(p => { p.score = 0; });
+            } else {
+              room.players = [];
+            }
+            room.controllingPlayerId = room.players.length > 0 ? room.players[0].id : null;
+
             broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
-            console.log(`[Room ${roomCode}] Host changed active game pack to: ${newPack.title || msg.packFileName}`);
+            console.log(`[Room ${roomCode}] Host changed active game pack/mode (Mode: ${room.gameMode}, KeepPlayers: ${msg.keepPlayers !== false})`);
           } else {
             send(ws, 'ERROR', { message: 'Failed to load selected game pack.' });
           }

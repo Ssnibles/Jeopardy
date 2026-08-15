@@ -307,56 +307,89 @@ document.addEventListener('DOMContentLoaded', () => {
   const tvRoomCode = document.getElementById('tvRoomCode');
   const btnConnectTV = document.getElementById('btnConnectTV');
 
-  let activePack = PREMADE_PACKS[0];
+  let activePackR1 = PREMADE_PACKS[0];
+  let activePackR2 = PREMADE_PACKS[1] || PREMADE_PACKS[0];
   let isCustomActive = false;
-  let customLoadedPack = null;
+  let customLoadedPackR1 = null;
+  let customLoadedPackR2 = null;
+  let activePreviewTab = 'round1';
   let selectedAvatarFile = null;
 
-  // Restore saved contestant profile and room info
-  const savedName = localStorage.getItem('jeopardy_name') || sessionStorage.getItem('jeopardy_name');
-  const savedColor = localStorage.getItem('jeopardy_color') || sessionStorage.getItem('jeopardy_color');
-  let savedAvatar = localStorage.getItem('jeopardy_avatar') || sessionStorage.getItem('jeopardy_avatar');
-  if (savedAvatar && savedAvatar.startsWith('data:image/') && savedAvatar.length > 10000) {
-    savedAvatar = null;
-    localStorage.removeItem('jeopardy_avatar');
-    sessionStorage.removeItem('jeopardy_avatar');
-  }
-  const savedRoom = localStorage.getItem('jeopardy_room') || sessionStorage.getItem('jeopardy_room');
+  // DOM Elements for Round 2 & Custom Pack Section
+  const premadePackSelectRound2 = document.getElementById('premadePackSelectRound2');
+  const round2PackGroup = document.getElementById('round2PackGroup');
+  const customPackSection = document.getElementById('customPackSection');
+  const customPackFileRound2 = document.getElementById('customPackFileRound2');
+  const customPackStatusRound2 = document.getElementById('customPackStatusRound2');
+  const btnPickCustomR1 = document.getElementById('btnPickCustomR1');
+  const btnPickCustomR2 = document.getElementById('btnPickCustomR2');
 
-  if (joinName && savedName) joinName.value = savedName;
-  if (joinColor && savedColor) {
-    joinColor.value = savedColor;
-    if (joinAvatarPreview && !savedAvatar) joinAvatarPreview.style.background = savedColor;
+  const btnPreviewTabRound1 = document.getElementById('btnPreviewTabRound1');
+  const btnPreviewTabRound2 = document.getElementById('btnPreviewTabRound2');
+
+  // Preview tab handlers
+  if (btnPreviewTabRound1) {
+    btnPreviewTabRound1.onclick = () => {
+      activePreviewTab = 'round1';
+      btnPreviewTabRound1.classList.add('active', 'btn-gold');
+      if (btnPreviewTabRound2) btnPreviewTabRound2.classList.remove('active', 'btn-gold');
+      renderActivePreview();
+    };
   }
-  if (joinAvatarPreview && savedName && !savedAvatar) {
-    joinAvatarPreview.innerText = savedName.charAt(0).toUpperCase();
+
+  if (btnPreviewTabRound2) {
+    btnPreviewTabRound2.onclick = () => {
+      activePreviewTab = 'round2';
+      btnPreviewTabRound2.classList.add('active', 'btn-gold');
+      if (btnPreviewTabRound1) btnPreviewTabRound1.classList.remove('active', 'btn-gold');
+      renderActivePreview();
+    };
   }
-  if (joinAvatarPreview && savedAvatar) {
-    joinAvatarPreview.style.backgroundImage = `url('${savedAvatar}')`;
-    joinAvatarPreview.style.backgroundSize = 'cover';
-    joinAvatarPreview.style.backgroundPosition = 'center';
-    joinAvatarPreview.innerText = '';
+
+  function getPackCategories(pack, roundKey) {
+    if (!pack) return [];
+    if (roundKey === 'round1' && pack.round1 && Array.isArray(pack.round1.categories)) {
+      return pack.round1.categories;
+    }
+    if (roundKey === 'round2' && pack.round2 && Array.isArray(pack.round2.categories)) {
+      return pack.round2.categories;
+    }
+    if (Array.isArray(pack.categories)) {
+      return pack.categories;
+    }
+    return [];
   }
-  if (tvRoomCode && savedRoom) tvRoomCode.value = savedRoom;
+
+  function renderActivePreview() {
+    const isR1 = activePreviewTab === 'round1';
+    const targetPack = isR1 ? activePackR1 : activePackR2;
+    const tabLabel = isR1 ? 'Round 1 (Jeopardy!)' : 'Round 2 (Double Jeopardy!)';
+    renderPackPreview(targetPack, tabLabel);
+  }
 
   // Render question/category preview list for the active pack
-  function renderPackPreview(pack) {
-    if (!pack || !pack.categories || !Array.isArray(pack.categories)) {
-      packPreviewList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem;">No questions available in this pack.</div>';
+  function renderPackPreview(pack, roundLabel = 'Round 1 (Jeopardy!)') {
+    const categories = getPackCategories(pack, activePreviewTab);
+
+    if (!categories || categories.length === 0) {
+      packPreviewTitle.innerText = `${roundLabel} Preview`;
+      packPreviewBadge.innerText = '0 Categories • 0 Clues';
+      packPreviewList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem;">No questions available for this round preview.</div>';
       return;
     }
 
-    packPreviewTitle.innerText = pack.title || 'Trivia Pack Preview';
+    const titleText = (pack && pack.title) ? `${pack.title} (${roundLabel})` : `${roundLabel} Preview`;
+    packPreviewTitle.innerText = titleText;
     
     let totalClues = 0;
-    pack.categories.forEach(c => {
+    categories.forEach(c => {
       if (c.clues) totalClues += c.clues.length;
     });
 
-    packPreviewBadge.innerText = `${pack.categories.length} Categories • ${totalClues} Clues`;
+    packPreviewBadge.innerText = `${categories.length} Categories • ${totalClues} Clues`;
 
     let html = '';
-    pack.categories.forEach((cat, cIdx) => {
+    categories.forEach((cat, cIdx) => {
       html += `
         <div class="preview-category-card">
           <div class="preview-category-name">${cIdx + 1}. ${escapeHtml(cat.name)}</div>
@@ -389,19 +422,79 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Initial render of default premade pack preview
-  renderPackPreview(activePack);
+  renderActivePreview();
 
-  // Premade pack dropdown switch
+  let allPacksList = [];
+
+  function loadPacksIntoLobby() {
+    fetch('/api/packs')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.packs && data.packs.length > 0) {
+          allPacksList = data.packs;
+          if (premadePackSelect) {
+            premadePackSelect.innerHTML = '';
+            data.packs.forEach((p, i) => {
+              const opt = document.createElement('option');
+              opt.value = i;
+              opt.innerText = p.title;
+              premadePackSelect.appendChild(opt);
+            });
+          }
+          if (premadePackSelectRound2) {
+            premadePackSelectRound2.innerHTML = '';
+            data.packs.forEach((p, i) => {
+              const opt = document.createElement('option');
+              opt.value = i;
+              if (i === Math.min(1, data.packs.length - 1)) opt.selected = true;
+              opt.innerText = p.title;
+              premadePackSelectRound2.appendChild(opt);
+            });
+          }
+          if (data.packs[0] && data.packs[0].packData) {
+            activePackR1 = data.packs[0].packData;
+          }
+          if (data.packs.length > 1 && data.packs[1].packData) {
+            activePackR2 = data.packs[1].packData;
+          } else {
+            activePackR2 = activePackR1;
+          }
+          renderActivePreview();
+        }
+      })
+      .catch(err => console.error('Failed to fetch packs in lobby:', err));
+  }
+
+  loadPacksIntoLobby();
+
+  // Premade pack dropdown switch for Round 1
   if (premadePackSelect) {
     premadePackSelect.onchange = (e) => {
       const idx = parseInt(e.target.value, 10);
-      if (PREMADE_PACKS[idx]) {
+      const selected = allPacksList[idx] ? (allPacksList[idx].packData || PREMADE_PACKS[idx]) : PREMADE_PACKS[idx];
+      if (selected) {
         isCustomActive = false;
-        activePack = PREMADE_PACKS[idx];
+        activePackR1 = selected;
         btnMethodPremade.classList.add('active');
         btnMethodCustom.classList.remove('active');
-        customPackStatus.style.display = 'none';
-        renderPackPreview(activePack);
+        if (customPackSection) customPackSection.style.display = 'none';
+        if (premadePackSection) premadePackSection.style.display = 'block';
+        if (round2PackGroup && gameModeInput && gameModeInput.value === 'STANDARD') {
+          round2PackGroup.style.display = 'block';
+        }
+        renderActivePreview();
+      }
+    };
+  }
+
+  // Premade pack dropdown switch for Round 2
+  if (premadePackSelectRound2) {
+    premadePackSelectRound2.onchange = (e) => {
+      const idx = parseInt(e.target.value, 10);
+      const selected = allPacksList[idx] ? (allPacksList[idx].packData || PREMADE_PACKS[idx]) : PREMADE_PACKS[idx];
+      if (selected) {
+        activePackR2 = selected;
+        renderActivePreview();
       }
     };
   }
@@ -412,28 +505,45 @@ document.addEventListener('DOMContentLoaded', () => {
       isCustomActive = false;
       btnMethodPremade.classList.add('active');
       btnMethodCustom.classList.remove('active');
-      premadePackSection.style.display = 'flex';
-      customPackStatus.style.display = 'none';
-      const idx = parseInt(premadePackSelect.value, 10) || 0;
-      activePack = PREMADE_PACKS[idx] || PREMADE_PACKS[0];
-      renderPackPreview(activePack);
+      premadePackSection.style.display = 'block';
+      if (customPackSection) customPackSection.style.display = 'none';
+      if (round2PackGroup && gameModeInput && gameModeInput.value === 'STANDARD') {
+        round2PackGroup.style.display = 'block';
+      }
+      const idx1 = parseInt(premadePackSelect ? premadePackSelect.value : 0, 10) || 0;
+      const idx2 = parseInt(premadePackSelectRound2 ? premadePackSelectRound2.value : 1, 10) || 1;
+      activePackR1 = allPacksList[idx1] ? (allPacksList[idx1].packData || PREMADE_PACKS[idx1]) : PREMADE_PACKS[0];
+      activePackR2 = allPacksList[idx2] ? (allPacksList[idx2].packData || PREMADE_PACKS[idx2]) : PREMADE_PACKS[1] || PREMADE_PACKS[0];
+      renderActivePreview();
     };
   }
 
-  // Custom pack button (dashed outline style): INSTANTLY OPENS FILE PICKER WINDOW
-  if (btnMethodCustom && customPackFile) {
+  if (btnMethodCustom) {
     btnMethodCustom.onclick = () => {
       isCustomActive = true;
       btnMethodCustom.classList.add('active');
       btnMethodPremade.classList.remove('active');
       premadePackSection.style.display = 'none';
+      if (round2PackGroup) round2PackGroup.style.display = 'none';
+      if (customPackSection) customPackSection.style.display = 'flex';
       
-      // Instantly open OS file browser window
-      customPackFile.click();
+      if (!customLoadedPackR1 && customPackFile) {
+        customPackFile.click();
+      } else {
+        renderActivePreview();
+      }
     };
   }
 
-  // Custom pack JSON file reader
+  if (btnPickCustomR1 && customPackFile) {
+    btnPickCustomR1.onclick = () => customPackFile.click();
+  }
+
+  if (btnPickCustomR2 && customPackFileRound2) {
+    btnPickCustomR2.onclick = () => customPackFileRound2.click();
+  }
+
+  // Custom pack JSON file reader - Round 1
   if (customPackFile) {
     customPackFile.onchange = (e) => {
       const file = e.target.files[0];
@@ -443,21 +553,74 @@ document.addEventListener('DOMContentLoaded', () => {
       reader.onload = (event) => {
         try {
           const parsed = JSON.parse(event.target.result);
-          if (parsed && parsed.categories && Array.isArray(parsed.categories)) {
-            customLoadedPack = parsed;
-            activePack = parsed;
+          if (parsed && (parsed.categories || parsed.round1)) {
+            customLoadedPackR1 = parsed;
+            activePackR1 = parsed;
             isCustomActive = true;
 
-            customPackStatus.style.display = 'block';
-            customPackStatus.innerText = `Loaded Custom Pack: "${parsed.title || 'Custom Pack'}" (${parsed.categories.length} categories)`;
-            renderPackPreview(parsed);
+            // If the JSON contains both round1 and round2, automatically populate Round 2 as well!
+            if (parsed.round2 && parsed.round2.categories) {
+              customLoadedPackR2 = parsed;
+              activePackR2 = parsed;
+              if (customPackStatusRound2) {
+                customPackStatusRound2.style.display = 'block';
+                customPackStatusRound2.innerText = `Loaded Round 2 from file: "${parsed.round2.title || parsed.title || file.name}"`;
+              }
+            }
+
+            if (customPackStatus) {
+              customPackStatus.style.display = 'block';
+              customPackStatus.innerText = `Loaded Round 1: "${parsed.title || file.name}"`;
+            }
+            renderActivePreview();
           } else {
-            customPackStatus.style.display = 'block';
-            customPackStatus.innerText = 'Invalid Jeopardy pack format. Missing "categories" array.';
+            if (customPackStatus) {
+              customPackStatus.style.display = 'block';
+              customPackStatus.innerText = 'Invalid Jeopardy pack format.';
+            }
           }
         } catch (err) {
-          customPackStatus.style.display = 'block';
-          customPackStatus.innerText = 'Error reading JSON file: ' + err.message;
+          if (customPackStatus) {
+            customPackStatus.style.display = 'block';
+            customPackStatus.innerText = 'Error reading JSON file: ' + err.message;
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+  }
+
+  // Custom pack JSON file reader - Round 2
+  if (customPackFileRound2) {
+    customPackFileRound2.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (parsed && (parsed.categories || parsed.round2 || parsed.round1)) {
+            customLoadedPackR2 = parsed;
+            activePackR2 = parsed;
+            isCustomActive = true;
+
+            if (customPackStatusRound2) {
+              customPackStatusRound2.style.display = 'block';
+              customPackStatusRound2.innerText = `Loaded Round 2: "${parsed.title || file.name}"`;
+            }
+            renderActivePreview();
+          } else {
+            if (customPackStatusRound2) {
+              customPackStatusRound2.style.display = 'block';
+              customPackStatusRound2.innerText = 'Invalid Jeopardy pack format.';
+            }
+          }
+        } catch (err) {
+          if (customPackStatusRound2) {
+            customPackStatusRound2.style.display = 'block';
+            customPackStatusRound2.innerText = 'Error reading JSON file: ' + err.message;
+          }
         }
       };
       reader.readAsText(file);
@@ -531,30 +694,58 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  // Lobby Mode Toggle Group Handler
+  const lobbyModeToggleGroup = document.getElementById('lobbyModeToggleGroup');
+  const gameModeInput = document.getElementById('gameModeInput');
+  if (lobbyModeToggleGroup && gameModeInput) {
+    const btns = lobbyModeToggleGroup.querySelectorAll('.mode-toggle-btn');
+    btns.forEach(btn => {
+      btn.onclick = () => {
+        btns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = btn.getAttribute('data-mode') || 'STANDARD';
+        gameModeInput.value = mode;
+
+        if (round2PackGroup) {
+          round2PackGroup.style.display = mode === 'STANDARD' ? 'block' : 'none';
+        }
+      };
+    });
+  }
+
   // Launch Game Room Action
   if (btnCreateRoom) {
     btnCreateRoom.onclick = async () => {
-      if (isCustomActive && !customLoadedPack) {
-        return alert('Please select a valid custom Jeopardy pack .json file.');
+      if (isCustomActive && !customLoadedPackR1 && !customLoadedPackR2) {
+        return alert('Please upload at least one custom Jeopardy pack .json file.');
       }
 
-      const packToUse = activePack || PREMADE_PACKS[0];
+      const mode = gameModeInput ? gameModeInput.value : 'STANDARD';
+
+      const pack1Idx = premadePackSelect ? parseInt(premadePackSelect.value, 10) : 0;
+      const pack1Obj = isCustomActive ? (customLoadedPackR1 || customLoadedPackR2) : (allPacksList[pack1Idx] ? allPacksList[pack1Idx].packData : PREMADE_PACKS[pack1Idx]);
+
+      const pack2Idx = premadePackSelectRound2 ? parseInt(premadePackSelectRound2.value, 10) : 1;
+      const pack2Obj = isCustomActive ? (customLoadedPackR2 || customLoadedPackR1) : (allPacksList[pack2Idx] ? allPacksList[pack2Idx].packData : PREMADE_PACKS[pack2Idx]);
 
       btnCreateRoom.disabled = true;
       btnCreateRoom.innerText = 'Creating Room...';
 
-      // Connect WebSocket to request room creation
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const ws = new WebSocket(`${protocol}//${window.location.host}`);
 
       ws.onopen = () => {
-        const gameModeSelect = document.getElementById('gameModeSelect');
-        const gameMode = gameModeSelect ? gameModeSelect.value : 'STANDARD';
-        ws.send(JSON.stringify({
+        const payload = {
           type: 'CREATE_ROOM',
-          gamePack: packToUse,
-          gameMode: gameMode
-        }));
+          gameMode: mode,
+          gamePackRound1: pack1Obj
+        };
+
+        if (mode === 'STANDARD') {
+          payload.gamePackRound2 = pack2Obj;
+        }
+
+        ws.send(JSON.stringify(payload));
       };
 
       ws.onmessage = (event) => {
@@ -562,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (msg.type === 'ROOM_CREATED') {
           sessionStorage.setItem('jeopardy_role', 'HOST');
           sessionStorage.setItem('jeopardy_room', msg.roomCode);
-          sessionStorage.setItem('jeopardy_pack', JSON.stringify(packToUse));
+          sessionStorage.setItem('jeopardy_pack', JSON.stringify(msg.fullPack || pack1Obj));
           window.location.href = `/host.html?room=${msg.roomCode}`;
         }
       };

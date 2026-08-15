@@ -536,7 +536,14 @@ document.addEventListener('DOMContentLoaded', () => {
     clueAnswer.value = clueObj.answer || '';
     clueValue.value = clueObj.value;
     clueDailyDouble.checked = !!clueObj.dailyDouble;
-    if (lblDailyDouble) lblDailyDouble.classList.toggle('active', clueDailyDouble.checked);
+    const presetValues = activeRound === 'round2' ? [400, 800, 1200, 1600, 2000] : [200, 400, 600, 800, 1000];
+    const presetBtns = document.querySelectorAll('.preset-val-btn');
+    presetBtns.forEach((btn, idx) => {
+      if (presetValues[idx] !== undefined) {
+        btn.setAttribute('data-val', presetValues[idx]);
+        btn.innerText = `$${presetValues[idx]}`;
+      }
+    });
 
     currentImageUrl = clueObj.image || '';
     uploadStatus.innerText = '';

@@ -1,0 +1,56 @@
+{
+  "title": "Science, Tech & Cosmos",
+  "author": "Geek Quizmaster",
+  "categories": [
+    {
+      "name": "Computer Science",
+      "clues": [
+        { "value": 200, "clue": "What fundamental binary digits make up all machine code storage?", "answer": "0 and 1 (Bits)", "dailyDouble": false },
+        { "value": 400, "clue": "What popular open-source version control system was created by Linus Torvalds?", "answer": "Git", "dailyDouble": false },
+        { "value": 600, "clue": "What does HTML stand for in web markup development?", "answer": "HyperText Markup Language", "dailyDouble": false },
+        { "value": 800, "clue": "Which search algorithm uses a divide-and-conquer strategy on sorted arrays in O(log n) time?", "answer": "Binary Search", "dailyDouble": false },
+        { "value": 1000, "clue": "What pioneer credited as the first computer programmer wrote algorithms for the Analytical Engine?", "answer": "Ada Lovelace", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Space Exploration",
+      "clues": [
+        { "value": 200, "clue": "What is the largest planet in our Solar System by mass and volume?", "answer": "Jupiter", "dailyDouble": false },
+        { "value": 400, "clue": "In 1969, who became the first human to step foot on the Moon during Apollo 11?", "answer": "Neil Armstrong", "dailyDouble": false },
+        { "value": 600, "clue": "What reddish planet is nicknamed the 'Red Planet' due to iron oxide on its surface?", "answer": "Mars", "dailyDouble": false },
+        { "value": 800, "clue": "What theoretical boundary around a black hole prevents anything, even light, from escaping?", "answer": "Event Horizon", "dailyDouble": true },
+        { "value": 1000, "clue": "Which moon of Saturn is known for methane lakes and a thick nitrogen atmosphere?", "answer": "Titan", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Periodic Table",
+      "clues": [
+        { "value": 200, "clue": "What lightweight gas with atomic number 1 is the most abundant element in the universe?", "answer": "Hydrogen", "dailyDouble": false },
+        { "value": 400, "clue": "What metal liquid at room temperature has the chemical symbol Hg?", "answer": "Mercury", "dailyDouble": false },
+        { "value": 600, "clue": "What essential element for human respiration makes up about 21% of Earth's atmosphere?", "answer": "Oxygen", "dailyDouble": false },
+        { "value": 800, "clue": "What element with atomic number 6 forms the structural backbone of organic chemistry?", "answer": "Carbon", "dailyDouble": false },
+        { "value": 1000, "clue": "What noble gas with atomic number 10 produces a bright reddish-orange glow in discharge signs?", "answer": "Neon", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Biology & Nature",
+      "clues": [
+        { "value": 200, "clue": "What molecule known as the 'building block of life' carries genetic instructions?", "answer": "DNA", "dailyDouble": false },
+        { "value": 400, "clue": "What organelle in plant cells carries out photosynthesis to turn sunlight into sugar?", "answer": "Chloroplast", "dailyDouble": false },
+        { "value": 600, "clue": "What is the largest mammal currently alive on Earth?", "answer": "Blue Whale", "dailyDouble": false },
+        { "value": 800, "clue": "What process do bacteria use to replicate by splitting into two identical daughter cells?", "answer": "Binary Fission", "dailyDouble": false },
+        { "value": 1000, "clue": "What power organelle is famously referred to as the powerhouse of the cell?", "answer": "Mitochondria", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Famous Inventions",
+      "clues": [
+        { "value": 200, "clue": "Who is credited with inventing the practical incandescent light bulb and phonograph?", "answer": "Thomas Edison", "dailyDouble": false },
+        { "value": 400, "clue": "Which brothers made the first controlled sustained powered airplane flight at Kitty Hawk in 1903?", "answer": "Wright Brothers", "dailyDouble": false },
+        { "value": 600, "clue": "Who discovered penicillin in 1928, ushering in the era of antibiotics?", "answer": "Alexander Fleming", "dailyDouble": false },
+        { "value": 800, "clue": "Who invented the movable-type printing press in Europe around 1440?", "answer": "Johannes Gutenberg", "dailyDouble": false },
+        { "value": 1000, "clue": "Which AC power pioneer devised the induction motor and Tesla coil?", "answer": "Nikola Tesla", "dailyDouble": false }
+      ]
+    }
+  ]
+}

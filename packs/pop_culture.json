@@ -1,0 +1,56 @@
+{
+  "title": "Pop Culture & Cinema",
+  "author": "Cinema Buffs",
+  "categories": [
+    {
+      "name": "Hollywood Hits",
+      "clues": [
+        { "value": 200, "clue": "Which 1997 James Cameron epic starred Leonardo DiCaprio and Kate Winslet?", "answer": "Titanic", "dailyDouble": false },
+        { "value": 400, "clue": "What fictional box of chocolates quote was made famous by Tom Hanks in 1994?", "answer": "Forrest Gump", "dailyDouble": false },
+        { "value": 600, "clue": "What high-octane franchise features Dom Toretto and his emphasis on 'family'?", "answer": "Fast & Furious", "dailyDouble": false },
+        { "value": 800, "clue": "Which Pixar film features a robot left on Earth to clean up garbage?", "answer": "WALL-E", "dailyDouble": false },
+        { "value": 1000, "clue": "What 1994 Quentin Tarantino film interweaves stories of Los Angeles mobsters?", "answer": "Pulp Fiction", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "TV Series Hits",
+      "clues": [
+        { "value": 200, "clue": "Which HBO fantasy series was based on George R.R. Martin's books?", "answer": "Game of Thrones", "dailyDouble": false },
+        { "value": 400, "clue": "In 'Breaking Bad', what alias does chemistry teacher Walter White adopt?", "answer": "Heisenberg", "dailyDouble": false },
+        { "value": 600, "clue": "What 90s sitcom revolved around Jerry, George, Elaine, and Kramer?", "answer": "Seinfeld", "dailyDouble": false },
+        { "value": 800, "clue": "Which Netflix series takes place in the fictional town of Hawkins, Indiana?", "answer": "Stranger Things", "dailyDouble": true },
+        { "value": 1000, "clue": "What is the name of Dunder Mifflin's paper company branch in 'The Office'?", "answer": "Scranton Branch", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Music Legends",
+      "clues": [
+        { "value": 200, "clue": "Which pop icon earned the title 'King of Pop' with hits like Thriller and Billie Jean?", "answer": "Michael Jackson", "dailyDouble": false },
+        { "value": 400, "clue": "What iconic British rock group hailed from Liverpool with members John, Paul, George, and Ringo?", "answer": "The Beatles", "dailyDouble": false },
+        { "value": 600, "clue": "Which pop star released the groundbreaking album 'Renaissance' and 'Break My Soul'?", "answer": "Beyoncé", "dailyDouble": false },
+        { "value": 800, "clue": "What Swedish pop supergroup won Eurovision in 1974 with 'Waterloo'?", "answer": "ABBA", "dailyDouble": false },
+        { "value": 1000, "clue": "Who sang lead vocals for Queen and performed famously at Live Aid in 1985?", "answer": "Freddie Mercury", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Superheroes",
+      "clues": [
+        { "value": 200, "clue": "What alter ego does billionaire Bruce Wayne use to fight crime in Gotham City?", "answer": "Batman", "dailyDouble": false },
+        { "value": 400, "clue": "Which superhero was bitten by a radioactive spider in Queens, NY?", "answer": "Spider-Man", "dailyDouble": false },
+        { "value": 600, "clue": "What metal alloy coats Wolverine's skeleton and claws?", "answer": "Adamantium", "dailyDouble": false },
+        { "value": 800, "clue": "What is the real name of Wonder Woman in DC Comics?", "answer": "Diana Prince", "dailyDouble": false },
+        { "value": 1000, "clue": "Which cosmic villain snapped his fingers in Avengers: Infinity War?", "answer": "Thanos", "dailyDouble": false }
+      ]
+    },
+    {
+      "name": "Sci-Fi Worlds",
+      "clues": [
+        { "value": 200, "clue": "What weapon wielded by Jedi and Sith in Star Wars leaves glowing plasma blades?", "answer": "Lightsaber", "dailyDouble": false },
+        { "value": 400, "clue": "What is the primary starship commanded by Captain James T. Kirk in Star Trek?", "answer": "USS Enterprise", "dailyDouble": false },
+        { "value": 600, "clue": "In 'Dune', what rare desert mineral spice enables space travel and prescience?", "answer": "Melange (Spice)", "dailyDouble": false },
+        { "value": 800, "clue": "What cyborg assassin played by Arnold Schwarzenegger promised 'I'll be back'?", "answer": "The Terminator (T-800)", "dailyDouble": false },
+        { "value": 1000, "clue": "What planet is the original home of Superman in DC lore?", "answer": "Krypton", "dailyDouble": false }
+      ]
+    }
+  ]
+}

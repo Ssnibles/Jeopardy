@@ -9,19 +9,19 @@
 <body class="tv-mode-body">
 
   <header class="header-bar">
-    <div class="brand">
-      JEOPARDY! TV DISPLAY
-    </div>
-    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+    <a href="/" class="brand">
+      <span class="brand-logo">JEOPARDY ARENA</span>
+      <span class="brand-tag">TV DISPLAY</span>
+    </a>
+    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
       <div id="tunnelBadge" class="tunnel-badge" style="display: none;" title="Click to copy public player link">
-        <span class="tunnel-icon">🌐</span>
         <span class="tunnel-label">TUNNEL:</span>
         <span id="tunnelUrlText" class="tunnel-url"></span>
       </div>
-      <div id="tvRoundBadge" class="room-badge" style="font-size: 1.15rem; background: rgba(251,191,36,0.2); color: var(--jeopardy-gold);">Jeopardy! Round</div>
-      <div id="roomBadge" class="room-badge" style="font-size: 1.15rem;">ROOM: ----</div>
-      <button id="btnFullscreen" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">Fullscreen</button>
-      <button id="btnExitTV" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">Exit TV Mode</button>
+      <div id="tvRoundBadge" class="room-badge" style="font-size: 0.88rem; background: rgba(251,191,36,0.2); color: var(--jeopardy-gold);">Jeopardy! Round</div>
+      <div id="roomBadge" class="room-badge" style="font-size: 0.88rem;">ROOM: ----</div>
+      <button id="btnFullscreen" class="btn">Fullscreen</button>
+      <button id="btnExitTV" class="btn btn-danger">Exit TV Mode</button>
     </div>
   </header>
 
@@ -64,7 +64,7 @@
       <!-- TV BUZZ ALERT POPUP -->
       <div id="tvBuzzAlert" style="display: none; margin-top: 1.5rem; background: var(--jeopardy-gold); color: #000; padding: 1rem 2.5rem; border-radius: var(--radius-full); font-size: 2rem; font-weight: 900; box-shadow: var(--shadow-lg); align-items: center; gap: 1rem;">
         <span><span id="tvBuzzPlayerName">Player</span> BUZZED IN!</span>
-        <span id="tvAnswerTimerBadge" style="background: rgba(0,0,0,0.85); color: #ef4444; border-radius: 999px; padding: 0.2rem 0.8rem; font-size: 1.6rem; border: 2px solid #ef4444;">⌛ 7s</span>
+        <span id="tvAnswerTimerBadge" style="background: rgba(0,0,0,0.85); color: #ef4444; border-radius: 999px; padding: 0.2rem 0.8rem; font-size: 1.6rem; border: 2px solid #ef4444;">7s</span>
       </div>
     </div>
   </div>
@@ -78,7 +78,7 @@
   <!-- TV WINSCREEN OVERLAY -->
   <div id="tvWinscreenModal" class="winscreen-modal">
     <div class="winscreen-card" style="max-width: 850px; border-width: 3px;">
-      <div class="winner-crown">👑 🥇</div>
+      <div class="winner-crown" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 2.5rem; color: var(--jeopardy-gold); letter-spacing: 0.1em; margin-bottom: 0.5rem;">CHAMPION</div>
       <h1 class="winner-title" style="font-size: 3.5rem;">JEOPARDY CHAMPION!</h1>
       <div id="tvWinnerAvatar" class="winner-avatar-lg" style="width: 120px; height: 120px; font-size: 3.2rem;">?</div>
       <h2 id="tvWinnerName" style="font-size: 2.5rem; color: #fff; font-weight: 900;">Winner Name</h2>
@@ -96,7 +96,7 @@
   <!-- TV FINAL JEOPARDY OVERLAY -->
   <div id="tvFJModal" class="clue-modal">
     <div class="clue-content" style="max-width: 1100px; text-align: center;">
-      <div style="font-size: 1.6rem; color: var(--jeopardy-gold); font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem;">🏆 FINAL JEOPARDY 🏆</div>
+      <div style="font-size: 1.6rem; color: var(--jeopardy-gold); font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem;">FINAL JEOPARDY</div>
       <div id="tvFJCategory" class="clue-category-title" style="font-size: 2.5rem; margin-bottom: 1.5rem; text-transform: uppercase;">CATEGORY</div>
       
       <div id="tvFJStageMessage" style="font-size: 1.8rem; color: #ffffff; font-weight: 700; background: rgba(251,191,36,0.15); padding: 1rem 2rem; border-radius: var(--radius-md); border: 2px solid var(--jeopardy-gold); margin-bottom: 1.5rem;">
