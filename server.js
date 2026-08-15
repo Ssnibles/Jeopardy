@@ -301,7 +301,7 @@ function checkGameOver(room) {
   return false;
 }
 
-// Helper: Get sanitized room state for broadcast
+// Helper: Get sanitised room state for broadcast
 function getPublicRoomState(room) {
   const standings = calculateStandings(room);
   return {

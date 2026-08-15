@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clues: [
           { value: 200, clue: 'In the MCU, what is the name of Thor\'s home realm?', answer: 'Asgard', image: '', dailyDouble: false },
           { value: 400, clue: 'Which movie won Best Picture in 2020, becoming the first non-English film to win?', answer: 'Parasite', image: '', dailyDouble: false },
-          { value: 600, clue: 'What color pill does Neo take in The Matrix to learn the truth?', answer: 'Red Pill', image: '', dailyDouble: false },
+          { value: 600, clue: 'What colour pill does Neo take in The Matrix to learn the truth?', answer: 'Red Pill', image: '', dailyDouble: false },
           { value: 800, clue: 'Who directed Interstellar, Inception, and Oppenheimer?', answer: 'Christopher Nolan', image: '', dailyDouble: false },
           { value: 1000, clue: 'What pop superstar earned the title King of Pop with Thriller?', answer: 'Michael Jackson', image: '', dailyDouble: false }
         ]
@@ -671,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
     reader.readAsText(file);
   };
 
-  // Initialize Pack from Session Storage or Starter Template
+  // Initialise Pack from Session Storage or Starter Template
   const storedPack = sessionStorage.getItem('jeopardy_pack');
   if (storedPack) {
     try {

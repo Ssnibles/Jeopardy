@@ -27,7 +27,7 @@
       "clues": [
         { "value": 200, "clue": "In the Marvel Cinematic Universe, what is the name of Thor's home realm?", "answer": "Asgard", "image": "", "dailyDouble": false },
         { "value": 400, "clue": "Which movie won the Academy Award for Best Picture in 2020, becoming the first non-English film to win?", "answer": "Parasite", "image": "", "dailyDouble": false },
-        { "value": 600, "clue": "What color pill does Neo take in The Matrix to discover the truth?", "answer": "Red Pill", "image": "", "dailyDouble": false },
+        { "value": 600, "clue": "What colour pill does Neo take in The Matrix to discover the truth?", "answer": "Red Pill", "image": "", "dailyDouble": false },
         { "value": 800, "clue": "Who directed the sci-fi epics Interstellar, Inception, and Oppenheimer?", "answer": "Christopher Nolan", "image": "", "dailyDouble": false },
         { "value": 1000, "clue": "What is the name of the fictional kingdom where Disney's 'Frozen' is set?", "answer": "Arendelle", "image": "", "dailyDouble": false }
       ]
@@ -46,8 +46,8 @@
       "name": "Food & Drink",
       "clues": [
         { "value": 200, "clue": "What primary ingredient is used to make guacamole?", "answer": "Avocado", "image": "", "dailyDouble": false },
-        { "value": 400, "clue": "What Italian dish consists of thin layers of pasta alternated with sauce, cheese, and meat or vegetables?", "answer": "Lasagna", "image": "", "dailyDouble": false },
-        { "value": 600, "clue": "What type of tea is flavored with oil of bergamot orange?", "answer": "Earl Grey", "image": "", "dailyDouble": false },
+        { "value": 400, "clue": "What Italian dish consists of thin layers of pasta alternated with sauce, cheese, and meat or vegetables?", "answer": "Lasagne", "image": "", "dailyDouble": false },
+        { "value": 600, "clue": "What type of tea is flavoured with oil of bergamot orange?", "answer": "Earl Grey", "image": "", "dailyDouble": false },
         { "value": 800, "clue": "From which country does the dish Kimchi originate?", "answer": "South Korea (Korea)", "image": "", "dailyDouble": false },
         { "value": 1000, "clue": "What is the main spirit in a classic Mojito cocktail?", "answer": "White Rum", "image": "", "dailyDouble": false }
       ]

@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let pingInterval = null;
   let wsId = 0;
 
-  // Initialize Setup Form Inputs
+  // Initialise Setup Form Inputs
   setupRoomCode.value = roomCode;
   setupName.value = playerName;
   setupColor.value = playerColor;
@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Initialize WebSocket Connection with Auto-Reconnect
+  // Initialise WebSocket Connection with Auto-Reconnect
   function initWebSocket() {
     renderHeaderProfile();
     if (reconnectTimer) clearTimeout(reconnectTimer);

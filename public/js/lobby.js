@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
           clues: [
             { value: 200, clue: "This programming language named after a coffee bean was developed by James Gosling at Sun Microsystems.", answer: "Java", dailyDouble: false },
             { value: 400, clue: "What is the chemical symbol for Gold on the periodic table?", answer: "Au", dailyDouble: false },
-            { value: 600, clue: "This company introduced the iPhone in 2007, revolutionizing smartphones.", answer: "Apple", dailyDouble: false },
+            { value: 600, clue: "This company introduced the iPhone in 2007, revolutionising smartphones.", answer: "Apple", dailyDouble: false },
             { value: 800, clue: "Which space telescope launched in December 2021 as the successor to Hubble?", answer: "James Webb Space Telescope", dailyDouble: true },
             { value: 1000, clue: "In physics, what constant approximately equal to 3 x 10^8 m/s is denoted by 'c'?", answer: "Speed of light", dailyDouble: false }
           ]
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
           clues: [
             { value: 200, clue: "In the Marvel Cinematic Universe, what is the name of Thor's home realm?", answer: "Asgard", dailyDouble: false },
             { value: 400, clue: "Which movie won Best Picture in 2020, becoming the first non-English film to win?", answer: "Parasite", dailyDouble: false },
-            { value: 600, clue: "What color pill does Neo take in The Matrix to discover the truth?", answer: "Red Pill", dailyDouble: false },
+            { value: 600, clue: "What colour pill does Neo take in The Matrix to discover the truth?", answer: "Red Pill", dailyDouble: false },
             { value: 800, clue: "Who directed the sci-fi epics Interstellar, Inception, and Oppenheimer?", answer: "Christopher Nolan", dailyDouble: false },
             { value: 1000, clue: "What is the name of the fictional kingdom where Disney's 'Frozen' is set?", answer: "Arendelle", dailyDouble: false }
           ]
@@ -51,8 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
           name: "Food & Culinary",
           clues: [
             { value: 200, clue: "What primary ingredient is used to make guacamole?", answer: "Avocado", dailyDouble: false },
-            { value: 400, clue: "What Italian dish consists of layers of flat pasta alternated with sauce, cheese, and meats?", answer: "Lasagna", dailyDouble: false },
-            { value: 600, clue: "What type of tea is flavored with oil of bergamot orange?", answer: "Earl Grey", dailyDouble: false },
+            { value: 400, clue: "What Italian dish consists of layers of flat pasta alternated with sauce, cheese, and meats?", answer: "Lasagne", dailyDouble: false },
+            { value: 600, clue: "What type of tea is flavoured with oil of bergamot orange?", answer: "Earl Grey", dailyDouble: false },
             { value: 800, clue: "From which country does the traditional fermented cabbage dish Kimchi originate?", answer: "South Korea", dailyDouble: false },
             { value: 1000, clue: "What is the main distilled spirit used in a classic Mojito cocktail?", answer: "White Rum", dailyDouble: false }
           ]
@@ -210,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
           clues: [
             { value: 200, clue: "In what 1815 battle was Napoleon Bonaparte finally defeated by allied forces?", answer: "Battle of Waterloo", dailyDouble: false },
             { value: 400, clue: "Which 1066 battle resulted in William the Conqueror taking the English throne?", answer: "Battle of Hastings", dailyDouble: false },
-            { value: 600, clue: "What major WWII naval battle in June 1942 turned the tide of the Pacific Theater?", answer: "Battle of Midway", dailyDouble: false },
+            { value: 600, clue: "What major WWII naval battle in June 1942 turned the tide of the Pacific Theatre?", answer: "Battle of Midway", dailyDouble: false },
             { value: 800, clue: "What American Civil War battle in Pennsylvania in 1863 was the deadliest of the war?", answer: "Battle of Gettysburg", dailyDouble: false },
             { value: 1000, clue: "Which siege in WWII lasted nearly 900 days in a Soviet city now named St. Petersburg?", answer: "Siege of Leningrad", dailyDouble: false }
           ]
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Player Profile Customization Logic
+  // Player Profile Customisation Logic
   const btnUploadJoinAvatar = document.getElementById('btnUploadJoinAvatar');
   const joinColorSwatches = document.getElementById('joinColorSwatches');
 
