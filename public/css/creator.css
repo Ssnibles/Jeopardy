@@ -60,11 +60,17 @@
   width: fit-content;
 }
 
+.round-tab-nav {
+  margin-bottom: 1.75rem !important;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .creator-board-area {
   flex: 1;
   min-width: 0;
   width: 100%;
-  padding: 1.5rem;
+  padding: 2.25rem 2.5rem !important;
   background: #080d19;
 }
 
@@ -74,19 +80,19 @@
   flex-wrap: nowrap;
   justify-content: flex-start;
   align-items: stretch;
-  gap: 0.75rem;
+  gap: 1.15rem !important;
   margin: 0;
   width: 100%;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
+  padding-bottom: 1rem;
 }
 
 .creator-grid .board-column {
-  flex: 1 0 135px;
-  min-width: 135px;
+  flex: 1 0 145px;
+  min-width: 145px;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.85rem !important;
 }
 
 .creator-card {
@@ -108,7 +114,7 @@
   background: #0f172a;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-md);
-  padding: 0.85rem 0.6rem;
+  padding: 0.75rem 0.5rem !important;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -116,11 +122,90 @@
   justify-content: center;
   gap: 0.35rem;
   transition: all var(--transition-fast);
+  height: 80px !important;
+  min-height: 80px !important;
+  max-height: 80px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .creator-clue-card:hover {
   background: #1e293b;
   border-color: var(--jeopardy-gold);
+}
+
+.creator-clue-card.is-daily-double {
+  background: linear-gradient(135deg, rgba(255, 204, 0, 0.16) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+  border: 1.5px solid var(--jeopardy-gold, #ffcc00) !important;
+  box-shadow: 0 0 12px rgba(255, 204, 0, 0.3), inset 0 0 10px rgba(255, 204, 0, 0.1) !important;
+}
+
+.creator-clue-card.is-daily-double:hover {
+  background: linear-gradient(135deg, rgba(255, 204, 0, 0.28) 0%, rgba(30, 41, 59, 1) 100%) !important;
+  box-shadow: 0 0 18px rgba(255, 204, 0, 0.55), inset 0 0 15px rgba(255, 204, 0, 0.2) !important;
+}
+
+.daily-double-card-badge {
+  font-size: 0.55rem !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.06em !important;
+  color: #0b1120 !important;
+  background: var(--jeopardy-gold, #ffcc00) !important;
+  padding: 0.08rem 0.4rem !important;
+  border-radius: var(--radius-full) !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 0 6px rgba(255, 204, 0, 0.5) !important;
+  margin-bottom: 0.1rem !important;
+  line-height: 1 !important;
+}
+
+.creator-final-area {
+  margin-top: 0.5rem;
+}
+
+.creator-final-card {
+  padding: 2.25rem !important;
+  background: #0b1120 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-top: 3px solid var(--jeopardy-gold) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4) !important;
+}
+
+.creator-final-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1.25rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  margin-bottom: 1.75rem !important;
+}
+
+.creator-final-card .form-group {
+  margin-bottom: 1.65rem !important;
+}
+
+.creator-final-card label {
+  margin-bottom: 0.55rem !important;
+  display: block !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.06em !important;
+}
+
+.creator-final-card input.form-control,
+.creator-final-card textarea.form-control {
+  padding: 0.75rem 1rem !important;
+  font-size: 0.95rem !important;
+  border-radius: var(--radius-md) !important;
+  line-height: 1.5 !important;
+}
+
+.fj-preview-box {
+  margin-top: 2.25rem !important;
+  padding: 1.75rem !important;
+  border-radius: var(--radius-lg) !important;
+  background: #050914 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 .creator-status-pill {
@@ -421,6 +506,147 @@
   overflow-y: auto;
 }
 
+/* ==========================================================================
+   CLUE EDITOR MODAL ENHANCEMENTS & LAYOUT REFINEMENTS
+   ========================================================================== */
+
+.clue-editor-card {
+  max-width: 680px !important;
+  width: 95% !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  text-align: left !important;
+  align-items: stretch !important;
+  padding: 1.75rem !important;
+  background: #0b1120 !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-top: 3px solid var(--jeopardy-gold) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+  gap: 1.25rem !important;
+}
+
+.clue-editor-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding-bottom: 0.85rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  position: relative !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.clue-editor-header #modalTitle {
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  color: var(--jeopardy-gold) !important;
+  margin: 0 !important;
+  text-align: left !important;
+}
+
+.clue-editor-header .setup-modal-desc {
+  color: var(--text-muted) !important;
+  font-size: 0.85rem !important;
+  margin-top: 0.25rem !important;
+  margin-bottom: 0 !important;
+  text-align: left !important;
+}
+
+.clue-editor-header .host-newgame-close-btn {
+  position: static !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: var(--text-muted) !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  font-size: 0.9rem !important;
+  transition: all var(--transition-fast) !important;
+  flex-shrink: 0 !important;
+  margin-left: 1rem !important;
+}
+
+.clue-editor-header .host-newgame-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+.clue-editor-form {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.15rem !important;
+  width: 100% !important;
+}
+
+.clue-editor-form .form-group {
+  margin-bottom: 0 !important;
+  text-align: left !important;
+  align-items: stretch !important;
+}
+
+.clue-editor-form label {
+  text-align: left !important;
+  display: block !important;
+  margin-bottom: 0.35rem !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  color: var(--text-muted) !important;
+}
+
+.clue-textarea {
+  resize: vertical !important;
+  min-height: 85px !important;
+  font-size: 0.95rem !important;
+  line-height: 1.45 !important;
+}
+
+.clue-value-panel {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 0.85rem 1rem !important;
+  border-radius: var(--radius-md) !important;
+  flex-wrap: wrap !important;
+}
+
+.clue-value-input {
+  width: 95px !important;
+  text-align: center !important;
+  font-weight: 800 !important;
+  color: var(--jeopardy-gold) !important;
+  padding: 0.4rem 0.5rem !important;
+  background: #060912 !important;
+}
+
+.image-attachment-card {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 1rem !important;
+}
+
+.clue-editor-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+  padding-top: 1rem !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  margin-top: 0.5rem !important;
+  flex-wrap: wrap !important;
+}
+
 @media (max-width: 960px) {
   .creator-layout-wrapper {
     flex-direction: column;
@@ -430,3 +656,4 @@
     position: static;
   }
 }
+

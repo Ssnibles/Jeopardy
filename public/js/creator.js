@@ -130,6 +130,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function ensurePackStructure(p) {
     if (!p) return JSON.parse(JSON.stringify(SAMPLE_STARTER_PACK));
+    if (!p.round1 && p.round) {
+      p.round1 = p.round;
+    }
     if (!p.round1) {
       p.round1 = {
         title: 'Jeopardy! Round',
@@ -137,21 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     }
     if (!p.round2) {
-      // Create doubled round 2 from round 1 template or default sample
-      const r2Cats = JSON.parse(JSON.stringify(p.round1.categories || SAMPLE_STARTER_PACK.round2.categories));
-      const mult = [400, 800, 1200, 1600, 2000];
-      r2Cats.forEach((cat, cIdx) => {
-        if (!cat.clues || cat.clues.length === 0) {
-          cat.clues = mult.map(v => ({ value: v, clue: '', answer: '', image: '', dailyDouble: false }));
-        } else {
-          cat.clues.forEach((c, idx) => {
-            c.value = mult[idx] || (idx + 1) * 400;
-          });
-        }
-      });
       p.round2 = {
         title: 'Double Jeopardy! Round',
-        categories: r2Cats
+        categories: JSON.parse(JSON.stringify(SAMPLE_STARTER_PACK.round2.categories))
       };
     }
     if (!p.finalJeopardy) {
@@ -239,20 +230,26 @@ document.addEventListener('DOMContentLoaded', () => {
     tabFinal.classList.toggle('active', roundName === 'final');
 
     if (roundName === 'round1') {
-      currentRoundBadge.innerText = 'Editing: Round 1 (Jeopardy!)';
+      if (typeof currentRoundBadge !== 'undefined' && currentRoundBadge) currentRoundBadge.innerText = 'Editing: Round 1 (Jeopardy!)';
+      grid.classList.remove('display-none');
       grid.style.display = 'flex';
+      creatorFinalArea.classList.add('display-none');
       creatorFinalArea.style.display = 'none';
       if (btnAddCategory) btnAddCategory.style.display = 'inline-block';
       renderGrid();
     } else if (roundName === 'round2') {
-      currentRoundBadge.innerText = 'Editing: Round 2 (Double Jeopardy!)';
+      if (typeof currentRoundBadge !== 'undefined' && currentRoundBadge) currentRoundBadge.innerText = 'Editing: Round 2 (Double Jeopardy!)';
+      grid.classList.remove('display-none');
       grid.style.display = 'flex';
+      creatorFinalArea.classList.add('display-none');
       creatorFinalArea.style.display = 'none';
       if (btnAddCategory) btnAddCategory.style.display = 'inline-block';
       renderGrid();
     } else {
-      currentRoundBadge.innerText = 'Editing: Final Jeopardy!';
+      if (typeof currentRoundBadge !== 'undefined' && currentRoundBadge) currentRoundBadge.innerText = 'Editing: Final Jeopardy!';
+      grid.classList.add('display-none');
       grid.style.display = 'none';
+      creatorFinalArea.classList.remove('display-none');
       creatorFinalArea.style.display = 'block';
       if (btnAddCategory) btnAddCategory.style.display = 'none';
       renderFinalEditor();
@@ -329,8 +326,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function persistPack() {
-    pack.categories = pack.round1 ? pack.round1.categories : [];
-    sessionStorage.setItem('jeopardy_pack', JSON.stringify(pack));
+    try {
+      pack.categories = pack.round1 ? pack.round1.categories : [];
+      sessionStorage.setItem('jeopardy_pack', JSON.stringify(pack));
+    } catch (e) {
+      console.warn('Could not save pack state to sessionStorage:', e.message);
+    }
     updatePackHealthStats();
   }
 
@@ -465,12 +466,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
       cat.clues.forEach((clueObj, clueIdx) => {
         const card = document.createElement('div');
-        card.className = 'creator-clue-card';
+        card.className = clueObj.dailyDouble ? 'creator-clue-card is-daily-double' : 'creator-clue-card';
+
+        if (clueObj.dailyDouble) {
+          const ddBadge = document.createElement('span');
+          ddBadge.className = 'daily-double-card-badge';
+          ddBadge.innerText = 'DAILY DOUBLE';
+          card.appendChild(ddBadge);
+        }
 
         const valSpan = document.createElement('span');
         valSpan.style.fontWeight = '800';
         valSpan.style.fontSize = '1.15rem';
-        valSpan.style.color = 'var(--jeopardy-gold)';
+        valSpan.style.color = clueObj.dailyDouble ? '#ffe600' : 'var(--jeopardy-gold)';
         valSpan.innerText = `$${clueObj.value}`;
         card.appendChild(valSpan);
 
@@ -481,7 +489,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const icons = [];
         if (clueObj.clue) icons.push('Text');
         if (clueObj.image) icons.push('Img');
-        if (clueObj.dailyDouble) icons.push('DD');
 
         statusSpan.innerText = icons.length ? icons.join(' • ') : '+ Edit Clue';
         card.appendChild(statusSpan);
@@ -627,7 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-          const MAX_DIM = 1200;
+          const MAX_DIM = 800;
           let width = img.width;
           let height = img.height;
           if (width > MAX_DIM || height > MAX_DIM) {
@@ -638,17 +645,14 @@ document.addEventListener('DOMContentLoaded', () => {
               width = Math.round((width * MAX_DIM) / height);
               height = MAX_DIM;
             }
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-            const compressedDataUrl = canvas.toDataURL(mimeType, 0.85);
-            resolve(compressedDataUrl);
-          } else {
-            resolve(e.target.result);
           }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+          resolve(compressedDataUrl);
         };
         img.onerror = () => resolve(e.target.result);
         img.src = e.target.result;
@@ -658,18 +662,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  imageFileInput.onchange = async (e) => {
-    const file = e.target.files[0];
+  async function uploadAndProcessImage(file) {
     if (!file) return;
-
-    uploadStatus.innerText = 'Processing image...';
+    if (uploadStatus) uploadStatus.innerText = 'Processing image...';
     try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.url) {
+          currentImageUrl = data.url;
+          if (uploadStatus) uploadStatus.innerText = '✓ Image uploaded!';
+          updateImagePreview();
+          return;
+        }
+      }
+
       const dataUrl = await processImageFile(file);
       currentImageUrl = dataUrl;
-      uploadStatus.innerText = 'Image attached!';
+      if (uploadStatus) uploadStatus.innerText = '✓ Image attached!';
       updateImagePreview();
     } catch (err) {
-      uploadStatus.innerText = 'Load error: ' + err.message;
+      console.warn('Server upload error, falling back to compressed local data URL:', err);
+      try {
+        const dataUrl = await processImageFile(file);
+        currentImageUrl = dataUrl;
+        if (uploadStatus) uploadStatus.innerText = '✓ Image attached!';
+        updateImagePreview();
+      } catch (e) {
+        if (uploadStatus) uploadStatus.innerText = 'Load error: ' + e.message;
+      }
+    }
+  }
+
+  imageFileInput.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      await uploadAndProcessImage(file);
     }
   };
 
@@ -704,32 +739,32 @@ document.addEventListener('DOMContentLoaded', () => {
       btnSaveClue.innerText = 'Saving...';
     }
 
-    const isUrlMode = btnSourceUrl && btnSourceUrl.classList.contains('active');
-    if (isUrlMode && imageUrlInput.value.trim()) {
-      currentImageUrl = imageUrlInput.value.trim();
-    } else if (!isUrlMode && imageFileInput.files[0] && !currentImageUrl) {
-      try {
-        currentImageUrl = await processImageFile(imageFileInput.files[0]);
-      } catch (err) {
-        console.error('Image load error:', err);
+    try {
+      const isUrlMode = btnSourceUrl && btnSourceUrl.classList.contains('active');
+      if (isUrlMode && imageUrlInput.value.trim()) {
+        currentImageUrl = imageUrlInput.value.trim();
+      } else if (!isUrlMode && imageFileInput.files && imageFileInput.files[0] && (!currentImageUrl || currentImageUrl.startsWith('data:'))) {
+        await uploadAndProcessImage(imageFileInput.files[0]);
       }
-    }
 
-    const currentRoundObj = activeRound === 'round2' ? pack.round2 : pack.round1;
-    const targetClue = currentRoundObj.categories[activeCatIndex].clues[activeClueIndex];
-    targetClue.clue = clueText.value.trim();
-    targetClue.answer = clueAnswer.value.trim();
-    targetClue.value = parseInt(clueValue.value, 10) || 200;
-    targetClue.dailyDouble = clueDailyDouble.checked;
-    targetClue.image = currentImageUrl;
+      const currentRoundObj = activeRound === 'round2' ? pack.round2 : pack.round1;
+      const targetClue = currentRoundObj.categories[activeCatIndex].clues[activeClueIndex];
+      targetClue.clue = clueText.value.trim();
+      targetClue.answer = clueAnswer.value.trim();
+      targetClue.value = parseInt(clueValue.value, 10) || 200;
+      targetClue.dailyDouble = clueDailyDouble.checked;
+      targetClue.image = currentImageUrl;
 
-    persistPack();
-    renderGrid();
-    closeModal();
-
-    if (btnSaveClue) {
-      btnSaveClue.disabled = false;
-      btnSaveClue.innerText = 'Save Clue (Ctrl+Enter)';
+      persistPack();
+      renderGrid();
+      closeModal();
+    } catch (err) {
+      console.error('Error saving clue:', err);
+    } finally {
+      if (btnSaveClue) {
+        btnSaveClue.disabled = false;
+        btnSaveClue.innerText = 'Save Clue (Ctrl+Enter)';
+      }
     }
   };
 
@@ -860,7 +895,14 @@ document.addEventListener('DOMContentLoaded', () => {
     pack.author = (packAuthor ? packAuthor.value.trim() : '') || 'Quiz Master';
     persistPack();
 
-    const jsonStr = JSON.stringify(pack, null, 2);
+    const exportPackObj = {
+      title: pack.title,
+      author: pack.author,
+      categories: pack.round1 ? pack.round1.categories : (pack.categories || []),
+      finalJeopardy: pack.finalJeopardy
+    };
+
+    const jsonStr = JSON.stringify(exportPackObj, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
@@ -871,6 +913,61 @@ document.addEventListener('DOMContentLoaded', () => {
     URL.revokeObjectURL(url);
   };
 
+  function importPackData(imported) {
+    if (!imported) return;
+
+    const targetRound = (activeRound === 'round2') ? 'round2' : 'round1';
+
+    // Check if the JSON is a full dual-round pack (has explicit round1 AND round2)
+    if (imported.round1 && imported.round2) {
+      pack.round1 = JSON.parse(JSON.stringify(imported.round1));
+      pack.round2 = JSON.parse(JSON.stringify(imported.round2));
+    } else {
+      // Single-round pack or flat categories array
+      const importedCats = imported.categories || 
+                           (imported.round1 ? imported.round1.categories : 
+                           (imported.round2 ? imported.round2.categories : 
+                           (imported.round ? imported.round.categories : null)));
+
+      if (importedCats && Array.isArray(importedCats)) {
+        const clonedCats = JSON.parse(JSON.stringify(importedCats));
+        
+        // Scale clue values according to target round ($200-$1000 for Round 1, $400-$2000 for Round 2)
+        const isR2 = (targetRound === 'round2');
+        clonedCats.forEach(cat => {
+          if (cat.clues && Array.isArray(cat.clues)) {
+            cat.clues.forEach((c, idx) => {
+              if (!c.value || c.value <= 0) {
+                c.value = (idx + 1) * (isR2 ? 400 : 200);
+              }
+            });
+          }
+        });
+
+        pack[targetRound] = {
+          title: imported.title || (isR2 ? 'Double Jeopardy! Round' : 'Jeopardy! Round'),
+          categories: clonedCats
+        };
+      }
+    }
+
+    // Import Final Jeopardy if specified in imported JSON
+    if (imported.finalJeopardy && (imported.finalJeopardy.clue || imported.finalJeopardy.category)) {
+      pack.finalJeopardy = JSON.parse(JSON.stringify(imported.finalJeopardy));
+    }
+
+    if (imported.title) pack.title = imported.title;
+    if (imported.author) pack.author = imported.author;
+
+    // Ensure all rounds and required fields exist
+    pack = ensurePackStructure(pack);
+
+    if (packTitle) packTitle.value = pack.title || '';
+    if (packAuthor) packAuthor.value = pack.author || '';
+    persistPack();
+    switchRoundTab(activeRound);
+  }
+
   importFile.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -880,18 +977,16 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const imported = JSON.parse(event.target.result);
         if (imported) {
-          pack = ensurePackStructure(imported);
-          if (packTitle) packTitle.value = pack.title || 'Imported Pack';
-          if (packAuthor) packAuthor.value = pack.author || 'Unknown';
-          persistPack();
-          switchRoundTab(activeRound);
-          alert('Jeopardy Pack imported successfully!');
+          importPackData(imported);
+          const roundText = (activeRound === 'round2') ? 'Round 2 (Double Jeopardy!)' : 'Round 1 (Jeopardy!)';
+          alert(`Jeopardy Pack imported into ${roundText} successfully!`);
         } else {
           alert('Invalid Jeopardy Pack JSON structure.');
         }
       } catch (err) {
         alert('Failed to parse JSON file: ' + err.message);
       }
+      importFile.value = '';
     };
     reader.readAsText(file);
   };

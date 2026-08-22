@@ -297,17 +297,22 @@ function buildDualRoundPack(pack1, pack2) {
     }))
   }));
 
+  // Pick Final Jeopardy: Prioritize pack2 (the second pack) if valid, otherwise fallback to pack1
+  const hasFJ2 = pack2.finalJeopardy && (pack2.finalJeopardy.clue || pack2.finalJeopardy.category);
+  const hasFJ1 = pack1.finalJeopardy && (pack1.finalJeopardy.clue || pack1.finalJeopardy.category);
+  const fj = hasFJ2 ? pack2.finalJeopardy : (hasFJ1 ? pack1.finalJeopardy : (pack2.finalJeopardy || pack1.finalJeopardy || null));
+
   return {
     title: `${pack1.title || 'Round 1'} / ${pack2.title || 'Round 2'}`,
     round1: {
-      title: 'Jeopardy! Round',
+      title: pack1.round1 ? (pack1.round1.title || 'Jeopardy! Round') : 'Jeopardy! Round',
       categories: r1Cats
     },
     round2: {
-      title: 'Double Jeopardy! Round',
+      title: pack2.round2 ? (pack2.round2.title || 'Double Jeopardy! Round') : 'Double Jeopardy! Round',
       categories: r2Cats
     },
-    finalJeopardy: pack2.finalJeopardy || pack1.finalJeopardy || null
+    finalJeopardy: fj
   };
 }
 
@@ -316,31 +321,28 @@ function getActiveCategories(room) {
   const pack = room.gamePack.gamePack || room.gamePack;
   const currentRound = room.currentRound || 'JEOPARDY';
 
+  // Primary categories from top-level `categories`, `round1`, or `round`
+  const r1 = (Array.isArray(pack.categories) && pack.categories.length > 0)
+    ? pack.categories
+    : (pack.round1 && Array.isArray(pack.round1.categories) ? pack.round1.categories : (pack.round && Array.isArray(pack.round.categories) ? pack.round.categories : []));
+
+  const r2 = (pack.round2 && Array.isArray(pack.round2.categories) && pack.round2.categories.length > 0)
+    ? pack.round2.categories
+    : null;
+
   if (currentRound === 'DOUBLE_JEOPARDY') {
-    if (pack.round2 && Array.isArray(pack.round2.categories) && pack.round2.categories.length > 0) {
-      return pack.round2.categories;
-    }
-    const base = (pack.round1 && Array.isArray(pack.round1.categories)) ? pack.round1.categories : (Array.isArray(pack.categories) ? pack.categories : []);
-    return base.map((cat) => ({
-      name: `${cat.name} (Double)`,
+    if (r2) return r2;
+    // Auto-scale clue values for Double Jeopardy round ($400 - $2000)
+    return r1.map((cat) => ({
+      name: cat.name,
       clues: (cat.clues || []).map((c, i) => ({
         ...c,
-        value: (i + 1) * 400,
-        dailyDouble: i === 1 || i === 3
+        value: (i + 1) * 400
       }))
     }));
   }
 
-  if (pack.round1 && Array.isArray(pack.round1.categories) && pack.round1.categories.length > 0) {
-    return pack.round1.categories;
-  }
-  if (Array.isArray(pack.categories) && pack.categories.length > 0) {
-    return pack.categories;
-  }
-  if (pack.round2 && Array.isArray(pack.round2.categories) && pack.round2.categories.length > 0) {
-    return pack.round2.categories;
-  }
-  return [];
+  return r1;
 }
 
 function getBoardState(room) {
