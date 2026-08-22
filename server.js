@@ -862,6 +862,7 @@ wss.on('connection', (ws) => {
             answerRevealed: false
           };
 
+          room.earlyBuzzPlayerIds = {};
           if (clueObj.dailyDouble) {
             room.buzzerState = { state: 'DAILY_DOUBLE', activePlayerId: defaultEligibleId, buzzedQueue: [] };
           } else {
@@ -957,6 +958,8 @@ wss.on('connection', (ws) => {
             room.countdownTimer = null;
           }
 
+          room.earlyBuzzPlayerIds = {};
+
           const durationSeconds = msg.instant ? 0 : (msg.duration !== undefined ? parseInt(msg.duration, 10) : 3);
 
           if (durationSeconds <= 0) {
@@ -1005,7 +1008,12 @@ wss.on('connection', (ws) => {
           if (room.earlyBuzzPlayerIds[playerId]) {
             const unlockTime = room.buzzerState.unlockTime || 0;
             if (Date.now() < unlockTime + 250) {
-              return send(ws, 'BUZZER_REJECTED', { message: 'Early Buzz Penalty: Locked out for 0.25s after unlock!' });
+              return send(ws, 'BUZZER_REJECTED', {
+                message: 'Early Buzz Penalty: Please wait 0.25s after unlock!',
+                isEarlyBuzzPenalty: true
+              });
+            } else {
+              delete room.earlyBuzzPlayerIds[playerId];
             }
           }
 
@@ -1181,6 +1189,7 @@ wss.on('connection', (ws) => {
           if (!room || !room.currentClue || clientMeta.role !== 'HOST') return;
 
           clearAnswerTimer(room);
+          room.earlyBuzzPlayerIds = {};
           room.buzzerState.state = 'UNLOCKED';
           room.buzzerState.activePlayerId = null;
           room.buzzerState.unlockTime = Date.now();
@@ -1201,6 +1210,7 @@ wss.on('connection', (ws) => {
           bState[key] = true;
           const closedClueAnswer = room.currentClue.answer;
           room.currentClue = null;
+          room.earlyBuzzPlayerIds = {};
           room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
 
           broadcastRoom(roomCode, 'CLUE_CLOSED', { state: getPublicRoomState(room), answer: closedClueAnswer });

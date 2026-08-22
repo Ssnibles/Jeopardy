@@ -1,116 +1,68 @@
 /* ==========================================================================
    JEOPARDY ARENA - TV DISPLAY & BOARD STYLES (BOARD.CSS)
+   Base .board-column, .category-header, .clue-card, .tv-fj-card defined
+   in styles.css — only TV-specific overrides here.
    ========================================================================== */
 
 body.tv-mode-body {
-  background-color: #040814;
+  background-color: var(--surface-base);
   min-height: 100vh;
 }
 
 body.tv-mode-body .header-bar {
-  background: #060b18;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-medium);
   box-shadow: none;
 }
 
 body.tv-mode-body .clue-modal,
 #tvClueModal {
-  background-color: #040814;
+  background-color: var(--surface-base);
 }
 
 .board-main {
   width: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 1rem 1.5rem;
+  padding: var(--space-lg) var(--space-2xl);
 }
 
+/* TV Board Overrides */
 #tvBoard {
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
   align-items: stretch;
-  gap: 1rem;
+  gap: var(--space-lg);
   width: 100%;
   flex: 1;
   min-height: 520px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 0.5rem;
-}
-
-#tvBoard .board-column {
-  flex: 1 0 130px;
-  min-width: 130px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  height: 100%;
+  padding-bottom: var(--space-sm);
 }
 
 #tvBoard .category-header {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-top: 3.5px solid var(--jeopardy-gold);
-  border-radius: var(--radius-md);
-  padding: 0.5rem 0.35rem;
-  text-align: center;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 800;
   font-size: 0.92rem;
-  line-height: 1.25;
-  color: #ffffff;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   height: 80px;
   min-height: 80px;
   max-height: 80px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  width: 100%;
-  box-sizing: border-box;
-  flex-shrink: 0;
 }
 
 #tvBoard .clue-card {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-md);
-  padding: 0.5rem;
-  text-align: center;
-  font-family: 'Outfit', sans-serif;
-  font-size: 1.85rem;
-  font-weight: 900;
-  color: var(--jeopardy-gold);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  flex: 1;
   min-height: 80px;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
-  box-sizing: border-box;
 }
 
 #tvBoard .clue-card.revealed {
-  background: rgba(15, 23, 42, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: transparent;
-  text-shadow: none;
-  cursor: default;
-  transform: none;
   height: 75px;
   min-height: 75px;
   max-height: 75px;
 }
 
+/* TV Scoreboard */
 .tv-scoreboard-container {
-  margin-top: 1.25rem;
+  margin-top: var(--space-xl);
   width: 100%;
   display: flex;
   justify-content: center;
@@ -124,38 +76,39 @@ body.tv-mode-body .clue-modal,
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-md);
   padding: 0;
   margin: 0 auto;
 }
 
 .tv-round-badge {
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   background: rgba(255, 255, 255, 0.06);
-  color: #f8fafc;
+  color: var(--text-main);
 }
 
+/* TV Buzz Alert */
 .tv-buzz-alert {
   display: flex;
-  margin-top: 1.5rem;
+  margin-top: var(--space-2xl);
   background: var(--jeopardy-gold);
   color: #000;
-  padding: 1rem 2.5rem;
+  padding: var(--space-lg) var(--space-4xl);
   border-radius: var(--radius-full);
-  font-size: 2rem;
-  font-weight: 900;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-black);
   box-shadow: none;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-lg);
 }
 
 .tv-answer-timer-badge {
   background: rgba(0, 0, 0, 0.85);
-  color: #ef4444;
+  color: var(--color-danger);
   border-radius: 999px;
   padding: 0.2rem 0.8rem;
   font-size: 1.6rem;
-  border: 2px solid #ef4444;
+  border: 2px solid var(--color-danger);
   margin-left: 0.8rem;
 }
 
@@ -172,9 +125,9 @@ body.tv-mode-body .clue-modal,
 }
 
 #tvWinnerName {
-  font-size: 2.5rem;
+  font-size: var(--text-2xl);
   color: #fff;
-  font-weight: 900;
+  font-weight: var(--weight-black);
 }
 
 #tvWinnerScore {
@@ -185,97 +138,83 @@ body.tv-mode-body .clue-modal,
   max-height: 320px;
 }
 
-/* Dynamic Podium & FJ Standings Styles (JS generated) */
-.tv-fj-card {
-  background: rgba(15, 23, 42, 0.9);
-  border: 2px solid var(--jeopardy-gold);
-  border-radius: var(--radius-md);
-  padding: 1rem 1.5rem;
-  min-width: 220px;
-  text-align: center;
-}
-
-.tv-fj-card.disqualified {
-  border-color: var(--color-danger);
-}
-
+/* Standing Rows (legacy alias — canonical styles in styles.css as podium-standing-*) */
 .standing-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-md);
 }
 
 .standing-medal {
-  font-weight: 900;
-  font-size: 1.1rem;
+  font-weight: var(--weight-black);
+  font-size: var(--text-md);
   min-width: 55px;
   color: var(--jeopardy-gold);
 }
 
 .standing-name {
-  font-weight: 800;
+  font-weight: var(--weight-extra);
   font-size: 1.05rem;
 }
 
 .standing-score {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 900;
+  font-family: var(--font-display);
+  font-weight: var(--weight-black);
   font-size: 1.2rem;
 }
 
 .disqualified-badge {
   font-size: 0.9rem;
-  font-weight: 900;
+  font-weight: var(--weight-black);
   color: #f87171;
   background: rgba(248, 113, 113, 0.15);
-  padding: 0.25rem 0.5rem;
+  padding: var(--space-2xs) var(--space-sm);
   border-radius: var(--radius-sm);
 }
 
 .wager-info {
-  font-size: 0.95rem;
-  color: #38bdf8;
+  font-size: var(--text-base);
+  color: var(--accent-cyan);
 }
 
 .wager-pending {
-  font-size: 0.95rem;
-  color: #94a3b8;
+  font-size: var(--text-base);
+  color: var(--text-muted);
 }
 
 .wager-locked {
-  font-size: 0.95rem;
-  color: #38bdf8;
-  font-weight: 700;
+  font-size: var(--text-base);
+  color: var(--accent-cyan);
+  font-weight: var(--weight-bold);
 }
 
 .response-display {
   font-size: 1.05rem;
-  font-weight: 800;
+  font-weight: var(--weight-extra);
   color: #ffffff;
-  margin-top: 0.4rem;
+  margin-top: var(--space-xs);
   background: rgba(255, 255, 255, 0.08);
-  padding: 0.35rem 0.6rem;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
 }
 
 .response-none {
-  font-size: 0.95rem;
-  color: #94a3b8;
-  margin-top: 0.4rem;
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
   font-style: italic;
 }
 
 .eval-correct {
   font-size: 0.9rem;
-  font-weight: 900;
+  font-weight: var(--weight-black);
   color: #4ade80;
   margin-top: 0.3rem;
 }
 
 .eval-incorrect {
   font-size: 0.9rem;
-  font-weight: 900;
+  font-weight: var(--weight-black);
   color: #f87171;
   margin-top: 0.3rem;
 }
-

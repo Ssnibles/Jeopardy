@@ -50,7 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let playerId = sessionStorage.getItem('jeopardy_playerId') || localStorage.getItem('jeopardy_playerId') || null;
   let ws = null;
   let buzzerState = 'LOCKED';
+  let measuredPing = 30;
   let currentClueObj = null;
+  let currentRevealedAnswer = '';
   let selectedAvatarFile = null;
 
   let reconnectTimer = null;
@@ -459,7 +461,20 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
 
           case 'BUZZER_REJECTED':
-            setBuzzerLockedOut(msg.message || 'Buzz rejected');
+            if (msg.isEarlyBuzzPenalty) {
+              buzzerStatus.innerText = msg.message || 'Early Buzz Penalty! Try again in a moment...';
+              buzzerStatus.style.color = 'var(--color-danger)';
+              if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+              lastBuzzTime = 0;
+              if (buzzerState === 'BUZZED' || buzzerState === 'UNLOCKED') {
+                buzzerState = 'UNLOCKED';
+                btnBuzzer.disabled = false;
+                btnBuzzer.className = 'buzzer-btn unlocked';
+                btnBuzzer.innerText = 'BUZZ!';
+              }
+            } else {
+              setBuzzerLockedOut(msg.message || 'Buzz rejected');
+            }
             break;
 
           case 'ANSWER_EVALUATED':
@@ -514,13 +529,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showElement(el, displayStyle = 'block') {
     if (!el) return;
-    el.classList.remove('display-none');
+    el.classList.remove('display-none', 'is-hidden');
     el.style.display = displayStyle;
   }
 
   function hideElement(el) {
     if (!el) return;
-    el.classList.add('display-none');
+    el.classList.remove('is-visible-flex', 'is-visible-block');
+    el.classList.add('is-hidden');
     el.style.display = 'none';
   }
 
@@ -895,6 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // BUZZER BUTTON STATES
   function setBuzzerUnlocked() {
+    lastBuzzTime = 0;
     // Re-check lockout on current clue
     if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
       if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
@@ -957,6 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Keyboard Shortcut Listener for Buzzing
   document.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
     if (playerJoinModal && playerJoinModal.style.display === 'flex') return;
 
@@ -971,7 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Press Buzzer Action
   function handleBuzzerPress() {
     const now = Date.now();
-    if (now - lastBuzzTime < 250) return;
+    if (now - lastBuzzTime < 150) return;
     lastBuzzTime = now;
 
     if (buzzerState === 'WINNER' || buzzerState === 'LOCKED_OUT' || buzzerState === 'BUZZED') {

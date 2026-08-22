@@ -412,10 +412,33 @@ document.addEventListener('DOMContentLoaded', () => {
       const col = document.createElement('div');
       col.className = 'board-column';
 
+      const wrapperDiv = document.createElement('div');
+      wrapperDiv.className = 'category-header-wrapper';
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'cat-trash-btn';
+      delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
+      delBtn.title = 'Delete Category';
+      delBtn.disabled = currentRoundObj.categories.length <= 1;
+      delBtn.onclick = () => {
+        if (confirm(`Delete category "${cat.name}"?`)) {
+          currentRoundObj.categories.splice(catIdx, 1);
+          persistPack();
+          renderGrid();
+        }
+      };
+
       const headerDiv = document.createElement('div');
-      headerDiv.className = 'category-header';
-      headerDiv.style.flexDirection = 'column';
-      headerDiv.style.gap = '0.4rem';
+      headerDiv.className = 'category-header-bar';
+
+      const leftBtn = document.createElement('button');
+      leftBtn.type = 'button';
+      leftBtn.className = 'cat-nav-btn';
+      leftBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+      leftBtn.title = 'Move Category Left';
+      leftBtn.disabled = catIdx === 0;
+      leftBtn.onclick = () => moveCategory(catIdx, -1);
 
       const catInput = document.createElement('input');
       catInput.type = 'text';
@@ -426,43 +449,23 @@ document.addEventListener('DOMContentLoaded', () => {
         cat.name = e.target.value;
         persistPack();
       };
-      headerDiv.appendChild(catInput);
-
-      const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'category-header-actions';
-
-      const leftBtn = document.createElement('button');
-      leftBtn.className = 'cat-action-btn';
-      leftBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
-      leftBtn.title = 'Move Category Left';
-      leftBtn.disabled = catIdx === 0;
-      leftBtn.onclick = () => moveCategory(catIdx, -1);
 
       const rightBtn = document.createElement('button');
-      rightBtn.className = 'cat-action-btn';
+      rightBtn.type = 'button';
+      rightBtn.className = 'cat-nav-btn';
       rightBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
       rightBtn.title = 'Move Category Right';
       rightBtn.disabled = catIdx === currentRoundObj.categories.length - 1;
       rightBtn.onclick = () => moveCategory(catIdx, 1);
 
-      const delBtn = document.createElement('button');
-      delBtn.className = 'cat-action-btn danger';
-      delBtn.innerText = 'Delete';
-      delBtn.disabled = currentRoundObj.categories.length <= 1;
-      delBtn.onclick = () => {
-        if (confirm(`Delete category "${cat.name}"?`)) {
-          currentRoundObj.categories.splice(catIdx, 1);
-          persistPack();
-          renderGrid();
-        }
-      };
+      headerDiv.appendChild(leftBtn);
+      headerDiv.appendChild(catInput);
+      headerDiv.appendChild(rightBtn);
 
-      actionsDiv.appendChild(leftBtn);
-      actionsDiv.appendChild(delBtn);
-      actionsDiv.appendChild(rightBtn);
-      headerDiv.appendChild(actionsDiv);
+      wrapperDiv.appendChild(delBtn);
+      wrapperDiv.appendChild(headerDiv);
 
-      col.appendChild(headerDiv);
+      col.appendChild(wrapperDiv);
 
       cat.clues.forEach((clueObj, clueIdx) => {
         const card = document.createElement('div');
