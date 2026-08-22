@@ -363,12 +363,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1000);
             break;
 
+          case 'ROOM_STATE':
+            updatePlayerState(msg.state);
+            break;
+
+          case 'FINAL_JEOPARDY_STARTED':
+            if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
+            updatePlayerState(msg.state);
+            break;
+
           case 'CLUE_SELECTED':
             if (msg.clientTime) {
               measuredPing = Math.max(10, Date.now() - msg.clientTime);
             }
             currentRevealedAnswer = '';
             if (playerClueAnswerBox) hideElement(playerClueAnswerBox);
+            if (msg.state) updatePlayerState(msg.state);
             break;
 
           case 'CLUE_CLOSED':
@@ -381,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
               if (playerClueAnswerBox) showElement(playerClueAnswerBox, 'block');
               if (playerClueBox) showElement(playerClueBox, 'block');
             }
+            if (msg.state) updatePlayerState(msg.state);
             break;
 
           case 'WAGER_SET':
@@ -462,16 +473,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
           case 'BUZZER_REJECTED':
             if (msg.isEarlyBuzzPenalty) {
-              buzzerStatus.innerText = msg.message || 'Early Buzz Penalty! Try again in a moment...';
+              buzzerStatus.innerText = msg.message || 'Early Buzz Penalty! Please wait 0.25s after unlock...';
               buzzerStatus.style.color = 'var(--color-danger)';
               if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
               lastBuzzTime = 0;
-              if (buzzerState === 'BUZZED' || buzzerState === 'UNLOCKED') {
-                buzzerState = 'UNLOCKED';
-                btnBuzzer.disabled = false;
-                btnBuzzer.className = 'buzzer-btn unlocked';
-                btnBuzzer.innerText = 'BUZZ!';
-              }
+              setTimeout(() => {
+                if (buzzerState === 'BUZZED') {
+                  if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
+                    setBuzzerLockedOut('You answered incorrectly on this clue.');
+                  } else {
+                    setBuzzerUnlocked();
+                  }
+                }
+              }, 300);
             } else {
               setBuzzerLockedOut(msg.message || 'Buzz rejected');
             }
@@ -732,7 +746,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!container || !state || !state.players) return;
 
     container.innerHTML = '';
-    state.players.forEach(p => {
+    state.players.filter(p => p.id !== playerId).forEach(p => {
       const card = document.createElement('div');
       card.className = 'player-card';
       card.style.display = 'flex';
@@ -1026,14 +1040,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ping: measuredPing
       }));
 
-      if (buzzerState === 'UNLOCKED') {
-        buzzerState = 'BUZZED';
-        btnBuzzer.disabled = true;
-        btnBuzzer.className = 'buzzer-btn';
-        btnBuzzer.innerText = 'BUZZED!';
-        buzzerStatus.innerText = 'BUZZ TRANSMITTED! Processing...';
-        buzzerStatus.style.color = 'var(--jeopardy-gold)';
-      }
+      buzzerState = 'BUZZED';
+      btnBuzzer.disabled = true;
+      btnBuzzer.className = 'buzzer-btn';
+      btnBuzzer.innerText = 'BUZZED!';
+      buzzerStatus.innerText = 'BUZZ TRANSMITTED! Waiting for host reply...';
+      buzzerStatus.style.color = 'var(--jeopardy-gold)';
     } catch (err) {
       console.error('Error sending buzz:', err);
       initWebSocket();

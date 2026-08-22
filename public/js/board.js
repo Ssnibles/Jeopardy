@@ -371,13 +371,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tvDailyDoubleBanner) tvDailyDoubleBanner.style.display = 'none';
     }
 
-    const isUnlocked = (clue.dailyDouble && clue.wagerSet) || (gameState.buzzerState && 
-      (gameState.buzzerState.state === 'UNLOCKED' || 
-       gameState.buzzerState.state === 'BUZZED' || 
-       gameState.buzzerState.state === 'WINNER' || 
-       gameState.buzzerState.state === 'LOCKED_OUT'));
+    const shouldShowClueText = !clue.dailyDouble || clue.wagerSet;
 
-    if (isUnlocked) {
+    if (shouldShowClueText) {
       tvClueText.innerText = clue.clue;
       tvClueText.style.display = 'block';
 
