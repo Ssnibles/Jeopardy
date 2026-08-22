@@ -99,6 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (setupColorSwatches && setupColor) {
     const dots = setupColorSwatches.querySelectorAll('.color-dot');
     dots.forEach(dot => {
+      const c = dot.getAttribute('data-color');
+      if (c) dot.style.backgroundColor = c;
       dot.onclick = () => {
         dots.forEach(d => d.classList.remove('active'));
         dot.classList.add('active');
@@ -359,9 +361,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1000);
             break;
 
-          case 'ROOM_STATE':
-          case 'CLUE_CLOSED':
           case 'CLUE_SELECTED':
+            if (msg.clientTime) {
+              measuredPing = Math.max(10, Date.now() - msg.clientTime);
+            }
+            currentRevealedAnswer = '';
+            if (playerClueAnswerBox) hideElement(playerClueAnswerBox);
+            break;
+
+          case 'CLUE_CLOSED':
+            if (msg.clientTime) {
+              measuredPing = Math.max(10, Date.now() - msg.clientTime);
+            }
+            if (msg.answer) {
+              currentRevealedAnswer = msg.answer;
+              if (playerClueAnswerText) playerClueAnswerText.innerText = currentRevealedAnswer;
+              if (playerClueAnswerBox) showElement(playerClueAnswerBox, 'block');
+              if (playerClueBox) showElement(playerClueBox, 'block');
+            }
+            break;
+
           case 'WAGER_SET':
             if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
             updatePlayerState(msg.state);
@@ -446,6 +465,13 @@ document.addEventListener('DOMContentLoaded', () => {
           case 'ANSWER_EVALUATED':
             if (playerCountdownOverlay) playerCountdownOverlay.classList.remove('active');
             updatePlayerState(msg.state);
+            const ansRev = msg.answer || (msg.state && msg.state.currentClue && msg.state.currentClue.answer);
+            if (ansRev) {
+              currentRevealedAnswer = ansRev;
+              if (playerClueAnswerText) playerClueAnswerText.innerText = currentRevealedAnswer;
+              if (playerClueAnswerBox) showElement(playerClueAnswerBox, 'block');
+              if (playerClueBox) showElement(playerClueBox, 'block');
+            }
             if (msg.playerId === playerId) {
               if (msg.isCorrect) {
                 buzzerStatus.innerText = `CORRECT! +$${msg.scoreChange}`;
@@ -486,6 +512,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }, delay);
   }
 
+  function showElement(el, displayStyle = 'block') {
+    if (!el) return;
+    el.classList.remove('display-none');
+    el.style.display = displayStyle;
+  }
+
+  function hideElement(el) {
+    if (!el) return;
+    el.classList.add('display-none');
+    el.style.display = 'none';
+  }
+
   function updatePlayerState(state) {
     if (!state) return;
 
@@ -516,6 +554,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerFJMaxWagerHint = document.getElementById('playerFJMaxWagerHint');
     const playerFJClueText = document.getElementById('playerFJClueText');
     const playerFJStatus = document.getElementById('playerFJStatus');
+    const buzzerContainer = document.querySelector('.buzzer-container');
+    const playerBoardContainer = document.getElementById('playerBoardContainer');
 
     if (state.finalJeopardy && state.finalJeopardy.state !== 'FINISHED') {
       const fj = state.finalJeopardy;
@@ -527,6 +567,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (playerFJCard) playerFJCard.style.display = 'block';
       if (playerFJCategory) playerFJCategory.innerText = `CATEGORY: ${fj.category}`;
+
+      if (buzzerContainer) buzzerContainer.style.display = 'none';
+      if (playerBoardContainer) playerBoardContainer.style.display = 'none';
 
       if (isDisqualified) {
         if (playerFJWagerPanel) playerFJWagerPanel.style.display = 'none';
@@ -541,39 +584,54 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (fj.state === 'WAGER') {
-        if (playerFJWagerPanel) playerFJWagerPanel.style.display = 'block';
-        if (playerFJResponsePanel) playerFJResponsePanel.style.display = 'none';
-        if (playerFJMaxWagerHint) playerFJMaxWagerHint.innerText = `Enter your secret wager ($0 to $${Math.max(0, myScore)}):`;
-
         if (myWager !== undefined) {
+          if (playerFJWagerPanel) playerFJWagerPanel.style.display = 'none';
+          if (playerFJResponsePanel) playerFJResponsePanel.style.display = 'none';
           if (playerFJStatus) {
             playerFJStatus.style.display = 'block';
-            playerFJStatus.innerText = `Wager Locked In: $${myWager}. Waiting for Host...`;
+            playerFJStatus.innerText = `✓ Step 1 Complete: Secret Wager Locked In ($${myWager}). Waiting for Host to reveal clue...`;
             playerFJStatus.style.color = 'var(--jeopardy-gold)';
           }
         } else {
+          if (playerFJWagerPanel) playerFJWagerPanel.style.display = 'block';
+          if (playerFJResponsePanel) playerFJResponsePanel.style.display = 'none';
+          if (playerFJMaxWagerHint) playerFJMaxWagerHint.innerText = `Step 1 of 3: Enter your secret wager ($0 to $${Math.max(0, myScore)}):`;
           if (playerFJStatus) playerFJStatus.style.display = 'none';
         }
-        setBuzzerLocked('FINAL JEOPARDY WAGER PHASE');
-      } else if (fj.state === 'CLUE' || fj.state === 'EVALUATION') {
+        setBuzzerLocked('STEP 1: SECRET WAGER PHASE');
+      } else if (fj.state === 'CLUE') {
         if (playerFJWagerPanel) playerFJWagerPanel.style.display = 'none';
-        if (playerFJResponsePanel) playerFJResponsePanel.style.display = 'block';
         if (playerFJClueText) playerFJClueText.innerText = fj.clue || 'Final Jeopardy Clue';
 
         if (myResponse !== undefined) {
+          if (playerFJResponsePanel) playerFJResponsePanel.style.display = 'none';
           if (playerFJStatus) {
             playerFJStatus.style.display = 'block';
-            playerFJStatus.innerText = `Answer Submitted: "${myResponse}". Good luck!`;
+            playerFJStatus.innerText = `✓ Step 2 Complete: Answer Submitted ("${myResponse}"). Waiting for Host evaluation...`;
             playerFJStatus.style.color = 'var(--jeopardy-gold)';
           }
         } else {
+          if (playerFJResponsePanel) playerFJResponsePanel.style.display = 'block';
           if (playerFJStatus) playerFJStatus.style.display = 'none';
         }
-        setBuzzerLocked('FINAL JEOPARDY ANSWER PHASE');
+        setBuzzerLocked('STEP 2: WRITE YOUR ANSWER');
+      } else if (fj.state === 'EVALUATION') {
+        if (playerFJWagerPanel) playerFJWagerPanel.style.display = 'none';
+        if (playerFJResponsePanel) playerFJResponsePanel.style.display = 'none';
+        if (playerFJClueText) playerFJClueText.innerText = fj.clue || 'Final Jeopardy Clue';
+
+        if (playerFJStatus) {
+          playerFJStatus.style.display = 'block';
+          playerFJStatus.innerText = `Step 3: Host is evaluating contestant answers live on the TV screen!`;
+          playerFJStatus.style.color = '#60a5fa';
+        }
+        setBuzzerLocked('STEP 3: HOST ANSWER EVALUATION');
       }
       return;
     } else {
-      if (playerFJCard) playerFJCard.style.display = 'none';
+      if (playerFJCard) hideElement(playerFJCard);
+      if (buzzerContainer) showElement(buzzerContainer, 'flex');
+      if (playerBoardContainer) showElement(playerBoardContainer, 'block');
     }
 
     if (state.currentClue) {
@@ -588,22 +646,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isEligible) {
           if (!state.currentClue.wagerSet) {
-            if (playerDDWagerBox) playerDDWagerBox.style.display = 'block';
+            if (playerDDWagerBox) showElement(playerDDWagerBox, 'block');
             if (playerDDMaxWagerHint) {
               const maxW = state.currentClue.maxWager || 1000;
               playerDDMaxWagerHint.innerText = `Enter your wager ($5 to $${maxW}):`;
             }
-            playerClueBox.style.display = 'none';
+            hideElement(playerClueBox);
             setBuzzerLocked('YOU GOT THE DAILY DOUBLE! Enter your wager.');
           } else {
-            if (playerDDWagerBox) playerDDWagerBox.style.display = 'none';
+            if (playerDDWagerBox) hideElement(playerDDWagerBox);
             showClueDetails(state.currentClue);
             setBuzzerLocked(`DAILY DOUBLE WAGER: $${state.currentClue.wager} - Answer out loud to Host!`);
           }
         } else {
-          if (playerDDWagerBox) playerDDWagerBox.style.display = 'none';
+          if (playerDDWagerBox) hideElement(playerDDWagerBox);
           if (!state.currentClue.wagerSet) {
-            playerClueBox.style.display = 'none';
+            hideElement(playerClueBox);
             setBuzzerLockedOut(`Daily Double reserved for ${state.currentClue.eligiblePlayerName || 'selected player'} (Wager in progress...)`);
           } else {
             showClueDetails(state.currentClue);
@@ -613,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (playerDDWagerBox) playerDDWagerBox.style.display = 'none';
+      if (playerDDWagerBox) hideElement(playerDDWagerBox);
 
       // Check if player is locked out on this clue
       if (state.currentClue.lockedOutPlayerIds && state.currentClue.lockedOutPlayerIds.includes(playerId)) {
@@ -638,9 +696,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else {
       const playerDDWagerBox = document.getElementById('playerDDWagerBox');
-      if (playerDDWagerBox) playerDDWagerBox.style.display = 'none';
+      if (playerDDWagerBox) hideElement(playerDDWagerBox);
       currentClueObj = null;
-      playerClueBox.style.display = 'none';
+      hideElement(playerClueBox);
 
       if (state.controllingPlayerId === playerId) {
         setBuzzerLocked('YOU HAVE BOARD CONTROL! Tell Host your clue choice.');
@@ -690,15 +748,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const isCtrl = state.controllingPlayerId ? (p.id === state.controllingPlayerId) : false;
-      const ctrlBadge = isCtrl ? `<span style="font-size: 0.65rem; font-weight: 900; background: var(--jeopardy-gold); color: #000000; padding: 0.05rem 0.3rem; border-radius: 3px; margin-left: 0.2rem;" title="Board Control">CONTROL</span>` : '';
+      const ctrlBadge = isCtrl ? `<span class="control-badge" title="Board Control">CONTROL</span>` : '';
 
       const info = document.createElement('div');
-      info.style.display = 'flex';
-      info.style.alignItems = 'center';
-      info.style.gap = '0.35rem';
+      info.className = 'flex-row align-center gap-xs';
       info.innerHTML = `
-        <span style="font-weight: 800; color: ${p.color || '#ffffff'};">${p.name}${ctrlBadge}</span>
-        <span style="font-weight: 900; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
+        <span class="font-bold-800" style="color: ${p.color || '#ffffff'};">${p.name}${ctrlBadge}</span>
+        <span class="font-bold-900" style="color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
       `;
 
       card.appendChild(avatar);
@@ -741,8 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
           card.classList.add('revealed');
           card.innerText = '';
         } else if (isCurrent) {
-          card.style.borderColor = 'var(--jeopardy-gold)';
-          card.style.boxShadow = '0 0 12px rgba(251, 191, 36, 0.4)';
+          card.classList.add('active-selected');
           card.innerText = `$${clue.value}`;
         } else {
           card.innerText = `$${clue.value}`;
@@ -758,40 +813,40 @@ document.addEventListener('DOMContentLoaded', () => {
   function showClueDetails(clue) {
     if (!clue) return;
     currentClueObj = clue;
-    playerClueBox.style.display = 'block';
+    showElement(playerClueBox, 'block');
     playerClueCategory.innerText = clue.categoryName;
     playerClueValue.innerText = clue.dailyDouble ? `DAILY DOUBLE ($${clue.wager || clue.value})` : `$${clue.value}`;
 
-    const isUnlocked = clue.dailyDouble ? clue.wagerSet : (buzzerState === 'UNLOCKED' || buzzerState === 'BUZZED' || buzzerState === 'WINNER' || buzzerState === 'LOCKED_OUT');
+    playerClueText.innerText = clue.clue || '';
+    showElement(playerClueText, 'block');
+    playerClueText.style.fontStyle = 'normal';
+    playerClueText.style.color = '#fff';
 
-    if (isUnlocked) {
-      playerClueText.innerText = clue.clue;
-      playerClueText.style.display = 'block';
-      playerClueText.style.fontStyle = 'normal';
-      playerClueText.style.color = '#fff';
+    const playerClueAnswerBox = document.getElementById('playerClueAnswerBox');
+    const playerClueAnswerText = document.getElementById('playerClueAnswerText');
+    const ansToShow = clue.answer || currentRevealedAnswer;
+    if (ansToShow && playerClueAnswerBox && playerClueAnswerText) {
+      playerClueAnswerText.innerText = ansToShow;
+      showElement(playerClueAnswerBox, 'block');
+    } else if (playerClueAnswerBox) {
+      hideElement(playerClueAnswerBox);
+    }
 
-      if (playerClueImage) {
-        playerClueImage.onerror = () => {
-          playerClueImage.style.display = 'none';
-          playerClueImage.removeAttribute('src');
-          playerClueImage.alt = '';
-        };
-      }
+    if (playerClueImage) {
+      playerClueImage.onerror = () => {
+        hideElement(playerClueImage);
+        playerClueImage.removeAttribute('src');
+        playerClueImage.alt = '';
+      };
 
       if (clue.image && typeof clue.image === 'string' && clue.image.trim() !== '' && clue.image !== 'null' && clue.image !== 'undefined') {
         playerClueImage.src = clue.image;
-        playerClueImage.style.display = 'inline-block';
+        showElement(playerClueImage, 'inline-block');
       } else {
-        playerClueImage.style.display = 'none';
+        hideElement(playerClueImage);
         playerClueImage.removeAttribute('src');
         playerClueImage.alt = '';
       }
-    } else {
-      playerClueText.style.display = 'none';
-      playerClueText.innerText = '';
-      playerClueImage.style.display = 'none';
-      playerClueImage.removeAttribute('src');
-      playerClueImage.alt = '';
     }
   }
 
@@ -820,11 +875,13 @@ document.addEventListener('DOMContentLoaded', () => {
         row.className = `podium-row rank-${idx + 1}`;
         const medal = idx === 0 ? '1st' : (idx === 1 ? '2nd' : (idx === 2 ? '3rd' : `#${idx + 1}`));
         row.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <span class="rank-badge rank-badge-${idx + 1}">${medal}</span>
-            <span style="font-weight: 800; color: ${p.color || '#fff'}; font-size: 1.05rem;">${p.name}</span>
+          <div class="podium-standing-item w-full">
+            <div class="flex-row align-center gap-md">
+              <span class="rank-badge rank-badge-${idx + 1}">${medal}</span>
+              <span class="podium-standing-name" style="color: ${p.color || '#fff'};">${p.name}</span>
+            </div>
+            <span class="podium-standing-score" style="color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
           </div>
-          <span style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.2rem; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
         `;
         playerPodiumStandings.appendChild(row);
       });
@@ -888,7 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function setBuzzerLocked(statusText) {
     buzzerState = 'LOCKED';
-    btnBuzzer.disabled = true;
+    btnBuzzer.disabled = false;
     btnBuzzer.className = 'buzzer-btn';
     btnBuzzer.innerText = 'WAIT';
     buzzerStatus.innerText = statusText || 'Waiting...';
@@ -905,19 +962,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (e.code === 'Space' || e.code === 'Enter') {
       e.preventDefault();
-      if (buzzerState === 'UNLOCKED' && !btnBuzzer.disabled) {
-        if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
-          setBuzzerLockedOut('You answered incorrectly on this clue.');
-          return;
-        }
-        btnBuzzer.click();
-      }
+      handleBuzzerPress();
     }
   });
 
+  let lastBuzzTime = 0;
+
   // Press Buzzer Action
-  btnBuzzer.onclick = () => {
-    if (buzzerState !== 'UNLOCKED') return;
+  function handleBuzzerPress() {
+    const now = Date.now();
+    if (now - lastBuzzTime < 250) return;
+    lastBuzzTime = now;
+
+    if (buzzerState === 'WINNER' || buzzerState === 'LOCKED_OUT' || buzzerState === 'BUZZED') {
+      return;
+    }
+
     if (currentClueObj && currentClueObj.lockedOutPlayerIds && currentClueObj.lockedOutPlayerIds.includes(playerId)) {
       setBuzzerLockedOut('You answered incorrectly on this clue.');
       return;
@@ -937,20 +997,35 @@ document.addEventListener('DOMContentLoaded', () => {
       navigator.vibrate([100, 50, 100]);
     }
 
-    if (window.soundFX) {
+    if (window.soundFX && buzzerState === 'UNLOCKED') {
       window.soundFX.playBuzzer();
     }
 
     try {
       ws.send(JSON.stringify({
         type: 'PRESS_BUZZER',
-        reactionTimeMs: reactionTimeMs
+        reactionTimeMs: reactionTimeMs,
+        ping: measuredPing
       }));
+
+      if (buzzerState === 'UNLOCKED') {
+        buzzerState = 'BUZZED';
+        btnBuzzer.disabled = true;
+        btnBuzzer.className = 'buzzer-btn';
+        btnBuzzer.innerText = 'BUZZED!';
+        buzzerStatus.innerText = 'BUZZ TRANSMITTED! Processing...';
+        buzzerStatus.style.color = 'var(--jeopardy-gold)';
+      }
     } catch (err) {
       console.error('Error sending buzz:', err);
       initWebSocket();
     }
-  };
+  }
+
+  btnBuzzer.onclick = handleBuzzerPress;
+  if (playerCountdownOverlay) {
+    playerCountdownOverlay.onclick = handleBuzzerPress;
+  }
 
   // Daily Double Wager Event Listeners for Player Screen
   const playerWagerInput = document.getElementById('playerWagerInput');
@@ -1023,4 +1098,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
   }
+
+  // Background Ping measurement loop for accurate network latency compensation
+  setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'PING', clientTime: Date.now() }));
+    }
+  }, 4000);
 });

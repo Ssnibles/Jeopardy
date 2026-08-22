@@ -4,35 +4,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jeopardy Game Host & Real-Time Buzzers</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/index.css">
 </head>
 <body>
 
   <header class="header-bar">
     <a href="/" class="brand">
       <span class="brand-logo">JEOPARDY ARENA</span>
-      <span class="brand-tag">LOBBY</span>
     </a>
     <div class="nav-links">
-      <a href="/creator.html" class="btn btn-gold">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        Custom Pack Creator
+      <a href="/creator.html" class="btn btn-icon" title="Custom Pack Creator">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       </a>
     </div>
   </header>
 
-  <main class="container" style="max-width: 1100px; margin: 1.5rem auto 3rem auto;">
-    <h1 class="hero-title">ULTIMATE JEOPARDY</h1>
-    <p class="hero-subtitle">Real-time multi-player buzzers, host control panel, and custom trivia builder</p>
+  <main class="lobby-main">
+    <div class="lobby-hero-banner">
+      <h1 class="hero-title">ULTIMATE JEOPARDY</h1>
+      <p class="hero-subtitle">Real-time multi-player buzzers, host control panel, and custom trivia builder</p>
+    </div>
 
-    <div class="grid-2" style="max-width: 1050px; margin: 0 auto; align-items: stretch;">
+    <!-- UNIFIED SLEEK LOBBY STUDIO FRAME (NO FLOATING CARDS) -->
+    <div class="studio-grid-2">
 
-      <!-- HOST CARD WITH PREMADE PACKS & DIRECT CUSTOM FILE PICKER -->
-      <div class="glass-panel" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem;">
+      <!-- LEFT COLUMN: HOST A NEW GAME -->
+      <div class="studio-col-left">
         <div>
-          <div style="margin-bottom: 1.15rem;">
-            <h2 style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">Host a New Game</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Choose a pre-made trivia pack or upload your custom .json file</p>
+          <div class="lobby-card-header">
+            <h2 class="lobby-card-title">Host a New Game</h2>
+            <p class="lobby-card-subtitle">Choose a pre-made trivia pack or upload your custom .json file</p>
           </div>
 
           <!-- PACK METHOD CHOICE -->
@@ -49,35 +51,35 @@
                 <span>Load Custom Pack (.json)</span>
               </div>
             </div>
-            <input type="file" id="customPackFile" accept=".json" style="display: none;">
-            <input type="file" id="customPackFileRound2" accept=".json" style="display: none;">
+            <input type="file" id="customPackFile" accept=".json" class="display-none">
+            <input type="file" id="customPackFileRound2" accept=".json" class="display-none">
           </div>
 
           <!-- PRE-MADE DROPDOWN SELECTOR -->
-          <div id="premadePackSection" class="form-group" style="margin-top: 0.85rem; width: 100%; box-sizing: border-box;">
+          <div id="premadePackSection" class="form-group mt-md w-full">
             <label for="premadePackSelect">ROUND 1 BOARD (JEOPARDY!)</label>
-            <select id="premadePackSelect" class="form-control" style="width: 100%; max-width: 100%; box-sizing: border-box; font-weight: 700; color: var(--jeopardy-gold);">
+            <select id="premadePackSelect" class="form-control text-gold font-bold-700">
             </select>
           </div>
 
-          <div id="round2PackGroup" class="form-group" style="margin-top: 0.85rem; width: 100%; box-sizing: border-box;">
+          <div id="round2PackGroup" class="form-group mt-md w-full">
             <label for="premadePackSelectRound2">ROUND 2 BOARD (DOUBLE JEOPARDY!)</label>
-            <select id="premadePackSelectRound2" class="form-control" style="width: 100%; max-width: 100%; box-sizing: border-box; font-weight: 700; color: var(--jeopardy-gold);">
+            <select id="premadePackSelectRound2" class="form-control text-gold font-bold-700">
             </select>
           </div>
 
           <!-- CUSTOM PACK SECTION -->
-          <div id="customPackSection" class="form-group" style="margin-top: 0.85rem; width: 100%; display: none; flex-direction: column; gap: 0.5rem;">
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button type="button" id="btnPickCustomR1" class="btn" style="flex: 1; padding: 0.5rem; font-size: 0.85rem; font-weight: 700;">Upload Round 1 (.json)</button>
-              <button type="button" id="btnPickCustomR2" class="btn" style="flex: 1; padding: 0.5rem; font-size: 0.85rem; font-weight: 700;">Upload Round 2 (.json)</button>
+          <div id="customPackSection" class="form-group mt-md w-full display-none flex-col gap-sm">
+            <div class="flex-row gap-sm flex-wrap">
+              <button type="button" id="btnPickCustomR1" class="btn flex-1 gap-xs font-bold-700">Upload Round 1 (.json)</button>
+              <button type="button" id="btnPickCustomR2" class="btn flex-1 gap-xs font-bold-700">Upload Round 2 (.json)</button>
             </div>
-            <div id="customPackStatus" class="pack-dropzone-status" style="margin-top: 0.25rem; display: none;"></div>
-            <div id="customPackStatusRound2" class="pack-dropzone-status" style="margin-top: 0.25rem; display: none;"></div>
+            <div id="customPackStatus" class="pack-dropzone-status display-none"></div>
+            <div id="customPackStatusRound2" class="pack-dropzone-status display-none"></div>
           </div>
 
           <!-- GAME FORMAT SELECTOR -->
-          <div class="form-group" style="margin-top: 0.85rem; width: 100%; box-sizing: border-box;">
+          <div class="form-group mt-md w-full">
             <label>GAME FORMAT / MODE</label>
             <input type="hidden" id="gameModeInput" value="STANDARD">
             <div class="mode-toggle-group" id="lobbyModeToggleGroup">
@@ -94,14 +96,14 @@
 
           <!-- PACK QUESTIONS PREVIEW LIST WITH TABS -->
           <div id="packPreviewContainer" class="pack-preview-panel">
-            <div class="pack-preview-header" style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="pack-preview-header">
+              <div class="flex-row justify-between align-center">
                 <span id="packPreviewTitle" class="pack-preview-title">Pack Preview</span>
                 <span id="packPreviewBadge" class="pack-preview-badge">5 Categories • 25 Clues</span>
               </div>
-              <div id="previewTabGroup" style="display: flex; gap: 0.4rem; margin-top: 0.25rem;">
-                <button type="button" id="btnPreviewTabRound1" class="btn btn-gold active" style="padding: 0.255rem 0.65rem; font-size: 0.78rem; font-weight: 800;">Round 1 (Jeopardy!)</button>
-                <button type="button" id="btnPreviewTabRound2" class="btn" style="padding: 0.255rem 0.65rem; font-size: 0.78rem; font-weight: 800;">Round 2 (Double Jeopardy!)</button>
+              <div id="previewTabGroup" class="flex-row gap-xs mt-sm">
+                <button type="button" id="btnPreviewTabRound1" class="btn active font-bold-800">Round 1 (Jeopardy!)</button>
+                <button type="button" id="btnPreviewTabRound2" class="btn font-bold-800">Round 2 (Double Jeopardy!)</button>
               </div>
             </div>
             <div id="packPreviewList" class="pack-preview-list">
@@ -111,74 +113,76 @@
 
         </div>
 
-        <button id="btnCreateRoom" class="btn btn-gold" style="width: 100%; padding: 0.85rem; font-size: 1.05rem; font-weight: 800; margin-top: 1rem;">
+        <button id="btnCreateRoom" class="btn btn-primary w-full mt-lg font-bold-800">
           Launch Game Room
         </button>
       </div>
 
-      <!-- PLAYER CARD -->
-      <div class="glass-panel" style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <!-- RIGHT COLUMN: JOIN AS PLAYER -->
+      <div class="studio-col-right">
         <div>
-          <h2 style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">Join as Player</h2>
-          <p style="color: var(--text-muted); font-size: 0.9rem;">Set up your profile and buzzer</p>
-        </div>
-
-        <form id="joinRoomForm" style="display: flex; flex-direction: column; gap: 1rem;">
-          <div class="form-group">
-            <label for="joinCode">4-LETTER ROOM CODE</label>
-            <input type="text" id="joinCode" class="form-control" placeholder="e.g. ABCD" maxlength="4" style="text-transform: uppercase; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.1em;" required>
+          <div class="lobby-card-header">
+            <h2 class="lobby-card-title">Join as Player</h2>
+            <p class="lobby-card-subtitle">Set up your profile and buzzer</p>
           </div>
 
-          <div class="form-group">
-            <label for="joinName">YOUR NICKNAME</label>
-            <input type="text" id="joinName" class="form-control" placeholder="Enter contestant name..." required>
-          </div>
+          <form id="joinRoomForm" class="flex-col gap-lg">
+            <div class="form-group">
+              <label for="joinCode">4-LETTER ROOM CODE</label>
+              <input type="text" id="joinCode" class="form-control join-code-input" placeholder="e.g. ABCD" maxlength="4" required>
+            </div>
 
-          <div class="form-group">
-            <label>AVATAR & BUZZER COLOUR</label>
-            <div class="identity-customiser">
-              <div class="avatar-upload-wrapper" id="btnUploadJoinAvatar" title="Click to upload custom photo">
-                <div id="joinAvatarPreview" class="avatar-bubble-lg" style="background: #3b82f6;">?</div>
-                <div class="avatar-overlay">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                  <span>Edit</span>
+            <div class="form-group">
+              <label for="joinName">YOUR NICKNAME</label>
+              <input type="text" id="joinName" class="form-control" placeholder="Enter contestant name..." required>
+            </div>
+
+            <div class="form-group">
+              <label>AVATAR & BUZZER COLOUR</label>
+              <div class="identity-customiser">
+                <div class="avatar-upload-wrapper" id="btnUploadJoinAvatar" title="Click to upload custom photo">
+                  <div id="joinAvatarPreview" class="avatar-bubble-lg">?</div>
+                  <div class="avatar-overlay">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span>Edit</span>
+                  </div>
                 </div>
-              </div>
-              <input type="file" id="joinAvatarFile" accept="image/*" style="display: none;">
+                <input type="file" id="joinAvatarFile" accept="image/*" class="display-none">
 
-              <div class="color-swatches-container">
-                <span class="color-swatches-label">Select Colour (Click avatar for photo)</span>
-                <div class="color-swatches-row" id="joinColorSwatches">
-                  <div class="color-dot active" data-color="#3b82f6" style="background: #3b82f6;"></div>
-                  <div class="color-dot" data-color="#10b981" style="background: #10b981;"></div>
-                  <div class="color-dot" data-color="#f59e0b" style="background: #f59e0b;"></div>
-                  <div class="color-dot" data-color="#ef4444" style="background: #ef4444;"></div>
-                  <div class="color-dot" data-color="#8b5cf6" style="background: #8b5cf6;"></div>
-                  <div class="color-dot" data-color="#ec4899" style="background: #ec4899;"></div>
-                  <div class="color-picker-button" title="Custom Colour">
-                    <input type="color" id="joinColor" value="#3b82f6">
+                <div class="color-swatches-container">
+                  <span class="color-swatches-label">Select Colour (Click avatar for photo)</span>
+                  <div class="color-swatches-row" id="joinColorSwatches">
+                    <div class="color-dot active" data-color="#3b82f6"></div>
+                    <div class="color-dot" data-color="#10b981"></div>
+                    <div class="color-dot" data-color="#f59e0b"></div>
+                    <div class="color-dot" data-color="#ef4444"></div>
+                    <div class="color-dot" data-color="#8b5cf6"></div>
+                    <div class="color-dot" data-color="#ec4899"></div>
+                    <div class="color-picker-button" title="Custom Colour">
+                      <input type="color" id="joinColor" value="#3b82f6">
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <button type="submit" id="btnSubmitJoin" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1.05rem; font-weight: 700; margin-top: 0.25rem;">
-            Join Game Lobby
-          </button>
-        </form>
+            <button type="submit" id="btnSubmitJoin" class="btn btn-primary w-full mt-sm font-bold-700">
+              Join Game Lobby
+            </button>
+          </form>
+        </div>
       </div>
 
     </div>
 
-    <!-- MAIN SCREEN / TV BOARD CONNECTOR -->
-    <div class="glass-panel" style="max-width: 1050px; margin: 2rem auto 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <!-- INTEGRATED TV BOARD CONNECTOR STRIP (NO FLOATING CARD) -->
+    <div class="tv-connect-panel">
       <div>
-        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--jeopardy-gold);">Connect TV / Main Screen Display</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">Display full board grid and clues on a big TV or projector screen</p>
+        <h3 class="tv-connect-title">Connect TV / Main Screen Display</h3>
+        <p class="tv-connect-desc">Display full board grid and clues on a big TV or projector screen</p>
       </div>
-      <div style="display: flex; gap: 0.5rem; align-items: center;">
-        <input type="text" id="tvRoomCode" class="form-control" placeholder="ROOM CODE" maxlength="4" style="width: 130px; text-transform: uppercase; font-weight: 800;">
+      <div class="flex-row gap-sm align-center">
+        <input type="text" id="tvRoomCode" class="form-control tv-room-code-input" placeholder="ROOM CODE" maxlength="4">
         <button id="btnConnectTV" class="btn">Open TV View</button>
       </div>
     </div>

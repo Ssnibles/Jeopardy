@@ -240,13 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (roundName === 'round1') {
       currentRoundBadge.innerText = 'Editing: Round 1 (Jeopardy!)';
-      grid.style.display = 'grid';
+      grid.style.display = 'flex';
       creatorFinalArea.style.display = 'none';
       if (btnAddCategory) btnAddCategory.style.display = 'inline-block';
       renderGrid();
     } else if (roundName === 'round2') {
       currentRoundBadge.innerText = 'Editing: Round 2 (Double Jeopardy!)';
-      grid.style.display = 'grid';
+      grid.style.display = 'flex';
       creatorFinalArea.style.display = 'none';
       if (btnAddCategory) btnAddCategory.style.display = 'inline-block';
       renderGrid();
@@ -259,17 +259,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const previewFjCategory = document.getElementById('previewFjCategory');
+  const previewFjClueText = document.getElementById('previewFjClueText');
+  const previewFjAnswerText = document.getElementById('previewFjAnswerText');
+  const fjTileStatusBadge = document.getElementById('fjTileStatusBadge');
+
   function renderFinalEditor() {
     if (!pack || !pack.finalJeopardy) return;
     fjCategory.value = pack.finalJeopardy.category || '';
     fjClue.value = pack.finalJeopardy.clue || '';
     fjAnswer.value = pack.finalJeopardy.answer || '';
+    updateFinalPreview();
+  }
+
+  function updateFinalPreview() {
+    if (!pack || !pack.finalJeopardy) return;
+    const cat = pack.finalJeopardy.category || '';
+    const clue = pack.finalJeopardy.clue || '';
+    const ans = pack.finalJeopardy.answer || '';
+
+    if (previewFjCategory) previewFjCategory.innerText = `CATEGORY: ${cat ? cat.toUpperCase() : '(UNSET)'}`;
+    if (previewFjClueText) previewFjClueText.innerText = clue || '(Final Jeopardy clue text will appear here...)';
+    if (previewFjAnswerText) previewFjAnswerText.innerText = ans ? `A: ${ans}` : 'A: (Expected answer will appear here...)';
+
+    const isComplete = cat && clue && ans;
+    if (fjTileStatusBadge) {
+      fjTileStatusBadge.className = `creator-status-pill ${isComplete ? 'filled' : 'empty'}`;
+      fjTileStatusBadge.innerText = isComplete ? '✓ Tile Ready' : 'Incomplete';
+    }
   }
 
   if (fjCategory) {
     fjCategory.oninput = () => {
       if (!pack.finalJeopardy) pack.finalJeopardy = {};
       pack.finalJeopardy.category = fjCategory.value.trim();
+      updateFinalPreview();
       persistPack();
     };
   }
@@ -277,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fjClue.oninput = () => {
       if (!pack.finalJeopardy) pack.finalJeopardy = {};
       pack.finalJeopardy.clue = fjClue.value.trim();
+      updateFinalPreview();
       persistPack();
     };
   }
@@ -284,6 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fjAnswer.oninput = () => {
       if (!pack.finalJeopardy) pack.finalJeopardy = {};
       pack.finalJeopardy.answer = fjAnswer.value.trim();
+      updateFinalPreview();
       persistPack();
     };
   }

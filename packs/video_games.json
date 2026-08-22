@@ -48,8 +48,8 @@
         { "value": 200, "clue": "Which 1985 8-bit home console resurrected the North American video game market?", "answer": "NES (Nintendo Entertainment System)", "dailyDouble": false },
         { "value": 400, "clue": "What 16-bit console competed against the SNES with the slogan 'Genesis does what Nintendon't'?", "answer": "Sega Genesis (Mega Drive)", "dailyDouble": false },
         { "value": 600, "clue": "What is the best-selling home video game console of all time, releasing in 2000?", "answer": "PlayStation 2 (PS2)", "dailyDouble": false },
-        { "value": 800, "clue": "What handheld Nintendo console featured two screens, the bottom one being a touchscreen?", answer: "Nintendo DS", "dailyDouble": false },
-        { "value": 1000, "clue": "What 1998 Sega console featured an integrated modem and VMU memory cards before Sega left hardware?", answer: "Sega Dreamcast", "dailyDouble": false }
+        { "value": 800, "clue": "What handheld Nintendo console featured two screens, the bottom one being a touchscreen?", "answer": "Nintendo DS", "dailyDouble": false },
+        { "value": 1000, "clue": "What 1998 Sega console featured an integrated modem and VMU memory cards before Sega left hardware?", "answer": "Sega Dreamcast", "dailyDouble": false }
       ]
     }
   ]

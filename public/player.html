@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Jeopardy Player Buzzer</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/player.css">
 </head>
 <body>
 
@@ -27,85 +28,92 @@
     <div id="playerScoreboard" class="scoreboard"></div>
 
     <div class="header-right">
-      <span class="brand-tag">CONTESTANT</span>
       <div id="roomBadge" class="room-badge">ROOM: ----</div>
     </div>
   </header>
 
-  <main class="container player-main">
+  <main class="player-main">
 
     <!-- CLUE DISPLAY BOX (Borderless TV-Mode Style Text) -->
-    <div id="playerClueBox" class="clue-card-display" style="display: none;">
+    <div id="playerClueBox" class="clue-card-display display-none">
       <div id="playerClueCategory" class="clue-category-label">Category</div>
       <div id="playerClueValue" class="clue-value-text">$200</div>
       <div id="playerClueText" class="clue-body-text"></div>
-      <img id="playerClueImage" src="" alt="" class="clue-image-preview" style="display: none;">
+      <img id="playerClueImage" src="" alt="" class="clue-image-preview display-none">
+      <div id="playerClueAnswerBox" class="clue-answer-banner display-none">
+        <span class="answer-label text-gold">CORRECT ANSWER:</span> <span id="playerClueAnswerText" class="font-bold-800 text-white"></span>
+      </div>
     </div>
 
     <!-- DAILY DOUBLE CONTESTANT WAGER CARD -->
-    <div id="playerDDWagerBox" class="glass-panel" style="display: none; width: 100%; max-width: 500px; margin: 0 auto 1.5rem auto; padding: 1.25rem; border: 2px solid var(--jeopardy-gold); background: rgba(251,191,36,0.12); border-radius: var(--radius-md); text-align: center;">
-      <h3 style="color: var(--jeopardy-gold); font-size: 1.3rem; font-weight: 900; margin-bottom: 0.4rem;">DAILY DOUBLE!</h3>
-      <p id="playerDDMaxWagerHint" style="font-size: 0.95rem; color: #ffffff; margin-bottom: 1rem; font-weight: 600;">Enter your wager ($5 to $1,000):</p>
+    <div id="playerDDWagerBox" class="studio-panel player-dd-wager-box display-none">
+      <h3 class="text-gold font-outfit font-bold-900 mb-xs">DAILY DOUBLE!</h3>
+      <p id="playerDDMaxWagerHint" class="text-white font-bold-700 mb-lg">Enter your wager ($5 to $1,000):</p>
       
-      <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 0.85rem;">
+      <div class="flex-row gap-sm flex-center flex-wrap mb-md">
         <button type="button" class="btn dd-quick-btn" data-wager="500">$500</button>
         <button type="button" class="btn dd-quick-btn" data-wager="1000">$1,000</button>
         <button type="button" class="btn btn-gold dd-quick-btn" id="btnTrueDD">True Daily Double</button>
       </div>
 
-      <div style="display: flex; gap: 0.5rem; max-width: 340px; margin: 0 auto;">
-        <input type="number" id="playerWagerInput" class="form-control" placeholder="Wager $" min="5" style="text-align: center; font-size: 1.15rem; font-weight: 800;">
-        <button type="button" id="btnPlayerSubmitWager" class="btn btn-gold" style="font-weight: 800; padding: 0.6rem 1.25rem;">Submit Wager</button>
+      <div class="flex-row gap-sm flex-center">
+        <input type="number" id="playerWagerInput" class="form-control text-center font-bold-800" placeholder="Wager $" min="5">
+        <button type="button" id="btnPlayerSubmitWager" class="btn btn-gold font-bold-800">Submit Wager</button>
       </div>
     </div>
 
     <!-- FINAL JEOPARDY CONTESTANT CARD -->
-    <div id="playerFJCard" class="glass-panel" style="display: none; width: 100%; max-width: 500px; margin: 0 auto 1.5rem auto; padding: 1.25rem; border: 2px solid var(--jeopardy-gold); background: rgba(15, 23, 42, 0.95); border-radius: var(--radius-md); text-align: center;">
-      <h3 style="color: var(--jeopardy-gold); font-size: 1.4rem; font-weight: 900; margin-bottom: 0.4rem;">FINAL JEOPARDY</h3>
-      <p id="playerFJCategory" style="font-size: 1.1rem; color: #ffffff; margin-bottom: 0.8rem; font-weight: 700; text-transform: uppercase;">Category</p>
+    <div id="playerFJCard" class="studio-panel player-fj-card display-none">
+      <h3 class="text-gold font-outfit font-bold-900 mb-xs">FINAL JEOPARDY</h3>
+      <p id="playerFJCategory" class="text-white font-bold-700 mb-md">Category</p>
       
       <!-- Wager Sub-Panel -->
-      <div id="playerFJWagerPanel" style="display: block;">
-        <p id="playerFJMaxWagerHint" style="font-size: 0.9rem; color: #e2e8f0; margin-bottom: 0.75rem;">Enter your secret wager ($0 to $[Score]):</p>
-        <div style="display: flex; gap: 0.5rem; max-width: 340px; margin: 0 auto;">
-          <input type="number" id="playerFJWagerInput" class="form-control" placeholder="Wager $" min="0" style="text-align: center; font-size: 1.1rem; font-weight: 800;">
-          <button type="button" id="btnPlayerSubmitFJWager" class="btn btn-gold" style="font-weight: 800; padding: 0.6rem 1.1rem;">Lock Wager</button>
+      <div id="playerFJWagerPanel" class="player-fj-wager-panel">
+        <p id="playerFJMaxWagerHint" class="text-muted mb-md">Enter your secret wager ($0 to $[Score]):</p>
+        <div class="flex-row gap-sm flex-center">
+          <input type="number" id="playerFJWagerInput" class="form-control text-center font-bold-800" placeholder="Wager $" min="0">
+          <button type="button" id="btnPlayerSubmitFJWager" class="btn btn-gold font-bold-800">Lock Wager</button>
         </div>
       </div>
 
       <!-- Response Sub-Panel -->
-      <div id="playerFJResponsePanel" style="display: none; margin-top: 1rem;">
-        <div id="playerFJClueText" style="font-size: 1.15rem; color: #ffffff; margin-bottom: 1rem; font-weight: 600; line-height: 1.4;"></div>
-        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem;">Type your answer:</p>
-        <div style="display: flex; gap: 0.5rem; max-width: 380px; margin: 0 auto;">
-          <input type="text" id="playerFJResponseInput" class="form-control" placeholder="What is..." style="font-size: 1.05rem; font-weight: 700;">
-          <button type="button" id="btnPlayerSubmitFJResponse" class="btn btn-gold" style="font-weight: 800; padding: 0.6rem 1.1rem;">Submit Answer</button>
+      <div id="playerFJResponsePanel" class="player-fj-response-panel display-none">
+        <div id="playerFJClueText" class="text-white font-bold-700 mb-lg"></div>
+        <p class="text-muted mb-sm">Type your answer:</p>
+        <div class="flex-row gap-sm flex-center">
+          <input type="text" id="playerFJResponseInput" class="form-control font-bold-700" placeholder="What is...">
+          <button type="button" id="btnPlayerSubmitFJResponse" class="btn btn-gold font-bold-800">Submit Answer</button>
         </div>
       </div>
 
-      <div id="playerFJStatus" style="font-size: 0.9rem; font-weight: 700; color: var(--jeopardy-gold); margin-top: 0.85rem; display: none;"></div>
+      <div id="playerFJStatus" class="player-fj-status display-none"></div>
     </div>
 
-    <!-- GIANT BUZZER CONTAINER -->
-    <div class="buzzer-container">
-      <button id="btnBuzzer" class="buzzer-btn" disabled>
-        BUZZ
-      </button>
+    <!-- CONTESTANT STAGE BALANCED GRID -->
+    <div id="playerStageGrid" class="player-stage-grid">
 
-      <div id="buzzerStatus" class="buzzer-status">
-        Waiting for Host to start clue...
-      </div>
-      <div id="buzzerKeyHint" class="buzzer-key-hint">
-        Press <kbd class="key-pill">Spacebar</kbd> or <kbd class="key-pill">Enter</kbd> to buzz
-      </div>
-    </div>
+      <!-- GIANT BUZZER CONTAINER -->
+      <div class="buzzer-container">
+        <button id="btnBuzzer" class="buzzer-btn" disabled>
+          BUZZ
+        </button>
 
-    <!-- LIVE GAME BOARD (READ-ONLY FOR CONTESTANTS) -->
-    <div id="playerBoardContainer" class="glass-panel player-board-panel" style="display: none;">
-      <div class="board-panel-title">
-        LIVE GAME BOARD
+        <div id="buzzerStatus" class="buzzer-status">
+          Waiting for Host to start clue...
+        </div>
+        <div id="buzzerKeyHint" class="buzzer-key-hint">
+          Press <kbd class="key-pill">Spacebar</kbd> or <kbd class="key-pill">Enter</kbd> to buzz
+        </div>
       </div>
-      <div id="playerBoardGrid" class="jeopardy-board"></div>
+
+      <!-- LIVE GAME BOARD (READ-ONLY FOR CONTESTANTS) -->
+      <div id="playerBoardContainer" class="studio-panel player-board-panel display-none">
+        <div class="board-panel-title">
+          LIVE GAME BOARD
+        </div>
+        <div id="playerBoardGrid" class="jeopardy-board"></div>
+      </div>
+
     </div>
 
   </main>
@@ -137,17 +145,17 @@
                 <span>Edit</span>
               </div>
             </div>
-            <input type="file" id="setupAvatarFile" accept="image/*" style="display: none;">
+            <input type="file" id="setupAvatarFile" accept="image/*" class="display-none">
 
             <div class="color-swatches-container">
               <span class="color-swatches-label">Select Colour (Click avatar for photo)</span>
               <div class="color-swatches-row" id="setupColorSwatches">
-                <div class="color-dot active" data-color="#3b82f6" style="background: #3b82f6;"></div>
-                <div class="color-dot" data-color="#10b981" style="background: #10b981;"></div>
-                <div class="color-dot" data-color="#f59e0b" style="background: #f59e0b;"></div>
-                <div class="color-dot" data-color="#ef4444" style="background: #ef4444;"></div>
-                <div class="color-dot" data-color="#8b5cf6" style="background: #8b5cf6;"></div>
-                <div class="color-dot" data-color="#ec4899" style="background: #ec4899;"></div>
+                <div class="color-dot active" data-color="#3b82f6"></div>
+                <div class="color-dot" data-color="#10b981"></div>
+                <div class="color-dot" data-color="#f59e0b"></div>
+                <div class="color-dot" data-color="#ef4444"></div>
+                <div class="color-dot" data-color="#8b5cf6"></div>
+                <div class="color-dot" data-color="#ec4899"></div>
                 <div class="color-picker-button" title="Custom Colour">
                   <input type="color" id="setupColor" value="#3b82f6">
                 </div>
@@ -173,7 +181,7 @@
   <div id="playerWinscreenModal" class="winscreen-modal">
     <div class="winscreen-card">
       <div class="winner-badge-icon">
-        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--jeopardy-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--jeopardy-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 1 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
       </div>
       <h1 class="winner-title">GAME COMPLETED</h1>
       <div id="playerWinnerAvatar" class="winner-avatar-lg">?</div>

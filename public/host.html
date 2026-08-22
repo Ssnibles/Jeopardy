@@ -4,168 +4,159 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jeopardy Host Control Panel</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/host.css">
 </head>
-<body>
+<body class="host-body">
 
   <header class="header-bar">
-    <div style="display: flex; align-items: center; gap: 0.85rem;">
+    <div class="flex-row align-center gap-md">
       <a href="/" class="brand">
         <span class="brand-logo">JEOPARDY ARENA</span>
-        <span class="brand-tag">HOST PANEL</span>
       </a>
       <div id="roomBadge" class="room-badge">ROOM: ----</div>
     </div>
     <div class="nav-links">
-      <button id="btnPublicTunnel" class="btn btn-gold">Enable Internet Access</button>
-      <button id="btnCopyInvite" class="btn">Copy Invite Link</button>
-      <a href="/board.html" id="linkTV" target="_blank" class="btn">Open TV Screen Display</a>
+      <button id="btnPublicTunnel" class="btn btn-icon" title="Enable Internet Access">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </button>
+      <button id="btnCopyInvite" class="btn btn-icon" title="Copy Invite Link">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+      <a href="/board.html" id="linkTV" target="_blank" class="btn btn-icon" title="Open TV Screen Display">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+      </a>
     </div>
   </header>
 
-  <main class="container" style="max-width: 1750px; width: 98%; margin: 1rem auto 2rem auto;">
+  <main class="host-main">
 
-    <!-- HOST KEYBOARD SHORTCUTS BAR -->
-    <div class="keyboard-hints-bar" style="margin-bottom: 1rem;">
-      <span style="font-weight: 700; color: var(--jeopardy-gold);">Hotkeys:</span>
-      <span><kbd class="key-pill">Space</kbd> Countdown/Reset</span>
-      <span><kbd class="key-pill">Shift+Space</kbd> Instant Unlock</span>
-      <span><kbd class="key-pill">X</kbd> Wrong</span>
-      <span><kbd class="key-pill">C</kbd> Correct</span>
-      <span><kbd class="key-pill">Esc</kbd> Close Clue</span>
-    </div>
+    <!-- UNIFIED INTEGRATED STUDIO WORKSPACE FRAME (NO SEPARATE FLOATING CARDS) -->
+    <div class="studio-frame">
 
-    <!-- Active Clue Host Control Bar (When a clue is active) -->
-    <div id="hostClueControlPanel" class="host-clue-panel" style="display: none;">
-      <div class="host-clue-header">
+      <!-- Host Clue Control Bar (Always visible to prevent layout shift) -->
+      <div id="hostClueControlPanel" class="host-clue-panel host-clue-panel-top">
+        <div class="host-clue-header">
+          <div>
+            <span id="activeClueCategory" class="active-clue-category">NO CLUE SELECTED</span>
+            <h2 id="activeClueValue" class="active-clue-value">Select a clue from board below</h2>
+          </div>
+
+          <div id="buzzerControlsGroup" class="buzzer-controls-group display-none">
+            <button id="btnUnlockBuzzers" class="btn btn-success">UNLOCK BUZZERS (3s)</button>
+            <button id="btnInstantUnlock" class="btn" title="Unlock without 3-second countdown">Instant Unlock</button>
+            <button id="btnResetBuzzers" class="btn">Reset Buzzers</button>
+            <button id="btnCloseClue" class="btn btn-danger">Close Clue</button>
+          </div>
+        </div>
+
         <div>
-          <span id="activeClueCategory" style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em;">Category</span>
-          <h2 id="activeClueValue" style="font-size: 2rem; color: var(--jeopardy-gold); font-weight: 900; margin-top: 0.1rem;">$200</h2>
-        </div>
+          <p id="activeClueText" class="active-clue-text">Click any clue tile on the interactive game board below to activate buzzers and present the clue to players.</p>
+          <p id="activeClueAnswer" class="active-clue-answer display-none">
+            ANSWER: <span id="answerText"></span>
+          </p>
 
-        <div id="buzzerControlsGroup" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-          <button id="btnUnlockBuzzers" class="btn btn-gold" style="font-size: 1.05rem; padding: 0.75rem 1.5rem;">UNLOCK BUZZERS (3s)</button>
-          <button id="btnInstantUnlock" class="btn" title="Unlock without 3-second countdown">Instant Unlock</button>
-          <button id="btnResetBuzzers" class="btn">Reset Buzzers</button>
-          <button id="btnCloseClue" class="btn btn-danger">Close Clue</button>
-        </div>
-      </div>
+          <!-- Daily Double Form & Contestant Selector -->
+          <div id="dailyDoubleForm" class="daily-double-form display-none">
+            <h3 class="daily-double-title">DAILY DOUBLE - CONTESTANT SELECTION</h3>
+            
+            <div class="flex-col gap-md">
+              <div>
+                <label class="text-muted font-bold-700">Assign Contestant (Locks buzzers for everyone else):</label>
+                <select id="ddPlayerSelect" class="dd-player-select w-full">
+                  <!-- Rendered dynamically -->
+                </select>
+              </div>
 
-      <div>
-        <p id="activeClueText" style="font-size: 1.3rem; font-weight: 600; color: #fff; margin-bottom: 0.5rem; line-height: 1.4;"></p>
-        <p id="activeClueAnswer" style="font-size: 1.15rem; color: var(--color-success); font-weight: 800; background: rgba(16, 185, 129, 0.1); padding: 0.6rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--color-success); margin-top: 0.5rem;">
-          ANSWER: <span id="answerText"></span>
-        </p>
-
-        <!-- Daily Double Form & Contestant Selector -->
-        <div id="dailyDoubleForm" style="display: none; margin-top: 1rem; background: rgba(251,191,36,0.1); padding: 1.25rem; border-radius: var(--radius-md); border: 1.5px solid var(--jeopardy-gold);">
-          <h3 style="color: var(--jeopardy-gold); margin-bottom: 0.75rem; font-size: 1.15rem; font-weight: 900;">DAILY DOUBLE - CONTESTANT SELECTION</h3>
-          
-          <div style="display: flex; flex-direction: column; gap: 0.85rem; max-width: 500px;">
-            <div>
-              <label style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 0.3rem;">Assign Contestant (Locks buzzers for everyone else):</label>
-              <select id="ddPlayerSelect" class="dd-player-select" style="width: 100%;">
-                <!-- Rendered dynamically -->
-              </select>
-            </div>
-
-            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-              <input type="number" id="wagerInput" class="form-control" placeholder="Enter wager amount ($)" style="flex: 1; min-width: 180px;">
-              <button id="btnSetWager" class="btn btn-gold">Confirm Wager</button>
+              <div class="flex-row gap-md align-center flex-wrap">
+                <input type="number" id="wagerInput" class="form-control flex-1" placeholder="Enter wager amount ($)">
+                <button id="btnSetWager" class="btn btn-gold">Confirm Wager</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Active Buzz Winner Action Box -->
-      <div id="buzzWinnerBox" class="buzz-winner-banner" style="display: none;">
-        <div class="buzz-winner-title" style="display: flex; align-items: center; gap: 0.75rem;">
-          <span id="buzzWinnerName">Player Buzzed In!</span>
-          <span id="hostAnswerTimerBadge" class="room-badge" style="background: rgba(239, 68, 68, 0.25); color: #f87171; font-weight: 900; border: 1px solid rgba(239, 68, 68, 0.5); padding: 0.2rem 0.6rem; font-size: 0.95rem;">7s</span>
-        </div>
-        <div style="display: flex; gap: 0.75rem;">
-          <button id="btnMarkWrong" class="btn btn-danger" style="font-size: 1rem; padding: 0.6rem 1.25rem;">Incorrect (-<span class="clueValSpan"></span>)</button>
-          <button id="btnMarkCorrect" class="btn btn-success" style="font-size: 1rem; padding: 0.6rem 1.25rem;">Correct (+<span class="clueValSpan"></span>)</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- FINAL JEOPARDY HOST CONTROL PANEL -->
-    <div id="hostFJPanel" class="glass-panel" style="display: none; margin-bottom: 1.5rem; padding: 1.5rem; border: 2px solid var(--jeopardy-gold); background: rgba(15, 23, 42, 0.95); border-radius: var(--radius-lg);">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 1rem;">
-        <h2 style="font-size: 1.35rem; font-weight: 900; color: var(--jeopardy-gold);">HOST FINAL JEOPARDY CONTROL</h2>
-        <div id="hostFJStageBadge" class="room-badge" style="background: rgba(251, 191, 36, 0.2); color: var(--jeopardy-gold); font-weight: 800;">STAGE: WAGER</div>
-      </div>
-
-      <div style="margin-bottom: 1rem;">
-        <p style="font-size: 1rem; color: #ffffff; font-weight: 700; margin-bottom: 0.3rem;" id="hostFJCategory">CATEGORY: </p>
-        <p style="font-size: 1.05rem; color: var(--text-muted); font-style: italic;" id="hostFJClue">CLUE: </p>
-        <p style="font-size: 0.95rem; color: var(--jeopardy-gold); font-weight: 800; margin-top: 0.3rem;" id="hostFJAnswer">ANSWER: </p>
-      </div>
-
-      <!-- Controls bar -->
-      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
-        <button id="btnHostRevealFJClue" class="btn btn-gold" style="font-weight: 800;">Reveal Final Clue to Players</button>
-        <button id="btnHostFinishFJ" class="btn btn-success" style="font-weight: 800;">End Game & Declare Winner</button>
-      </div>
-
-      <!-- Player Wager & Response Table -->
-      <h3 style="font-size: 1rem; color: #ffffff; font-weight: 800; margin-bottom: 0.65rem;">Contestant Wagers & Responses:</h3>
-      <div id="hostFJPlayerList" style="display: flex; flex-direction: column; gap: 0.65rem;">
-        <!-- Dynamically rendered -->
-      </div>
-    </div>
-
-    <!-- MAIN BOARD & PLAYER SIDEBAR GRID -->
-    <div style="display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; align-items: start;">
-
-      <!-- JEOPARDY BOARD GRID -->
-      <div class="glass-panel" style="padding: 1.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.85rem;">
-          <div style="display: flex; align-items: center; gap: 0.85rem;">
-            <h2 style="font-size: 1.45rem; font-weight: 900; color: var(--jeopardy-gold);">Host Interactive Game Board</h2>
-            <span id="hostRoundBadge" class="room-badge" style="background: rgba(251,191,36,0.2); color: var(--jeopardy-gold); font-weight: 800; font-size: 0.9rem; padding: 0.25rem 0.65rem;">Jeopardy! Round</span>
+        <!-- Active Buzz Winner Action Box -->
+        <div id="buzzWinnerBox" class="buzz-winner-banner display-none">
+          <div class="buzz-winner-title">
+            <span id="buzzWinnerName">Player Buzzed In!</span>
+            <span id="hostAnswerTimerBadge" class="host-answer-timer-badge room-badge">7s</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <button id="btnAdvanceRound" class="btn btn-gold" style="font-size: 0.92rem; padding: 0.5rem 1rem; font-weight: 800;">Advance Round →</button>
-            <span style="font-size: 0.88rem; color: var(--text-muted);">Click clue to select</span>
+          <div class="flex-row gap-md">
+            <button id="btnMarkWrong" class="btn btn-danger">Incorrect (-<span class="clueValSpan"></span>)</button>
+            <button id="btnMarkCorrect" class="btn btn-success">Correct (+<span class="clueValSpan"></span>)</button>
           </div>
         </div>
-        <div id="hostBoard" class="jeopardy-board">
-          <!-- Rendered dynamically -->
-        </div>
       </div>
 
-      <!-- RIGHT SIDEBAR COLUMN: PLAYERS & HOST CONTROLS CARDS -->
-      <div style="display: flex; flex-direction: column; gap: 1.35rem;">
-        
-        <!-- PLAYERS & SCOREBOARD SIDEBAR CARD -->
-        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 1rem; padding: 1.5rem;">
-          <div class="host-sidebar-header">
-            <h3 style="font-size: 1.25rem; font-weight: 800;">
-              Players (<span id="playerCount">0</span>)
-            </h3>
-            <span style="font-size: 0.85rem; color: var(--text-muted);">Quick Adjust</span>
-          </div>
+      <!-- TOP INTEGRATED HOTKEYS STRIP -->
+      <div class="keyboard-hints-bar">
+        <span class="font-bold-800 text-gold">Hotkeys:</span>
+        <span><kbd class="key-pill">Space</kbd> Countdown/Reset</span>
+        <span><kbd class="key-pill">Shift+Space</kbd> Instant Unlock</span>
+        <span><kbd class="key-pill">X</kbd> Wrong</span>
+        <span><kbd class="key-pill">C</kbd> Correct</span>
+        <span><kbd class="key-pill">Esc</kbd> Close Clue</span>
+      </div>
 
-          <div id="playersList" style="display: flex; flex-direction: column; gap: 0.75rem; overflow-y: auto; max-height: 340px;">
+      <!-- MAIN HOST WORKSPACE SPLIT: GAME BOARD (LEFT) & FLUSH SIDEBAR (RIGHT) -->
+      <div class="host-workspace-grid">
+
+        <!-- JEOPARDY BOARD WORKSPACE -->
+        <div class="host-board-workspace">
+          <div class="flex-row justify-between align-center mb-md">
+            <div class="flex-row align-center gap-md">
+              <h2 class="font-bold-900 text-white">Host Interactive Game Board</h2>
+              <span id="hostRoundBadge" class="room-badge host-round-badge">Jeopardy! Round</span>
+            </div>
+            <div class="flex-row align-center gap-md">
+              <button id="btnAdvanceRound" class="btn font-bold-700">Advance Round →</button>
+            </div>
+          </div>
+          <div id="hostBoard" class="jeopardy-board">
             <!-- Rendered dynamically -->
           </div>
         </div>
 
-        <!-- HOST CONTROLS CARD -->
-        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 0.9rem; padding: 1.5rem;">
-          <div class="host-sidebar-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.65rem; margin-bottom: 0.35rem;">
-            <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--jeopardy-gold);">Host Controls</h3>
+        <!-- RIGHT SIDEBAR WORKSPACE (FLUSH SIDEBAR CONNECTED DIRECTLY TO BOARD) -->
+        <div class="host-sidebar-workspace">
+          
+          <!-- PLAYERS & SCOREBOARD SECTION -->
+          <div class="host-sidebar-section">
+            <div class="host-sidebar-header">
+              <h3 class="font-bold-800 text-white">
+                Players (<span id="playerCount">0</span>)
+              </h3>
+              <span class="text-muted">Quick Adjust</span>
+            </div>
+
+            <div id="playersList">
+              <!-- Rendered dynamically -->
+            </div>
           </div>
 
-          <button id="btnOpenNewGameModal" class="btn btn-gold" style="font-weight: 800; font-size: 1.05rem; width: 100%; justify-content: center; padding: 0.85rem 1.25rem;">New Game</button>
-          <button id="btnToggleMusic" class="btn btn-music-toggle" style="font-weight: 800; font-size: 1.05rem; width: 100%; justify-content: center; padding: 0.85rem 1.25rem;">Think Music</button>
-          <button id="btnTriggerGameOver" class="btn btn-gold" style="font-weight: 800; font-size: 1.05rem; width: 100%; justify-content: center; padding: 0.85rem 1.25rem;">Winner Screen</button>
+          <!-- HOST ACTION CONTROLS SECTION (PINNED TO BOTTOM) -->
+          <div class="host-sidebar-section host-controls-pinned">
+            <div class="host-sidebar-header mb-sm">
+              <h3 class="font-bold-800 text-white">Host Controls</h3>
+            </div>
 
-          <div style="margin-top: 0.75rem; padding-top: 0.85rem; border-top: 1px solid var(--border-subtle);">
-            <a href="/" class="btn btn-danger" style="width: 100%; text-align: center; justify-content: center; padding: 0.85rem 1.25rem; font-size: 1.05rem; font-weight: 800;">Exit Room</a>
+            <div class="flex-row gap-sm align-center">
+              <button id="btnOpenNewGameModal" class="btn btn-icon" title="New Game">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              </button>
+              <button id="btnToggleMusic" class="btn btn-icon" title="Think Music">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              </button>
+              <button id="btnTriggerGameOver" class="btn btn-icon" title="Winner Screen">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+              </button>
+              <a href="/" class="btn btn-danger btn-icon" title="Exit Room">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+              </a>
+            </div>
           </div>
+
         </div>
 
       </div>
@@ -183,20 +174,20 @@
   <!-- WINSCREEN OVERLAY -->
   <div id="hostWinscreenModal" class="winscreen-modal">
     <div class="winscreen-card">
-      <div class="winner-crown" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 2.2rem; color: var(--jeopardy-gold); letter-spacing: 0.1em; margin-bottom: 0.5rem;">CHAMPION</div>
+      <div class="winner-crown">CHAMPION</div>
       <h1 class="winner-title">JEOPARDY CHAMPION!</h1>
       <div id="hostWinnerAvatar" class="winner-avatar-lg">?</div>
-      <h2 id="hostWinnerName" style="font-size: 2rem; color: #fff; font-weight: 900;">Winner Name</h2>
+      <h2 id="hostWinnerName" class="winner-name-text">Winner Name</h2>
       <div id="hostWinnerScore" class="winner-score-display">$0</div>
 
-      <div style="width: 100%;">
-        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem;">FINAL STANDINGS</h3>
+      <div class="podium-section">
+        <h3 class="podium-title">FINAL STANDINGS</h3>
         <div id="hostPodiumStandings" class="podium-standings-grid">
           <!-- Rendered dynamically -->
         </div>
       </div>
 
-      <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+      <div class="flex-row gap-lg mt-md">
         <button id="btnDismissWinscreen" class="btn">Close Winscreen</button>
         <button id="btnResetGame" class="btn btn-gold">Start New Game / Reset Board</button>
       </div>
@@ -205,17 +196,17 @@
 
   <!-- NEW GAME SETUP MODAL OVERLAY -->
   <div id="newGameModal" class="clue-modal">
-    <div class="setup-modal-card" style="max-width: 680px; text-align: left; max-height: 90vh; overflow-y: auto;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.85rem; margin-bottom: 1.25rem;">
+    <div class="setup-modal-card host-newgame-card">
+      <div class="host-newgame-header">
         <div>
-          <h2 style="font-size: 1.5rem; color: var(--jeopardy-gold); margin: 0; font-family: 'Outfit', sans-serif; font-weight: 900;">Start New Game Round</h2>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Select a game pack and format while keeping current connected players.</p>
+          <h2 class="setup-modal-title mt-0 mb-0">Start New Game Round</h2>
+          <p class="setup-modal-desc mt-0 mb-0">Select a game pack and format while keeping current connected players.</p>
         </div>
-        <button id="btnCloseNewGameModal" type="button" class="btn" style="padding: 0.35rem 0.65rem; background: transparent; border: 1px solid var(--border-medium); color: var(--text-muted); font-size: 0.95rem;">✕</button>
+        <button id="btnCloseNewGameModal" type="button" class="btn host-newgame-close-btn">✕</button>
       </div>
 
       <!-- GAME MODE TOGGLE -->
-      <div class="form-group" style="margin-bottom: 1.15rem;">
+      <div class="form-group mb-md">
         <label>GAME FORMAT / MODE</label>
         <input type="hidden" id="modalGameModeInput" value="STANDARD">
         <div class="mode-toggle-group" id="modalModeToggleGroup">
@@ -231,43 +222,43 @@
       </div>
 
       <!-- PACK SELECTION METHOD -->
-      <div class="form-group" style="margin-bottom: 1.15rem;">
+      <div class="form-group mb-md">
         <label for="modalPackSelect">ROUND 1 BOARD (JEOPARDY!)</label>
-        <select id="modalPackSelect" class="form-control" style="font-weight: 700; color: var(--jeopardy-gold); margin-bottom: 0.5rem;">
+        <select id="modalPackSelect" class="form-control text-gold font-bold-700 mb-sm">
           <option value="">Loading available packs...</option>
         </select>
       </div>
 
-      <div id="modalRound2Group" class="form-group" style="margin-bottom: 1.15rem;">
+      <div id="modalRound2Group" class="form-group mb-md">
         <label for="modalPackSelectRound2">ROUND 2 BOARD (DOUBLE JEOPARDY!)</label>
-        <select id="modalPackSelectRound2" class="form-control" style="font-weight: 700; color: var(--jeopardy-gold); margin-bottom: 0.5rem;">
+        <select id="modalPackSelectRound2" class="form-control text-gold font-bold-700 mb-sm">
           <option value="">Loading available packs...</option>
         </select>
       </div>
 
-      <div class="form-group" style="margin-bottom: 1.15rem;">
-        <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.35rem; flex-wrap: wrap;">
-          <span style="font-size: 0.8rem; color: var(--text-muted);">OR Upload Custom Files:</span>
-          <label for="modalCustomPackFile" class="btn" style="cursor: pointer; padding: 0.35rem 0.75rem; font-size: 0.8rem; margin: 0;">Round 1 .json</label>
-          <input type="file" id="modalCustomPackFile" accept=".json" style="display: none;">
+      <div class="form-group mb-md">
+        <div class="flex-row gap-sm align-center mt-xs flex-wrap">
+          <span class="text-muted">OR Upload Custom Files:</span>
+          <label for="modalCustomPackFile" class="btn">Round 1 .json</label>
+          <input type="file" id="modalCustomPackFile" accept=".json" class="display-none">
           
-          <label for="modalCustomPackFileRound2" class="btn" style="cursor: pointer; padding: 0.35rem 0.75rem; font-size: 0.8rem; margin: 0;">Round 2 .json</label>
-          <input type="file" id="modalCustomPackFileRound2" accept=".json" style="display: none;">
+          <label for="modalCustomPackFileRound2" class="btn">Round 2 .json</label>
+          <input type="file" id="modalCustomPackFileRound2" accept=".json" class="display-none">
         </div>
-        <div id="modalPackStatus" style="font-size: 0.82rem; color: var(--color-success); font-weight: 700; margin-top: 0.35rem; display: none;"></div>
-        <div id="modalPackStatusRound2" style="font-size: 0.82rem; color: var(--color-success); font-weight: 700; margin-top: 0.35rem; display: none;"></div>
+        <div id="modalPackStatus" class="pack-dropzone-status display-none"></div>
+        <div id="modalPackStatusRound2" class="pack-dropzone-status display-none"></div>
       </div>
 
       <!-- PACK QUESTIONS PREVIEW LIST WITH TABS -->
-      <div id="modalPackPreviewContainer" class="pack-preview-panel" style="margin-bottom: 1.15rem; max-height: 240px; overflow-y: auto;">
-        <div class="pack-preview-header" style="display: flex; flex-direction: column; gap: 0.5rem; position: sticky; top: 0; background: var(--bg-card); z-index: 2; padding-bottom: 0.5rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div id="modalPackPreviewContainer" class="pack-preview-panel mb-md">
+        <div class="pack-preview-header">
+          <div class="flex-row justify-between align-center">
             <span id="modalPackPreviewTitle" class="pack-preview-title">Pack Preview</span>
             <span id="modalPackPreviewBadge" class="pack-preview-badge">5 Categories • 25 Clues</span>
           </div>
-          <div id="modalPreviewTabGroup" style="display: flex; gap: 0.4rem; margin-top: 0.25rem;">
-            <button type="button" id="btnModalPreviewTabRound1" class="btn btn-gold active" style="padding: 0.25rem 0.65rem; font-size: 0.78rem; font-weight: 800;">Round 1 (Jeopardy!)</button>
-            <button type="button" id="btnModalPreviewTabRound2" class="btn" style="padding: 0.25rem 0.65rem; font-size: 0.78rem; font-weight: 800;">Round 2 (Double Jeopardy!)</button>
+          <div id="modalPreviewTabGroup" class="flex-row gap-xs mt-xs">
+            <button type="button" id="btnModalPreviewTabRound1" class="btn btn-gold active font-bold-800">Round 1 (Jeopardy!)</button>
+            <button type="button" id="btnModalPreviewTabRound2" class="btn font-bold-800">Round 2 (Double Jeopardy!)</button>
           </div>
         </div>
         <div id="modalPackPreviewList" class="pack-preview-list">
@@ -276,17 +267,17 @@
       </div>
 
       <!-- KEEP PLAYERS OPTION -->
-      <div style="background: rgba(15, 23, 42, 0.6); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-medium); margin-bottom: 1.25rem;">
-        <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; margin: 0; color: #ffffff; font-weight: 700; font-size: 0.9rem;">
-          <input type="checkbox" id="chkKeepPlayers" checked style="width: 18px; height: 18px; accent-color: var(--jeopardy-gold);">
+      <div class="glass-panel mb-md">
+        <label class="flex-row align-center gap-md text-white font-bold-700">
+          <input type="checkbox" id="chkKeepPlayers" checked>
           <span>Keep current contestants & reset scores to $0</span>
         </label>
       </div>
 
       <!-- ACTIONS -->
-      <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
-        <button id="btnCancelNewGame" type="button" class="btn" style="padding: 0.65rem 1.25rem;">Cancel</button>
-        <button id="btnConfirmStartNewGame" type="button" class="btn btn-gold" style="font-weight: 800; padding: 0.65rem 1.5rem;">Launch New Game</button>
+      <div class="flex-row gap-md">
+        <button id="btnCancelNewGame" type="button" class="btn">Cancel</button>
+        <button id="btnConfirmStartNewGame" type="button" class="btn btn-gold font-bold-800">Launch New Game</button>
       </div>
     </div>
   </div>

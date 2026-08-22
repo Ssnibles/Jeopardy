@@ -186,8 +186,19 @@ document.addEventListener('DOMContentLoaded', () => {
           case 'CLUE_CLOSED':
             gameState = msg.state;
             renderBoard();
-            tvClueModal.classList.remove('active');
-            tvBuzzAlert.style.display = 'none';
+            const closedAns = msg.answer || (gameState.currentClue && gameState.currentClue.answer);
+            if (closedAns && tvAnswerBox && tvAnswerText) {
+              tvAnswerText.innerText = closedAns;
+              tvAnswerBox.style.display = 'block';
+              setTimeout(() => {
+                tvClueModal.classList.remove('active');
+                tvAnswerBox.style.display = 'none';
+              }, 2500);
+            } else {
+              tvClueModal.classList.remove('active');
+              if (tvAnswerBox) tvAnswerBox.style.display = 'none';
+            }
+            if (tvBuzzAlert) tvBuzzAlert.style.display = 'none';
             if (tvCountdownOverlay) tvCountdownOverlay.classList.remove('active');
             updateTunnelDisplay();
             checkGameOverState();
@@ -221,9 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
           case 'ANSWER_TIMER_EXPIRED':
             if (tvBuzzAlert) {
-              tvBuzzAlert.style.background = 'var(--color-danger)';
-              tvBuzzAlert.style.color = '#ffffff';
-              tvBuzzAlert.innerHTML = `<span><span id="tvBuzzPlayerName">${msg.activePlayerName || 'Contestant'}</span> - TIME EXPIRED!</span> <span id="tvAnswerTimerBadge" style="background: rgba(0,0,0,0.85); color: #ef4444; border-radius: 999px; padding: 0.2rem 0.8rem; font-size: 1.6rem; border: 2px solid #ef4444; margin-left: 0.8rem;">0s</span>`;
+              tvBuzzAlert.className = 'tv-buzz-alert alert-danger';
+              tvBuzzAlert.innerHTML = `<span><span id="tvBuzzPlayerName">${msg.activePlayerName || 'Contestant'}</span> - TIME EXPIRED!</span> <span id="tvAnswerTimerBadge" class="tv-answer-timer-badge">0s</span>`;
               tvBuzzAlert.style.display = 'inline-flex';
             }
             break;
@@ -232,9 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.soundFX) window.soundFX.playBuzzer();
             const labelMs = msg.latency ? ` (${msg.latency}ms)` : '';
             if (tvBuzzAlert) {
-              tvBuzzAlert.style.background = 'var(--jeopardy-gold)';
-              tvBuzzAlert.style.color = '#000000';
-              tvBuzzAlert.innerHTML = `<span><span id="tvBuzzPlayerName">${msg.playerName}${labelMs}</span> BUZZED IN!</span> <span id="tvAnswerTimerBadge" style="background: rgba(0,0,0,0.85); color: #ef4444; border-radius: 999px; padding: 0.2rem 0.8rem; font-size: 1.6rem; border: 2px solid #ef4444; margin-left: 0.8rem;">${msg.answerSecondsLeft || 7}s</span>`;
+              tvBuzzAlert.className = 'tv-buzz-alert';
+              tvBuzzAlert.innerHTML = `<span><span id="tvBuzzPlayerName">${msg.playerName}${labelMs}</span> BUZZED IN!</span> <span id="tvAnswerTimerBadge" class="tv-answer-timer-badge">${msg.answerSecondsLeft || 7}s</span>`;
               tvBuzzAlert.style.display = 'inline-flex';
             }
             renderScoreboard();
@@ -315,8 +324,15 @@ document.addEventListener('DOMContentLoaded', () => {
         card.className = 'clue-card';
 
         const key = `${catIdx}-${clueIdx}`;
-        if (gameState.boardState && gameState.boardState[key]) {
+        const isRevealed = gameState.boardState && gameState.boardState[key];
+        const isCurrent = gameState.currentClue && gameState.currentClue.catIndex === catIdx && gameState.currentClue.clueIndex === clueIdx;
+
+        if (isRevealed) {
           card.classList.add('revealed');
+          card.innerText = '';
+        } else if (isCurrent) {
+          card.classList.add('active-selected');
+          card.innerText = `$${clueObj.value}`;
         } else {
           card.innerText = `$${clueObj.value}`;
         }
@@ -433,11 +449,13 @@ document.addEventListener('DOMContentLoaded', () => {
         row.className = `podium-row rank-${idx + 1}`;
         const medal = idx === 0 ? '1st' : (idx === 1 ? '2nd' : (idx === 2 ? '3rd' : `#${idx + 1}`));
         row.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <span style="font-weight: 900; font-size: 1.1rem; min-width: 55px; color: var(--jeopardy-gold);">${medal}</span>
-            <span style="font-weight: 800; color: ${p.color || '#fff'}; font-size: 1.05rem;">${p.name}</span>
+          <div class="podium-standing-item w-full">
+            <div class="flex-row align-center gap-md">
+              <span class="standing-medal">${medal}</span>
+              <span class="standing-name" style="color: ${p.color || '#fff'};">${p.name}</span>
+            </div>
+            <span class="standing-score" style="color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
           </div>
-          <span style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.2rem; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
         `;
         tvPodiumStandings.appendChild(row);
       });
@@ -480,13 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (gameState.controllingPlayerId && p.id === gameState.controllingPlayerId) {
         const ctrlBadge = document.createElement('span');
-        ctrlBadge.style.fontSize = '0.65rem';
-        ctrlBadge.style.fontWeight = '900';
-        ctrlBadge.style.background = 'var(--jeopardy-gold)';
-        ctrlBadge.style.color = '#000000';
-        ctrlBadge.style.padding = '0.1rem 0.35rem';
-        ctrlBadge.style.borderRadius = '3px';
-        ctrlBadge.style.marginLeft = '0.35rem';
+        ctrlBadge.className = 'control-badge';
         ctrlBadge.innerText = 'CONTROL';
         name.appendChild(ctrlBadge);
       }
@@ -529,10 +541,19 @@ document.addEventListener('DOMContentLoaded', () => {
         tvFJStageMessage.innerText = 'Contestants are submitting secret wagers...';
       }
       if (tvFJClueText) tvFJClueText.style.display = 'none';
-    } else if (fj.state === 'CLUE' || fj.state === 'EVALUATION') {
+    } else if (fj.state === 'CLUE') {
       if (tvFJStageMessage) {
         tvFJStageMessage.style.display = 'block';
-        tvFJStageMessage.innerText = 'FINAL JEOPARDY CLUE';
+        tvFJStageMessage.innerText = 'Contestants are submitting secret answers...';
+      }
+      if (tvFJClueText) {
+        tvFJClueText.style.display = 'block';
+        tvFJClueText.innerText = fj.clue || '';
+      }
+    } else if (fj.state === 'EVALUATION') {
+      if (tvFJStageMessage) {
+        tvFJStageMessage.style.display = 'block';
+        tvFJStageMessage.innerText = 'FINAL JEOPARDY - ANSWER EVALUATION';
       }
       if (tvFJClueText) {
         tvFJClueText.style.display = 'block';
@@ -550,34 +571,48 @@ document.addEventListener('DOMContentLoaded', () => {
       const evalData = fj.evaluated ? fj.evaluated[p.id] : undefined;
 
       const card = document.createElement('div');
-      card.style.background = 'rgba(15, 23, 42, 0.9)';
-      card.style.border = isDisqualified ? '2px solid var(--color-danger)' : '2px solid var(--jeopardy-gold)';
-      card.style.borderRadius = 'var(--radius-md)';
-      card.style.padding = '1rem 1.5rem';
-      card.style.minWidth = '220px';
-      card.style.textAlign = 'center';
+      card.className = `tv-fj-card ${isDisqualified ? 'disqualified' : ''}`;
 
-      let inner = `<div style="font-weight: 800; font-size: 1.2rem; color: ${p.color || '#fff'};">${p.name}</div>`;
-      inner += `<div style="font-weight: 900; font-size: 1.4rem; color: ${p.score <= 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'}; margin-bottom: 0.5rem;">$${p.score}</div>`;
+      let inner = `<div class="tv-fj-card-name" style="color: ${p.color || '#fff'};">${p.name}</div>`;
+      inner += `<div class="tv-fj-card-score ${p.score <= 0 ? 'text-danger' : 'text-gold'}">$${p.score}</div>`;
 
       if (isDisqualified) {
-        inner += `<div style="font-size: 0.9rem; font-weight: 900; color: #f87171; background: rgba(248,113,113,0.15); padding: 0.25rem 0.5rem; border-radius: 4px;">DISQUALIFIED (≤ $0)</div>`;
+        inner += `<div class="disqualified-badge">DISQUALIFIED (≤ $0)</div>`;
       } else {
-        if (wager !== undefined) {
-          inner += `<div style="font-size: 0.95rem; color: #38bdf8;">Wager: $${wager}</div>`;
-        } else {
-          inner += `<div style="font-size: 0.95rem; color: #94a3b8;">Wager: Pending...</div>`;
-        }
-
-        if (resp !== undefined) {
-          inner += `<div style="font-size: 1rem; font-weight: 700; color: #ffffff; margin-top: 0.4rem;">"${resp}"</div>`;
-        }
-
-        if (evalData) {
-          if (evalData.isCorrect) {
-            inner += `<div style="font-size: 0.9rem; font-weight: 900; color: #4ade80; margin-top: 0.3rem;">CORRECT (+$${evalData.wager})</div>`;
+        if (fj.state === 'EVALUATION' || fj.state === 'FINISHED') {
+          if (wager !== undefined) {
+            inner += `<div class="wager-info">Wager: $${wager}</div>`;
           } else {
-            inner += `<div style="font-size: 0.9rem; font-weight: 900; color: #f87171; margin-top: 0.3rem;">INCORRECT (-$${evalData.wager})</div>`;
+            inner += `<div class="wager-pending">Wager: $0</div>`;
+          }
+
+          if (resp !== undefined) {
+            inner += `<div class="response-display">"${resp}"</div>`;
+          } else {
+            inner += `<div class="response-none">(No Answer)</div>`;
+          }
+
+          if (evalData) {
+            if (evalData.isCorrect) {
+              inner += `<div class="eval-correct">CORRECT (+$${evalData.wager})</div>`;
+            } else {
+              inner += `<div class="eval-incorrect">INCORRECT (-$${evalData.wager})</div>`;
+            }
+          }
+        } else if (fj.state === 'WAGER') {
+          if (wager !== undefined) {
+            inner += `<div class="wager-locked">✓ Wager Locked In</div>`;
+          } else {
+            inner += `<div class="wager-pending">Wager: Pending...</div>`;
+          }
+        } else if (fj.state === 'CLUE') {
+          if (wager !== undefined) {
+            inner += `<div class="wager-info">✓ Wager Locked</div>`;
+          }
+          if (resp !== undefined) {
+            inner += `<div class="text-gold font-bold-700 mt-xs">✓ Answer Submitted</div>`;
+          } else {
+            inner += `<div class="wager-pending mt-xs">Answer: Writing...</div>`;
           }
         }
       }

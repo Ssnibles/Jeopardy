@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const activeClueText = document.getElementById('activeClueText');
   const activeClueAnswer = document.getElementById('activeClueAnswer');
   const answerText = document.getElementById('answerText');
+  const buzzerControlsGroup = document.getElementById('buzzerControlsGroup');
   const btnUnlockBuzzers = document.getElementById('btnUnlockBuzzers');
   const btnInstantUnlock = document.getElementById('btnInstantUnlock');
   const btnResetBuzzers = document.getElementById('btnResetBuzzers');
@@ -130,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!categories || categories.length === 0) {
       if (modalPackPreviewTitle) modalPackPreviewTitle.innerText = `${roundLabel} Preview`;
       if (modalPackPreviewBadge) modalPackPreviewBadge.innerText = '0 Categories • 0 Clues';
-      modalPackPreviewList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem;">No questions available for this round preview.</div>';
+      modalPackPreviewList.innerHTML = '<div class="preview-empty-msg">No questions available for this round preview.</div>';
       return;
     }
 
@@ -393,8 +394,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.publicUrl) {
         currentPublicUrl = data.publicUrl;
         if (btnPublicTunnel) {
-          btnPublicTunnel.innerText = 'Internet Link Active';
-          btnPublicTunnel.className = 'btn btn-success';
+          btnPublicTunnel.setAttribute('title', 'Public Internet Link Active (Click to copy)');
+          btnPublicTunnel.className = 'btn btn-success btn-icon';
         }
       }
     }).catch(() => {});
@@ -408,24 +409,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      btnPublicTunnel.innerText = 'Opening Public Tunnel...';
+      btnPublicTunnel.setAttribute('title', 'Opening Public Tunnel...');
       try {
         const res = await fetch('/api/tunnel/start');
         const json = await res.json();
         if (json.success && json.publicUrl) {
           currentPublicUrl = json.publicUrl;
-          btnPublicTunnel.innerText = 'Internet Link Active';
-          btnPublicTunnel.className = 'btn btn-success';
+          btnPublicTunnel.setAttribute('title', 'Public Internet Tunnel active! (Click to copy link)');
+          btnPublicTunnel.className = 'btn btn-success btn-icon';
           const publicPlayerLink = `${currentPublicUrl}/player.html?room=${roomCode}`;
           navigator.clipboard.writeText(publicPlayerLink);
           alert(`Public Internet Tunnel active!\nInvite Link copied:\n${publicPlayerLink}`);
         } else {
           alert('Could not start public tunnel.');
-          btnPublicTunnel.innerText = 'Enable Internet Access';
+          btnPublicTunnel.setAttribute('title', 'Enable Internet Access');
         }
       } catch (err) {
         alert('Tunnel error: ' + err.message);
-        btnPublicTunnel.innerText = 'Enable Internet Access';
+        btnPublicTunnel.setAttribute('title', 'Enable Internet Access');
       }
     };
   }
@@ -444,12 +445,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!window.soundFX) return;
       if (window.soundFX.isMusicPlaying) {
         window.soundFX.stopThinkMusic();
-        btnToggleMusic.classList.remove('active');
-        btnToggleMusic.innerText = 'Think Music';
+        btnToggleMusic.classList.remove('active', 'btn-gold');
+        btnToggleMusic.setAttribute('title', 'Think Music (Off)');
       } else {
         window.soundFX.startThinkMusic();
-        btnToggleMusic.classList.add('active');
-        btnToggleMusic.innerText = 'Playing Music';
+        btnToggleMusic.classList.add('active', 'btn-gold');
+        btnToggleMusic.setAttribute('title', 'Think Music (Playing)');
       }
     };
   }
@@ -546,14 +547,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
           case 'CLUE_SELECTED':
             gameState = msg.state;
+            renderHostBoard();
             renderPlayers();
             updateActiveClueUI();
             break;
 
           case 'HOST_CLUE_DETAILS':
-            if (gameState && gameState.currentClue) {
-              gameState.currentClue.answer = msg.clue.answer;
-              answerText.innerText = msg.clue.answer;
+            if (msg.clue && msg.clue.answer) {
+              currentHostAnswer = msg.clue.answer;
+              if (gameState && gameState.currentClue) {
+                gameState.currentClue.answer = currentHostAnswer;
+              }
+              if (answerText) answerText.innerText = currentHostAnswer;
+              showElement(activeClueAnswer, 'block');
             }
             break;
 
@@ -675,7 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const categories = gameState.categories || [];
 
     if (categories.length === 0) {
-      hostBoard.innerHTML = '<div style="grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--text-muted); font-weight: 700;">No board categories active in current round.</div>';
+      hostBoard.innerHTML = '<div class="board-empty-msg">No board categories active in current round.</div>';
       return;
     }
 
@@ -695,9 +701,15 @@ document.addEventListener('DOMContentLoaded', () => {
         card.className = 'clue-card';
 
         const key = `${catIdx}-${clueIdx}`;
-        if (gameState.boardState && gameState.boardState[key]) {
+        const isRevealed = gameState.boardState && gameState.boardState[key];
+        const isCurrent = gameState.currentClue && gameState.currentClue.catIndex === catIdx && gameState.currentClue.clueIndex === clueIdx;
+
+        if (isRevealed) {
           card.classList.add('revealed');
           card.innerText = '';
+        } else if (isCurrent) {
+          card.classList.add('active-selected');
+          card.innerText = `$${clueObj.value}`;
         } else {
           card.innerText = `$${clueObj.value}`;
           card.onclick = () => {
@@ -715,23 +727,58 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  let currentHostAnswer = '';
+
+  function showElement(el, displayStyle = 'block') {
+    if (!el) return;
+    el.classList.remove('display-none');
+    el.style.display = displayStyle;
+  }
+
+  function hideElement(el) {
+    if (!el) return;
+    el.classList.add('display-none');
+    el.style.display = 'none';
+  }
+
   // Update Active Clue Controls & Daily Double UI
   function updateActiveClueUI() {
     if (!gameState || !gameState.currentClue) {
-      hostClueControlPanel.style.display = 'none';
-      buzzWinnerBox.style.display = 'none';
+      showElement(hostClueControlPanel, 'block');
+      if (activeClueCategory) activeClueCategory.innerText = 'NO CLUE SELECTED';
+      if (activeClueValue) activeClueValue.innerText = 'Select a clue from board below';
+      if (activeClueText) {
+        activeClueText.innerText = 'Click any clue tile on the interactive game board below to activate buzzers and present the clue to players.';
+        activeClueText.classList.remove('active');
+        activeClueText.classList.add('empty');
+      }
+      hideElement(activeClueAnswer);
+      hideElement(buzzerControlsGroup);
+      hideElement(dailyDoubleForm);
+      hideElement(buzzWinnerBox);
+      currentHostAnswer = '';
       return;
     }
 
     const c = gameState.currentClue;
-    hostClueControlPanel.style.display = 'block';
+    showElement(hostClueControlPanel, 'block');
     if (activeClueCategory) activeClueCategory.innerText = c.categoryName;
     if (activeClueValue) activeClueValue.innerText = `$${c.value}`;
-    if (activeClueText) activeClueText.innerText = c.clue;
-    if (activeClueAnswer) activeClueAnswer.style.display = 'block';
-    if (c.answer && answerText) {
-      answerText.innerText = c.answer;
+    if (activeClueText) {
+      activeClueText.innerText = c.clue;
+      activeClueText.classList.remove('empty');
+      activeClueText.classList.add('active');
     }
+    
+    const ans = c.answer || currentHostAnswer;
+    if (ans) {
+      if (answerText) answerText.innerText = ans;
+      showElement(activeClueAnswer, 'block');
+    } else {
+      hideElement(activeClueAnswer);
+    }
+    
+    showElement(buzzerControlsGroup, 'flex');
 
     const effectiveVal = c.wager || c.value;
     const clueValSpans = document.querySelectorAll('.clueValSpan');
@@ -739,10 +786,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (c.dailyDouble) {
       if (!c.wagerSet) {
-        dailyDoubleForm.style.display = 'block';
-        buzzWinnerBox.style.display = 'none';
-        btnUnlockBuzzers.style.display = 'none';
-        if (btnInstantUnlock) btnInstantUnlock.style.display = 'none';
+        showElement(dailyDoubleForm, 'block');
+        hideElement(buzzWinnerBox);
+        hideElement(btnUnlockBuzzers);
+        if (btnInstantUnlock) hideElement(btnInstantUnlock);
         updateDailyDoublePlayersDropdown(c.eligiblePlayerId);
 
         const maxW = c.maxWager || 1000;
@@ -751,18 +798,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (window.soundFX) window.soundFX.playDailyDouble();
       } else {
-        dailyDoubleForm.style.display = 'none';
-        btnUnlockBuzzers.style.display = 'none';
-        if (btnInstantUnlock) btnInstantUnlock.style.display = 'none';
+        hideElement(dailyDoubleForm);
+        hideElement(btnUnlockBuzzers);
+        if (btnInstantUnlock) hideElement(btnInstantUnlock);
 
         // Automatically present evaluation box for Daily Double player
         buzzWinnerName.innerText = `${c.eligiblePlayerName || 'Contestant'} (Daily Double Wager: $${c.wager})`;
-        buzzWinnerBox.style.display = 'block';
+        showElement(buzzWinnerBox, 'block');
       }
     } else {
-      dailyDoubleForm.style.display = 'none';
-      btnUnlockBuzzers.style.display = 'inline-block';
-      if (btnInstantUnlock) btnInstantUnlock.style.display = 'inline-block';
+      hideElement(dailyDoubleForm);
+      showElement(btnUnlockBuzzers, 'inline-block');
+      if (btnInstantUnlock) showElement(btnInstantUnlock, 'inline-block');
     }
 
     if (gameState.buzzerState && gameState.buzzerState.state === 'UNLOCKED') {
@@ -817,7 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hostAnswerTimerBadge) {
       hostAnswerTimerBadge.innerText = `${secondsLeft || 7}s`;
     }
-    buzzWinnerBox.style.display = 'block';
+    showElement(buzzWinnerBox, 'block');
   }
 
   // Clue Buttons Listeners
@@ -911,11 +958,13 @@ document.addEventListener('DOMContentLoaded', () => {
         row.className = `podium-row rank-${idx + 1}`;
         const medal = idx === 0 ? '1st' : (idx === 1 ? '2nd' : (idx === 2 ? '3rd' : `#${idx + 1}`));
         row.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <span style="font-weight: 900; font-size: 1.1rem; min-width: 55px; color: var(--jeopardy-gold);">${medal}</span>
-            <span style="font-weight: 800; color: ${p.color || '#fff'}; font-size: 1.05rem;">${p.name}</span>
+          <div class="podium-standing-item w-full">
+            <div class="flex-row align-center gap-md">
+              <span class="podium-standing-medal">${medal}</span>
+              <span class="podium-standing-name" style="color: ${p.color || '#fff'};">${p.name}</span>
+            </div>
+            <span class="podium-standing-score" style="color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
           </div>
-          <span style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.2rem; color: ${p.score < 0 ? 'var(--color-danger)' : 'var(--jeopardy-gold)'};">$${p.score}</span>
         `;
         hostPodiumStandings.appendChild(row);
       });
@@ -1015,11 +1064,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const details = document.createElement('div');
       const isControlling = gameState.controllingPlayerId ? (p.id === gameState.controllingPlayerId) : false;
       const controlTag = isControlling 
-        ? `<span style="font-size: 0.7rem; font-weight: 800; background: var(--jeopardy-gold); color: #000000; padding: 0.15rem 0.45rem; border-radius: 4px; margin-left: 0.4rem; box-shadow: 0 0 8px rgba(251,191,36,0.5);" title="Currently has Board Control">CONTROL</span>`
-        : `<button class="btn btn-secondary btn-set-control" data-player-id="${p.id}" style="font-size: 0.65rem; padding: 0.1rem 0.4rem; margin-left: 0.4rem; border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;" title="Click to give board control to this player">Give Control</button>`;
+        ? `<span class="control-badge" title="Currently has Board Control">CONTROL</span>`
+        : `<button class="btn btn-secondary btn-set-control" data-player-id="${p.id}" title="Click to give board control to this player">Give Control</button>`;
       details.innerHTML = `
-        <div style="font-weight: 800; font-size: 0.95rem; color: ${p.color || '#ffffff'}; line-height: 1.2; display: flex; align-items: center;">
-          ${p.name} ${controlTag} ${p.connected ? '' : '<span style="color: var(--text-muted); font-weight:400; font-size: 0.75rem; margin-left:0.3rem;">(offline)</span>'}
+        <div class="flex-row align-center font-bold-800 text-sm" style="color: ${p.color || '#ffffff'}; line-height: 1.2;">
+          ${p.name} ${controlTag} ${p.connected ? '' : '<span class="text-muted text-xs ml-xs">(offline)</span>'}
         </div>
       `;
 
@@ -1109,15 +1158,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderHostFinalJeopardy(state) {
     const hostFJPanel = document.getElementById('hostFJPanel');
+    const hostBoardContainer = hostBoard ? hostBoard.closest('.glass-panel') : null;
     if (!hostFJPanel || !state) return;
 
-    if (!state.finalJeopardy) {
+    if (!state.finalJeopardy || state.finalJeopardy.state === 'FINISHED') {
       hostFJPanel.style.display = 'none';
+      if (hostBoardContainer) hostBoardContainer.style.display = 'block';
       return;
     }
 
     const fj = state.finalJeopardy;
     hostFJPanel.style.display = 'block';
+    if (hostBoardContainer) hostBoardContainer.style.display = 'none';
 
     const hostFJCategory = document.getElementById('hostFJCategory');
     const hostFJClue = document.getElementById('hostFJClue');
@@ -1125,15 +1177,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const hostFJStageBadge = document.getElementById('hostFJStageBadge');
     const hostFJPlayerList = document.getElementById('hostFJPlayerList');
 
+    const btnHostRevealFJClue = document.getElementById('btnHostRevealFJClue');
+    const btnHostStartFJEval = document.getElementById('btnHostStartFJEval');
+    const btnHostFinishFJ = document.getElementById('btnHostFinishFJ');
+
     if (hostFJCategory) hostFJCategory.innerText = `CATEGORY: ${fj.category}`;
     if (hostFJClue) hostFJClue.innerText = `CLUE: ${fj.clue || '(Hidden until revealed)'}`;
     if (hostFJAnswer) hostFJAnswer.innerText = `ANSWER: ${fj.answer || ''}`;
     if (hostFJStageBadge) hostFJStageBadge.innerText = `STAGE: ${fj.state}`;
 
+    if (btnHostRevealFJClue) {
+      btnHostRevealFJClue.style.opacity = fj.state === 'WAGER' ? '1' : '0.6';
+    }
+    if (btnHostStartFJEval) {
+      btnHostStartFJEval.style.opacity = fj.state === 'CLUE' ? '1' : '0.6';
+    }
+    if (btnHostFinishFJ) {
+      btnHostFinishFJ.style.opacity = fj.state === 'EVALUATION' ? '1' : '0.6';
+    }
+
+    const hostFJGuideBanner = document.getElementById('hostFJGuideBanner');
+    if (hostFJGuideBanner) {
+      if (fj.state === 'WAGER') {
+        hostFJGuideBanner.innerHTML = '<strong>👉 Step 1 (Secret Wagers):</strong> Wait for contestants to submit their secret wagers ($0 to current score). Once wagers are in, click <strong>"1. Reveal Final Clue"</strong>.';
+      } else if (fj.state === 'CLUE') {
+        hostFJGuideBanner.innerHTML = '<strong>👉 Step 2 (Write Answers):</strong> Read the clue to contestants. Contestants are writing answers. Once answers are in, click <strong>"2. Begin Answer Evaluation"</strong>.';
+      } else if (fj.state === 'EVALUATION') {
+        hostFJGuideBanner.innerHTML = '<strong>👉 Step 3 (Grade Answers):</strong> Review each contestant\'s response below and click <strong>Correct (✓)</strong> or <strong>Incorrect (✗)</strong>. When finished, click <strong>"3. End Game & Reveal Winner"</strong>.';
+      }
+    }
+
     if (!hostFJPlayerList) return;
     hostFJPlayerList.innerHTML = '';
 
     (state.players || []).forEach(p => {
+      const isDisqualified = p.isDisqualified || (state.disqualifiedPlayerIds || []).includes(p.id);
       const wager = fj.wagers ? fj.wagers[p.id] : undefined;
       const resp = fj.responses ? fj.responses[p.id] : undefined;
       const evalData = fj.evaluated ? fj.evaluated[p.id] : undefined;
@@ -1142,39 +1220,36 @@ document.addEventListener('DOMContentLoaded', () => {
       row.style.display = 'flex';
       row.style.justifyContent = 'space-between';
       row.style.alignItems = 'center';
-      row.style.background = 'rgba(255, 255, 255, 0.05)';
+      row.style.background = isDisqualified ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 255, 255, 0.05)';
+      row.style.border = isDisqualified ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)';
       row.style.padding = '0.75rem 1rem';
       row.style.borderRadius = 'var(--radius-sm)';
 
       const nameCol = document.createElement('div');
-      nameCol.innerHTML = `<strong style="color: ${p.color || '#fff'};">${p.name}</strong> <span style="color: var(--jeopardy-gold); margin-left: 0.5rem;">($${p.score})</span>`;
+      nameCol.innerHTML = `<strong style="color: ${p.color || '#fff'};">${p.name}</strong> <span class="text-gold ml-sm">($${p.score})</span>`;
 
       const infoCol = document.createElement('div');
-      infoCol.style.display = 'flex';
-      infoCol.style.alignItems = 'center';
-      infoCol.style.gap = '1rem';
+      infoCol.className = 'flex-row align-center gap-lg';
 
-      let statusHtml = `<span>Wager: <strong>${wager !== undefined ? '$' + wager : 'Pending...'}</strong></span>`;
-      statusHtml += `<span style="margin-left: 0.5rem;">Response: <strong>${resp !== undefined ? '"' + resp + '"' : 'Pending...'}</strong></span>`;
-      infoCol.innerHTML = statusHtml;
+      if (isDisqualified) {
+        infoCol.innerHTML = `<span class="text-danger font-bold-800">DISQUALIFIED (Score ≤ $0)</span>`;
+      } else {
+        let statusHtml = `<span>Wager: <strong>${wager !== undefined ? '$' + wager : 'Pending...'}</strong></span>`;
+        statusHtml += `<span class="ml-sm">Response: <strong>${resp !== undefined ? '"' + resp + '"' : 'Pending...'}</strong></span>`;
+        infoCol.innerHTML = statusHtml;
+      }
 
       const btnGroup = document.createElement('div');
       btnGroup.style.display = 'flex';
       btnGroup.style.gap = '0.4rem';
 
-      if (evalData) {
-        const badge = document.createElement('span');
-        badge.className = evalData.isCorrect ? 'btn btn-success' : 'btn btn-danger';
-        badge.style.padding = '0.3rem 0.6rem';
-        badge.style.fontSize = '0.8rem';
-        badge.innerText = evalData.isCorrect ? `Correct (+${evalData.wager})` : `Wrong (-${evalData.wager})`;
-        btnGroup.appendChild(badge);
-      } else {
+      if (!isDisqualified) {
         const btnWrong = document.createElement('button');
         btnWrong.className = 'btn btn-danger';
         btnWrong.style.fontSize = '0.8rem';
         btnWrong.style.padding = '0.3rem 0.65rem';
-        btnWrong.innerText = 'Incorrect';
+        btnWrong.innerText = evalData && !evalData.isCorrect ? '✓ Wrong' : 'Incorrect';
+        if (evalData && !evalData.isCorrect) btnWrong.style.outline = '2px solid #ffffff';
         btnWrong.onclick = () => {
           if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'EVALUATE_FINAL_PLAYER', targetPlayerId: p.id, isCorrect: false }));
@@ -1185,7 +1260,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btnCorrect.className = 'btn btn-success';
         btnCorrect.style.fontSize = '0.8rem';
         btnCorrect.style.padding = '0.3rem 0.65rem';
-        btnCorrect.innerText = 'Correct';
+        btnCorrect.innerText = evalData && evalData.isCorrect ? '✓ Correct' : 'Correct';
+        if (evalData && evalData.isCorrect) btnCorrect.style.outline = '2px solid #ffffff';
         btnCorrect.onclick = () => {
           if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'EVALUATE_FINAL_PLAYER', targetPlayerId: p.id, isCorrect: true }));
@@ -1208,6 +1284,15 @@ document.addEventListener('DOMContentLoaded', () => {
     btnHostRevealFJClue.onclick = () => {
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'REVEAL_FINAL_CLUE' }));
+      }
+    };
+  }
+
+  const btnHostStartFJEval = document.getElementById('btnHostStartFJEval');
+  if (btnHostStartFJEval) {
+    btnHostStartFJEval.onclick = () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'START_FINAL_EVALUATION' }));
       }
     };
   }

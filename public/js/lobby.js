@@ -374,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!categories || categories.length === 0) {
       packPreviewTitle.innerText = `${roundLabel} Preview`;
       packPreviewBadge.innerText = '0 Categories • 0 Clues';
-      packPreviewList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem;">No questions available for this round preview.</div>';
+      packPreviewList.innerHTML = '<div class="preview-empty-msg">No questions available for this round preview.</div>';
       return;
     }
 
@@ -644,6 +644,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (joinColorSwatches && joinColor) {
     const dots = joinColorSwatches.querySelectorAll('.color-dot');
     dots.forEach(dot => {
+      const c = dot.getAttribute('data-color');
+      if (c) dot.style.backgroundColor = c;
       dot.onclick = () => {
         dots.forEach(d => d.classList.remove('active'));
         dot.classList.add('active');

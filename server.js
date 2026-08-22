@@ -597,8 +597,9 @@ function getPublicRoomState(room) {
       state: room.finalJeopardy.state,
       category: room.finalJeopardy.category,
       clue: (room.finalJeopardy.state === 'CLUE' || room.finalJeopardy.state === 'EVALUATION' || room.finalJeopardy.state === 'FINISHED') ? room.finalJeopardy.clue : undefined,
+      answer: room.finalJeopardy.answer || '',
       wagers: room.finalJeopardy.wagers || {},
-      responses: (room.finalJeopardy.state === 'EVALUATION' || room.finalJeopardy.state === 'FINISHED') ? (room.finalJeopardy.responses || {}) : {},
+      responses: room.finalJeopardy.responses || {},
       evaluated: room.finalJeopardy.evaluated || {}
     } : null,
     isGameOver: room.isGameOver || false,
@@ -638,7 +639,7 @@ wss.on('connection', (ws) => {
       const { type } = msg;
 
       if (type === 'PING') {
-        return send(ws, 'PONG');
+        return send(ws, 'PONG', { clientTime: msg.clientTime });
       }
 
       switch (type) {
@@ -1025,10 +1026,12 @@ wss.on('connection', (ws) => {
           if (room.buzzerState.candidates.some(c => c.playerId === playerId)) return;
 
           const player = room.players.find(p => p.id === playerId);
-          const rawReaction = parseInt(msg.reactionTimeMs, 10);
           const arrivalTime = Date.now();
-          const fallbackReaction = room.buzzerState.unlockTime ? Math.max(50, arrivalTime - room.buzzerState.unlockTime) : 100;
-          const reactionTimeMs = (!isNaN(rawReaction) && rawReaction >= 50 && rawReaction <= 10000) ? rawReaction : fallbackReaction;
+          const unlockTime = room.buzzerState.unlockTime || arrivalTime;
+          const reportedPing = (msg.ping !== undefined && !isNaN(msg.ping) && msg.ping >= 0 && msg.ping <= 3000) ? parseInt(msg.ping, 10) : 60;
+          const oneWayDelay = Math.round(reportedPing / 2);
+          // Real physical press delay relative to unlock time
+          const reactionTimeMs = Math.max(50, (arrivalTime - unlockTime) - oneWayDelay);
 
           room.buzzerState.candidates.push({
             playerId,
@@ -1194,10 +1197,11 @@ wss.on('connection', (ws) => {
           const bState = getBoardState(room);
           const key = `${room.currentClue.catIndex}-${room.currentClue.clueIndex}`;
           bState[key] = true;
+          const closedClueAnswer = room.currentClue.answer;
           room.currentClue = null;
           room.buzzerState = { state: 'LOCKED', activePlayerId: null, buzzedQueue: [] };
 
-          broadcastRoom(roomCode, 'CLUE_CLOSED', { state: getPublicRoomState(room) });
+          broadcastRoom(roomCode, 'CLUE_CLOSED', { state: getPublicRoomState(room), answer: closedClueAnswer });
           checkGameOver(room);
           break;
         }
@@ -1383,6 +1387,19 @@ wss.on('connection', (ws) => {
 
           room.finalJeopardy.state = 'CLUE';
           broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+          console.log(`[Room ${roomCode}] Final Jeopardy Clue revealed!`);
+          break;
+        }
+
+        // --- 18b. START FINAL JEOPARDY EVALUATION (HOST) ---
+        case 'START_FINAL_EVALUATION': {
+          const { roomCode } = clientMeta;
+          const room = rooms[roomCode];
+          if (!room || !room.finalJeopardy || clientMeta.role !== 'HOST') return;
+
+          room.finalJeopardy.state = 'EVALUATION';
+          broadcastRoom(roomCode, 'ROOM_STATE', { state: getPublicRoomState(room) });
+          console.log(`[Room ${roomCode}] Final Jeopardy Evaluation phase started!`);
           break;
         }
 
@@ -1417,11 +1434,23 @@ wss.on('connection', (ws) => {
           const player = room.players.find(p => p.id === targetPlayerId);
           if (player) {
             const wager = room.finalJeopardy.wagers[targetPlayerId] || 0;
+
+            // Undo previous evaluation score adjustment if already evaluated
+            if (room.finalJeopardy.evaluated && room.finalJeopardy.evaluated[targetPlayerId]) {
+              const prevEval = room.finalJeopardy.evaluated[targetPlayerId];
+              if (prevEval.isCorrect) {
+                player.score -= prevEval.wager;
+              } else {
+                player.score += prevEval.wager;
+              }
+            }
+
             if (isCorrect) {
               player.score += wager;
             } else {
               player.score -= wager;
             }
+
             if (!room.finalJeopardy.evaluated) room.finalJeopardy.evaluated = {};
             room.finalJeopardy.evaluated[targetPlayerId] = {
               isCorrect: !!isCorrect,

@@ -1,0 +1,1336 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
+
+/* ==========================================================================
+   JEOPARDY ARENA - GLOBAL CORE STYLESHEET (STYLES.CSS)
+   ========================================================================== */
+
+:root {
+  /* Modern Dark Slate Canvas & Elevated Surfaces */
+  --bg-dark: #090d16;
+  --bg-dark-elevated: #111728;
+  --bg-card: #151c2e;
+  --bg-card-hover: #1e273d;
+
+  /* Crisp Hairline Borders */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.14);
+  --border-accent: rgba(251, 191, 36, 0.35);
+
+  /* Primary Brand Palette */
+  --primary-blue: #2563eb;
+  --primary-blue-hover: #1d4ed8;
+  --jeopardy-gold: #fbbf24;
+  --jeopardy-gold-dark: #d97706;
+  --accent-cyan: #38bdf8;
+
+  /* High Contrast Typography */
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+
+  /* Semantic Colours */
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+
+  /* Corner Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  /* Flat UI Surface tokens */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  /* Transitions */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #050811;
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   HEADER & NAVIGATION BAR
+   ========================================================================== */
+
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  min-height: 64px;
+  background: #070b14;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+.brand:hover {
+  opacity: 0.9;
+}
+
+.brand-logo {
+  color: var(--jeopardy-gold);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.brand-tag {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.brand-icon {
+  font-size: 1.5rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.room-badge {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.tunnel-badge {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  padding: 0.3rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tunnel-badge:hover {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: #34d399;
+}
+
+.tunnel-badge .tunnel-label {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.tunnel-badge .tunnel-url {
+  color: #ffffff;
+  font-family: monospace, 'Outfit', sans-serif;
+  font-weight: 700;
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.profile-header-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.profile-header-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-subtle);
+}
+
+.header-avatar-wrapper {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.header-avatar-wrapper .avatar-bubble-lg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+  background-size: cover;
+  background-position: center;
+  background: var(--primary-blue);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.header-avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  user-select: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.header-avatar-overlay .overlay-icon {
+  width: 12px;
+  height: 12px;
+  margin: 0 0 1px 0;
+}
+
+.profile-header-button:hover .header-avatar-overlay {
+  opacity: 1;
+}
+
+.header-profile-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-header-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.player-header-score {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: var(--jeopardy-gold);
+}
+
+/* ==========================================================================
+   HARMONIZED BUTTON SYSTEM
+   ========================================================================== */
+
+.btn {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #141c2e;
+  color: #f8fafc;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.btn:hover:not(:disabled) {
+  background: #1f2a42;
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.btn:active:not(:disabled) {
+  background: #192338;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-icon, .btn-sq {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  aspect-ratio: 1 / 1 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--radius-md) !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+}
+
+.btn-icon svg, .btn-sq svg {
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+}
+
+.btn-primary {
+  background: #1d3557;
+  color: #ffffff;
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #60a5fa;
+}
+
+.btn-gold, .btn-music-toggle {
+  background: #182236;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.btn-gold:hover:not(:disabled), .btn-music-toggle:hover:not(:disabled) {
+  background: #24324f;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-success {
+  background: #059669;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #047857;
+  border-color: #34d399;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #f87171;
+}
+
+.btn-dashed {
+  background: #0d1526 !important;
+  border: 1.5px dashed var(--border-medium) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--text-main) !important;
+  cursor: pointer !important;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast) !important;
+}
+
+.btn-dashed:hover {
+  border-color: var(--jeopardy-gold) !important;
+  background: rgba(251, 191, 36, 0.08) !important;
+  color: var(--jeopardy-gold) !important;
+}
+
+.btn-music-toggle.active {
+  background: rgba(251, 191, 36, 0.2);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   SURFACES & CONTAINERS
+   ========================================================================== */
+
+.glass-panel, .studio-panel {
+  background: #090e1a;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: none;
+}
+
+.studio-frame {
+  background: #070b15;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.studio-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  background: #080d19;
+  overflow: hidden;
+  width: 100%;
+}
+
+.studio-col-left {
+  padding: 2rem 2.5rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.studio-col-right {
+  padding: 2rem 2.5rem;
+  background: #060912;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.container {
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 1.5rem 2rem;
+  flex: 1;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.75rem;
+}
+
+/* ==========================================================================
+   FORM CONTROLS
+   ========================================================================== */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.15rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-group label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  display: flex;
+  justify-content: space-between;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-control {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-dark);
+  color: var(--text-main);
+  outline: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast);
+}
+
+select.form-control {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.form-control:focus {
+  border-color: var(--jeopardy-gold);
+}
+
+.setup-input-code {
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+/* ==========================================================================
+   SCOREBOARD SYSTEM
+   ========================================================================== */
+
+.scoreboard {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  padding: 0.25rem 0.5rem;
+  max-width: 100%;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  border-left: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.player-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  box-shadow: none;
+}
+
+.player-card.active-buzzer {
+  border-color: var(--jeopardy-gold);
+  background: var(--bg-card-hover);
+}
+
+.player-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #ffffff;
+  font-size: 0.95rem;
+  background: var(--primary-blue);
+}
+
+.player-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.player-score {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--jeopardy-gold);
+}
+
+/* Dynamic Contestant Identity Customiser */
+.identity-customiser {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: #070c18;
+  padding: 1rem 1.15rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.avatar-upload-wrapper {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--border-medium);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.avatar-upload-wrapper:hover {
+  border-color: var(--jeopardy-gold);
+}
+
+.avatar-upload-wrapper:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-bubble-lg {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  background-size: cover;
+  background-position: center;
+  background: var(--primary-blue);
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  gap: 2px;
+}
+
+.color-swatches-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+.color-swatches-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
+.color-swatches-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.color-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.color-dot[data-color="#3b82f6"] { background-color: #3b82f6; }
+.color-dot[data-color="#10b981"] { background-color: #10b981; }
+.color-dot[data-color="#f59e0b"] { background-color: #f59e0b; }
+.color-dot[data-color="#ef4444"] { background-color: #ef4444; }
+.color-dot[data-color="#8b5cf6"] { background-color: #8b5cf6; }
+.color-dot[data-color="#ec4899"] { background-color: #ec4899; }
+
+.color-dot:hover {
+  border-color: var(--text-main);
+}
+
+.color-dot.active {
+  border-color: #ffffff;
+}
+
+.color-picker-button {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--border-medium);
+  cursor: pointer;
+  background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+}
+
+.color-picker-button input[type="color"] {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  cursor: pointer;
+  opacity: 0;
+}
+
+/* ==========================================================================
+   MODALS & OVERLAYS
+   ========================================================================== */
+
+.clue-modal {
+  position: fixed;
+  inset: 0;
+  background-color: #040814;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.clue-modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.clue-content {
+  max-width: 850px;
+  width: 90%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.setup-modal-card {
+  max-width: 480px;
+  width: 92%;
+  max-height: 92vh;
+  overflow-y: auto;
+  text-align: center;
+  padding: 2rem 1.75rem;
+  background: #0d1424;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 3px solid var(--jeopardy-gold);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+.setup-modal-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--jeopardy-gold);
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.02em;
+}
+
+.setup-modal-desc {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 1.75rem;
+}
+
+.setup-form {
+  width: 100%;
+}
+
+.setup-submit-btn {
+  width: 100%;
+  padding: 0.85rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-top: 0.75rem;
+}
+
+.clue-card-display {
+  width: 100%;
+  max-width: 780px;
+  text-align: center;
+  margin: 0 auto 1.5rem auto;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+
+#playerBoardGrid .clue-card.active-selected,
+.player-board-panel .clue-card.active-selected,
+#hostBoard .clue-card.active-selected,
+#tvBoard .clue-card.active-selected,
+.clue-card.active-selected {
+  background: #fbbf24 !important;
+  color: #050811 !important;
+  border-color: #fef08a !important;
+  font-weight: 900 !important;
+}
+
+.clue-category-label {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.clue-value-text {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.35rem;
+  font-weight: 900;
+  color: var(--jeopardy-gold);
+  margin: 0.25rem 0 0.65rem 0;
+  text-shadow: none;
+}
+
+.clue-body-text {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #ffffff;
+  text-shadow: none;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.clue-image-preview {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: var(--radius-md);
+  margin-top: 0.85rem;
+  border: 1px solid var(--border-medium);
+  object-fit: contain;
+}
+
+.clue-answer-banner {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1.5px solid var(--color-success);
+  color: #ffffff;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.clue-category-title {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.clue-value-badge {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--jeopardy-gold);
+}
+
+.clue-text {
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #ffffff;
+}
+
+.clue-image {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  object-fit: contain;
+}
+
+.clue-answer {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1.5px solid var(--color-success);
+  color: #ffffff;
+  padding: 0.85rem 1.75rem;
+  border-radius: var(--radius-md);
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.daily-double-tv-banner {
+  background: #d97706;
+  color: #ffffff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 900;
+  padding: 0.75rem 2rem;
+  border-radius: var(--radius-md);
+  letter-spacing: 0.08em;
+  border: 2px solid #fbbf24;
+  animation: pulseDailyDouble 1.2s infinite alternate ease-in-out;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Winscreen Modal */
+.winscreen-modal {
+  position: fixed;
+  inset: 0;
+  background-color: #040814;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.winscreen-modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.winscreen-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  border-top: 3px solid var(--jeopardy-gold);
+  border-radius: var(--radius-lg);
+  padding: 2.25rem;
+  max-width: 680px;
+  width: 92%;
+  text-align: center;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.winner-badge-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.winner-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--jeopardy-gold);
+  letter-spacing: 0.05em;
+}
+
+.winner-crown {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 900;
+  font-size: 2.2rem;
+  color: var(--jeopardy-gold);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+}
+
+.winner-avatar-lg {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px solid var(--jeopardy-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #fff;
+  background-size: cover;
+  background-position: center;
+}
+
+.winner-name-text {
+  font-size: 1.8rem;
+  color: #fff;
+  font-weight: 900;
+}
+
+.winner-score-display {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #ffffff;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 0.35rem 1.75rem;
+  border-radius: var(--radius-full);
+}
+
+.podium-section {
+  width: 100%;
+}
+
+.podium-title {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  margin-bottom: 0.6rem;
+}
+
+.podium-standings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+}
+
+.podium-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-dark-elevated);
+  border: 1px solid var(--border-subtle);
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-md);
+}
+
+.rank-badge {
+  font-weight: 900;
+  font-size: 0.82rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.rank-badge-1 {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: var(--jeopardy-gold);
+}
+
+.rank-badge-2 {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #e2e8f0;
+}
+
+.rank-badge-3 {
+  background: rgba(217, 119, 6, 0.12);
+  border-color: rgba(217, 119, 6, 0.3);
+  color: #f97316;
+}
+
+/* Countdown Overlay */
+.countdown-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 250;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.countdown-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.countdown-num {
+  font-family: 'Outfit', sans-serif;
+  font-size: 8rem;
+  font-weight: 900;
+  color: var(--jeopardy-gold);
+  animation: pulseCount 0.9s infinite cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.countdown-label {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 1rem;
+}
+
+/* Keyframes */
+@keyframes pulseBuzzerGlow {
+  0% {
+    box-shadow: none;
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+@keyframes pulseDailyDouble {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
+}
+
+@keyframes pulseCount {
+  0% { transform: scale(0.6); opacity: 0.3; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Utility Helper Classes (Replacing Inline Styles) */
+.w-full { width: 100% !important; }
+.text-center { text-align: center !important; }
+.text-left { text-align: left !important; }
+.display-none { display: none !important; }
+.flex-row { display: flex !important; flex-direction: row !important; }
+.flex-col { display: flex !important; flex-direction: column !important; }
+.flex-center { display: flex !important; align-items: center !important; justify-content: center !important; }
+.align-center { align-items: center !important; }
+.justify-between { justify-content: space-between !important; }
+.flex-wrap { flex-wrap: wrap !important; }
+.flex-1 { flex: 1 !important; }
+
+.gap-xs { gap: 0.35rem !important; }
+.gap-sm { gap: 0.5rem !important; }
+.gap-md { gap: 0.75rem !important; }
+.gap-lg { gap: 1rem !important; }
+.gap-xl { gap: 1.25rem !important; }
+
+.mt-0 { margin-top: 0 !important; }
+.mt-xs { margin-top: 0.25rem !important; }
+.mt-sm { margin-top: 0.5rem !important; }
+.mt-md { margin-top: 0.85rem !important; }
+.mt-lg { margin-top: 1.25rem !important; }
+.mb-0 { margin-bottom: 0 !important; }
+.mb-xs { margin-bottom: 0.25rem !important; }
+.mb-sm { margin-bottom: 0.5rem !important; }
+.mb-md { margin-bottom: 0.85rem !important; }
+.mb-lg { margin-bottom: 1.25rem !important; }
+
+.text-gold { color: var(--jeopardy-gold) !important; }
+.text-success { color: var(--color-success) !important; }
+.text-danger { color: var(--color-danger) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-white { color: #ffffff !important; }
+.font-outfit { font-family: 'Outfit', sans-serif !important; }
+.font-bold-700 { font-weight: 700 !important; }
+.font-bold-800 { font-weight: 800 !important; }
+.font-bold-900 { font-weight: 900 !important; }
+
+/* Dynamic JS Component Styling */
+.control-badge {
+  font-size: 0.68rem;
+  font-weight: 900;
+  background: var(--jeopardy-gold);
+  color: #000000;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  margin-left: 0.4rem;
+  box-shadow: none;
+}
+
+.btn-set-control {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.45rem;
+  margin-left: 0.4rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  transition: background var(--transition-fast);
+}
+
+.btn-set-control:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.preview-empty-msg {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.board-empty-msg {
+  grid-column: 1 / -1;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.podium-standing-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background: var(--bg-dark-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.podium-standing-medal {
+  font-weight: 900;
+  font-size: 1.1rem;
+  min-width: 55px;
+  color: var(--jeopardy-gold);
+}
+
+.podium-standing-name {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.podium-standing-score {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 900;
+  font-size: 1.2rem;
+}
+
+.tv-fj-card-name {
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+.tv-fj-card-score {
+  font-weight: 900;
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.tv-fj-disqualified {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.tv-fj-wager-text {
+  font-size: 0.95rem;
+  color: #38bdf8;
+}
+
+.tv-fj-wager-zero {
+  font-size: 0.95rem;
+  color: #94a3b8;
+}
+
+.tv-fj-response-text {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-top: 0.4rem;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+}
+
+.tv-fj-correct-eval {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #4ade80;
+  margin-top: 0.3rem;
+}
+
+.tv-fj-incorrect-eval {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #f87171;
+  margin-top: 0.3rem;
+}
+
+/* Responsive Rules */
+@media (max-width: 768px) {
+  .header-bar { padding: 0.65rem 0.85rem; }
+}
+
+@media (max-width: 640px) {
+  .header-bar { padding: 0.5rem 0.75rem; min-height: 52px; gap: 0.4rem; }
+  .brand { font-size: 1.05rem; }
+  .brand-tag { font-size: 0.62rem; padding: 0.15rem 0.4rem; }
+  .room-badge { font-size: 0.72rem; padding: 0.2rem 0.5rem; }
+  .nav-links { gap: 0.3rem; }
+  .btn { padding: 0.4rem 0.7rem; font-size: 0.78rem; }
+  .scoreboard { border: none; width: 100%; order: 3; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .header-right { gap: 0.4rem; }
+  .studio-col-left, .studio-col-right { padding: 1.25rem 1rem; }
+}
+
